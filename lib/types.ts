@@ -207,3 +207,51 @@ export interface ChatMessage {
   content: string;
   citations?: string[];
 }
+
+export type KgNodeType = "release" | "service" | "person" | "ticket" | "change" | "incident";
+
+export interface KgNode {
+  id: string;
+  type: KgNodeType;
+  label: string;
+  sublabel?: string;
+  href?: string;
+  meta?: Record<string, string>;
+}
+
+export interface KgEdge {
+  id: string;
+  source: string;
+  target: string;
+  label?: string;
+}
+
+export interface ReleasePrediction {
+  releaseId: string;
+  version: string;
+  team: string;
+  targetDate: string;
+  shipSuccessPct: number;
+  rollbackRiskPct: number;
+  delayRiskPct: number;
+  confidence: number;
+  factors: { label: string; impact: number; direction: "up" | "down" }[];
+  modelVersion: string;
+}
+
+export interface TeamRiskCell {
+  team: string;
+  riskScore: number;
+  active: number;
+  atRisk: number;
+  blocked: number;
+  avgReadiness: number;
+}
+
+export interface ForecastTrendPoint {
+  week: string;
+  actualReadiness?: number;
+  predictedReadiness?: number;
+  predictedRollbacks?: number;
+  isForecast?: boolean;
+}

@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { TopBar } from "@/components/layout/TopBar";
 import { AgentBadge } from "@/components/badges/AgentBadge";
 import { AICardSkeleton } from "@/components/ui/AISkeleton";
 import { TrendChart } from "@/components/insights/TrendChart";
+import { PredictiveForecastPanel } from "@/components/predictive/PredictiveForecastPanel";
 import { callAgent } from "@/lib/agent-client";
-import { historicalTrend, getOrgContext } from "@/lib/dummy-data";
+import { historicalTrend, getOrgContext, releases, services } from "@/lib/dummy-data";
+import { predictAllReleases } from "@/lib/predictive";
 import type { RiskFlag } from "@/lib/types";
 import { Send } from "lucide-react";
 
@@ -17,6 +19,9 @@ export default function InsightsPage() {
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState<string | null>(null);
   const [asking, setAsking] = useState(false);
+
+  const unstableIds = useMemo(() => services.filter((s) => s.unstable).map((s) => s.id), []);
+  const predictions = useMemo(() => predictAllReleases(releases, unstableIds), [unstableIds]);
 
   useEffect(() => {
     callAgent({
@@ -62,6 +67,10 @@ export default function InsightsPage() {
       </div>
 
       <TrendChart data={historicalTrend} />
+
+      <div className="mt-6">
+        <PredictiveForecastPanel predictions={predictions} compact />
+      </div>
 
       <div className="mt-6">
         <div className="flex items-center gap-2 mb-4">

@@ -593,3 +593,27 @@ export function getOrgContext() {
     },
   };
 }
+
+export function getExecutiveContext(
+  predictions: {
+    version: string;
+    shipSuccessPct: number;
+    rollbackRiskPct: number;
+    team: string;
+  }[],
+  portfolio: {
+    activeCount: number;
+    atRiskCount: number;
+    avgReadiness: number;
+    avgShipSuccess: number;
+    highRollbackCount: number;
+    shippingThisWeek: number;
+  }
+) {
+  return {
+    ...getOrgContext(),
+    portfolio,
+    mlPredictions: predictions.slice(0, 8),
+    cabSessions: cabSessions.slice(0, 2),
+  };
+}

@@ -18,9 +18,9 @@ export function getAgentSystemPrompt(role: AgentRole, structured?: boolean): str
 
   switch (role) {
     case "Summary Agent":
-      return `${BASE} You are the Summary Agent. Write one executive paragraph (3-5 sentences) summarizing release health across all releases in context. Mention specific release names and blockers.`;
+      return `${BASE} You are the Summary Agent. Write one executive paragraph (3-5 sentences) for C-level stakeholders. Use portfolio and mlPredictions in context when present. Mention specific release versions, ML forecast highlights, and top risks.`;
     case "Risk Agent":
-      return `${BASE} You are the Risk Agent. Provide a single one-line risk explanation for the release in context.`;
+      return `${BASE} You are the Risk Agent. If context includes mlPredictions or mode forecast, write 2-3 sentences interpreting ML ship/rollback forecasts and historical trends. Otherwise provide a single one-line risk explanation for the release in context.`;
     case "Build Agent":
       return `${BASE} You are the Build Agent. Explain the build failure in plain English.`;
     case "Approval Agent":

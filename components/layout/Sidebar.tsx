@@ -5,15 +5,17 @@ import { ProgressLink } from "@/components/layout/NavigationProgress";
 import { useSidebar } from "@/context/SidebarContext";
 import {
   LayoutDashboard, Package, Calendar, History, Plug, Settings,
-  Bot, LineChart, Shield,
+  Bot, LineChart, Shield, Briefcase, Share2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const nav = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/executive", label: "Executive", icon: Briefcase },
   { href: "/releases", label: "Releases", icon: Package },
   { href: "/calendar", label: "Calendar", icon: Calendar },
   { href: "/insights", label: "Insights", icon: LineChart },
+  { href: "/knowledge-graph", label: "Knowledge Graph", icon: Share2 },
   { href: "/agents", label: "Agents", icon: Bot, pulse: true },
   { href: "/history", label: "History Log", icon: History },
   { href: "/connectors", label: "Connectors", icon: Plug },

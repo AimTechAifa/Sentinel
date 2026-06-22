@@ -33,14 +33,16 @@ Flagship demo prototype for stakeholder screen recordings. Static dummy data wit
 |---|---|
 | `/login` | Fake login → dashboard |
 | `/dashboard` | Executive overview + AI daily summary |
+| `/executive` | C-level portfolio dashboard, risk heatmap, ML forecasts |
 | `/releases` | Full release list |
 | `/releases/[id]` | Release command center (core screen) |
 | `/releases/[id]/dependencies` | React Flow dependency map |
+| `/knowledge-graph` | Org-wide knowledge graph (releases, services, people, CRs) |
 | `/calendar` | Release calendar |
 | `/history` | Global audit trail |
 | `/connectors` | 8 live connectors |
 | `/agents` | Agent control room |
-| `/insights` | Org-wide AI risk & trends |
+| `/insights` | Org-wide AI risk, trends, and predictive ML |
 | `/settings` | Team/role settings |
 
 ## Demo anchors
