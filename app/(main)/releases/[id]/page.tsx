@@ -10,14 +10,17 @@ import { BuildExplainer } from "@/components/releases/BuildExplainer";
 import { ApprovalNudge } from "@/components/releases/ApprovalNudge";
 import { CabPanel } from "@/components/releases/CabPanel";
 import { DeploymentMonitor } from "@/components/releases/DeploymentMonitor";
+import { EnvironmentPromotionStrip } from "@/components/releases/EnvironmentPromotionStrip";
 import { GoNoGoControls } from "@/components/releases/GoNoGoControls";
 import { ReleaseLifecycleStrip } from "@/components/releases/ReleaseLifecycleStrip";
+import { ReleaseScorecardButton } from "@/components/releases/ReleaseScorecard";
+import { YesterdayDiffPanel } from "@/components/releases/YesterdayDiffPanel";
 import { AdvancedCard } from "@/components/ui/advanced-card";
 import { useReleaseStore } from "@/context/ReleaseStoreContext";
 import { releases } from "@/lib/dummy-data";
 import { computeLifecycleStages } from "@/lib/lifecycle";
 import { formatDate, formatDateTime } from "@/lib/utils";
-import { GitBranch, Network, Ticket, Wrench, FileText, History } from "lucide-react";
+import { GitBranch, Network, Ticket, Wrench, FileText, History, Columns2 } from "lucide-react";
 
 export default function ReleaseDetailPage({ params }: { params: { id: string } }) {
   const release = releases.find((r) => r.id === params.id);
@@ -36,16 +39,33 @@ export default function ReleaseDetailPage({ params }: { params: { id: string } }
     <div>
       <TopBar title={`${release.version} — ${release.name}`} subtitle={`${release.team} · Owner: ${release.owner} · Target: ${formatDate(release.targetDate)}`} highlight />
 
-      <div className="flex items-center gap-3 mb-6">
+      <div className="flex items-center gap-3 mb-6 flex-wrap">
         <StatusBadge status={release.status} />
         {decision && <StatusBadge status={decision} />}
         {deploy && deploy.phase !== "Not Started" && <StatusBadge status={deploy.phase} />}
-        <ProgressLink href={`/releases/${release.id}/dependencies`} className="ml-auto flex items-center gap-1.5 text-sm text-brand-500 hover:text-brand-600 font-medium transition-colors">
-          <Network className="w-4 h-4" /> Dependency Map
-        </ProgressLink>
+        <div className="ml-auto flex items-center gap-2">
+          <ReleaseScorecardButton release={release} decision={decision} />
+          <ProgressLink
+            href={`/compare?left=${release.id}`}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200/80 bg-white/80 px-3 py-2 text-sm font-medium text-gray-700 shadow-theme-sm hover:bg-brand-50 hover:text-brand-600 transition-colors"
+          >
+            <Columns2 className="w-4 h-4" /> Compare
+          </ProgressLink>
+          <ProgressLink href={`/releases/${release.id}/dependencies`} className="flex items-center gap-1.5 text-sm text-brand-500 hover:text-brand-600 font-medium transition-colors">
+            <Network className="w-4 h-4" /> Dependency Map
+          </ProgressLink>
+        </div>
       </div>
 
       <ReleaseLifecycleStrip stages={stages} />
+
+      <div className="mt-6">
+        <EnvironmentPromotionStrip release={release} deployPhase={deploy?.phase} />
+      </div>
+
+      <div className="mt-6">
+        <YesterdayDiffPanel release={release} />
+      </div>
 
       <div className="mt-6">
         <ApprovalNudge release={release} />

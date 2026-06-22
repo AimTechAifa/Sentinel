@@ -8,6 +8,7 @@ import { DotPattern } from "@/components/ui/dot-pattern";
 import { ShimmerText } from "@/components/ui/shimmer-text";
 import { MagicCard } from "@/components/ui/magic-card";
 import { taBtnPrimary, taInput } from "@/lib/styles";
+import { PRODUCT_TAGLINE } from "@/lib/brand";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -24,10 +25,13 @@ export default function LoginPage() {
           className="mx-auto w-full max-w-md"
         >
           <div className="mb-8 flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-violet-600 shadow-theme-md">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-violet-600 shadow-theme-md">
               <Shield className="h-6 w-6 text-white" />
             </div>
-            <ShimmerText className="text-2xl font-bold">Sentinel</ShimmerText>
+            <div>
+              <ShimmerText className="text-2xl font-bold">Sentinel</ShimmerText>
+              <p className="mt-0.5 text-xs text-gray-500">{PRODUCT_TAGLINE}</p>
+            </div>
           </div>
           <h1 className="mb-2 text-title-sm font-semibold text-gray-800">Sign In</h1>
           <p className="mb-8 text-sm text-gray-500">

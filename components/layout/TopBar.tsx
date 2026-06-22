@@ -8,12 +8,13 @@ import { cn } from "@/lib/utils";
 interface TopBarProps {
   title: string;
   subtitle?: string;
+  positioning?: string;
   highlight?: boolean;
   badge?: React.ReactNode;
   className?: string;
 }
 
-export function TopBar({ title, subtitle, highlight = false, badge, className }: TopBarProps) {
+export function TopBar({ title, subtitle, positioning, highlight = false, badge, className }: TopBarProps) {
   return (
     <motion.header
       initial={{ opacity: 0, y: -10 }}
@@ -33,6 +34,9 @@ export function TopBar({ title, subtitle, highlight = false, badge, className }:
             <h1 className="text-title-sm font-bold text-gray-800">{title}</h1>
           )}
           {subtitle && <p className="mt-1 text-sm text-gray-500">{subtitle}</p>}
+          {positioning && (
+            <p className="mt-1 text-xs text-gray-400">{positioning}</p>
+          )}
         </div>
         {badge}
       </div>

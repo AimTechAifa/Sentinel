@@ -14,6 +14,14 @@ export function defaultSmokeTests(release: Release): DeploymentSmokeTest[] {
   }));
 }
 
+export function isHighRiskDeploy(release: Release): boolean {
+  return (
+    release.status === "At Risk" ||
+    release.filesChanged > 400 ||
+    release.dependsOnServices.includes("svc-payments")
+  );
+}
+
 export function defaultMetrics(release: Release, rolloutPct: number): LiveMetricSnapshot[] {
   const baseLatency = release.dependsOnServices.includes("svc-payments") ? 210 : 145;
   const baseError = release.status === "At Risk" ? 0.42 : 0.18;
@@ -54,6 +62,42 @@ export function defaultMetrics(release: Release, rolloutPct: number): LiveMetric
   ];
 }
 
+export function detectCriticalBreach(metrics: LiveMetricSnapshot[]): string | null {
+  const error = metrics.find((m) => m.id === "error-rate");
+  if (error && error.status === "critical") {
+    return `Error rate ${error.value}${error.unit} exceeded threshold (${error.threshold}${error.unit})`;
+  }
+  const latency = metrics.find((m) => m.id === "latency");
+  if (latency && latency.status === "critical") {
+    return `p99 latency ${latency.value}${latency.unit} exceeded threshold (${latency.threshold}${latency.unit})`;
+  }
+  const incidents = metrics.find((m) => m.id === "incidents");
+  if (incidents && incidents.value > incidents.threshold) {
+    return `Active incidents (${incidents.value}) during rollout`;
+  }
+  return null;
+}
+
+function applyCanarySpike(
+  metrics: LiveMetricSnapshot[],
+  release: Release,
+  rolloutPct: number
+): LiveMetricSnapshot[] {
+  if (!isHighRiskDeploy(release) || rolloutPct < 45) return metrics;
+  if (rolloutPct < 55) {
+    return metrics.map((m) =>
+      m.id === "error-rate"
+        ? { ...m, value: 0.82, status: "warning" as const }
+        : m
+    );
+  }
+  return metrics.map((m) => {
+    if (m.id === "error-rate") return { ...m, value: 1.18, status: "critical" as const };
+    if (m.id === "latency" && rolloutPct >= 62) return { ...m, value: 480, status: "critical" as const };
+    return m;
+  });
+}
+
 export function createInitialDeploymentState(release: Release, phase: DeploymentPhase = "Not Started"): DeploymentLiveState {
   const rolloutPct = phase === "Verified" ? 100 : phase === "In Progress" ? 35 : 0;
   return {
@@ -68,7 +112,13 @@ export function createInitialDeploymentState(release: Release, phase: Deployment
 export function tickDeployment(state: DeploymentLiveState, release: Release): DeploymentLiveState {
   if (state.phase === "In Progress") {
     const nextRollout = Math.min(100, state.rolloutPct + 6 + (release.filesChanged > 400 ? 2 : 4));
-    const metrics = jitterMetrics(defaultMetrics(release, nextRollout), state.metrics, "deploy");
+    let metrics = jitterMetrics(defaultMetrics(release, nextRollout), state.metrics, "deploy");
+    metrics = applyCanarySpike(metrics, release, nextRollout);
+
+    const breach = detectCriticalBreach(metrics);
+    if (breach) {
+      return autoRollbackDeploymentState({ ...state, rolloutPct: nextRollout, metrics }, release, breach);
+    }
 
     if (nextRollout >= 100) {
       const tests = state.smokeTests.map((t, i) => ({
@@ -88,6 +138,13 @@ export function tickDeployment(state: DeploymentLiveState, release: Release): De
   }
 
   if (state.phase === "Verifying") {
+    let metrics = jitterMetrics(defaultMetrics(release, 100), state.metrics, "deploy");
+    metrics = applyCanarySpike(metrics, release, 100);
+    const breach = detectCriticalBreach(metrics);
+    if (breach) {
+      return autoRollbackDeploymentState({ ...state, metrics }, release, breach);
+    }
+
     const runningIdx = state.smokeTests.findIndex((t) => t.status === "Running");
     if (runningIdx >= 0) {
       const tests = [...state.smokeTests];
@@ -103,7 +160,7 @@ export function tickDeployment(state: DeploymentLiveState, release: Release): De
           metrics: jitterMetrics(defaultMetrics(release, 100), state.metrics, "stable"),
         };
       }
-      return { ...state, smokeTests: tests };
+      return { ...state, smokeTests: tests, metrics };
     }
   }
 
@@ -160,18 +217,32 @@ export function startDeploymentState(release: Release): DeploymentLiveState {
   };
 }
 
-export function rollbackDeploymentState(state: DeploymentLiveState, release: Release): DeploymentLiveState {
+export function rollbackDeploymentState(
+  state: DeploymentLiveState,
+  release: Release,
+  opts?: { auto?: boolean; reason?: string }
+): DeploymentLiveState {
   return {
     ...state,
     phase: "Rolled Back",
     rolloutPct: 0,
     completedAt: new Date().toISOString(),
+    autoRollback: opts?.auto ?? state.autoRollback,
+    rollbackReason: opts?.reason ?? state.rollbackReason,
     metrics: jitterMetrics(defaultMetrics(release, 0), state.metrics, "rollback"),
     smokeTests: state.smokeTests.map((t) => ({
       ...t,
       status: t.status === "Passed" ? "Passed" : "Failed",
     })),
   };
+}
+
+export function autoRollbackDeploymentState(
+  state: DeploymentLiveState,
+  release: Release,
+  reason: string
+): DeploymentLiveState {
+  return rollbackDeploymentState(state, release, { auto: true, reason });
 }
 
 export function getDeploymentPhaseLabel(phase: DeploymentPhase): string {

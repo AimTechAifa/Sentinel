@@ -1,5 +1,7 @@
 # Sentinel — AI-Powered Release Command Center
 
+Built by release managers for release management.
+
 Flagship demo prototype for stakeholder screen recordings. Static dummy data with real LLM-powered agent responses.
 
 ## Setup

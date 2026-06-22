@@ -19,6 +19,7 @@ import {
   markNotificationRead,
   recordDecision,
   recordReminderSent,
+  setRollbackNarrative,
   saveReleaseStore,
   startDeployment,
   tickDeploymentLive,
@@ -42,6 +43,7 @@ interface ReleaseStoreContextValue {
   startDeploy: (release: Release) => void;
   tickDeploy: (release: Release) => void;
   rollbackDeploy: (release: Release) => void;
+  setRollbackNarrative: (releaseId: string, narrative: string) => void;
   dismissNotification: (id: string) => void;
   dismissAllNotifications: () => void;
   unreadNotifications: number;
@@ -86,6 +88,9 @@ export function ReleaseStoreProvider({ children }: { children: ReactNode }) {
       },
       rollbackDeploy: (release) => {
         persist((prev) => initiateRollback(prev, release.id, release, release.version));
+      },
+      setRollbackNarrative: (releaseId, narrative) => {
+        persist((prev) => setRollbackNarrative(prev, releaseId, narrative));
       },
       dismissNotification: (id) => persist((prev) => markNotificationRead(prev, id)),
       dismissAllNotifications: () => persist((prev) => markAllNotificationsRead(prev)),

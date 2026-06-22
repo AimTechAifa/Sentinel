@@ -40,6 +40,27 @@ body {
   }
 }
 
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .scorecard-print,
+  .scorecard-print * {
+    visibility: visible;
+  }
+  .scorecard-print {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+  .print-modal-overlay {
+    position: static;
+    background: white;
+    padding: 0;
+  }
+}
+
 @layer utilities {
   .ai-card {
     @apply border border-violet-100/80 border-l-4 border-l-ai bg-gradient-to-br from-violet-50/80 via-white to-brand-50/40 rounded-2xl shadow-theme-sm backdrop-blur-sm;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import ReactFlow, { Background, Controls, MiniMap, Node, Edge, MarkerType } from "reactflow";
+import ReactFlow, { Background, Controls, MiniMap, Node, Edge, MarkerType, type NodeMouseHandler } from "reactflow";
 import "reactflow/dist/style.css";
 import { ProgressLink } from "@/components/layout/NavigationProgress";
 import { ArrowLeft, Network } from "lucide-react";
@@ -11,6 +11,7 @@ import { AICardSkeleton } from "@/components/ui/AISkeleton";
 import { AdvancedCard } from "@/components/ui/advanced-card";
 import { MagicCard } from "@/components/ui/magic-card";
 import { TopBar } from "@/components/layout/TopBar";
+import { ServiceDetailPanel } from "@/components/services/ServiceDetailPanel";
 import { callAgent } from "@/lib/agent-client";
 import { releases, services } from "@/lib/dummy-data";
 import type { DependencyWarning } from "@/lib/types";
@@ -21,6 +22,7 @@ export default function DependenciesPage({ params }: { params: { id: string } })
   const release = releases.find((r) => r.id === params.id);
   const [warnings, setWarnings] = useState<DependencyWarning[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!release) return;
@@ -40,7 +42,12 @@ export default function DependenciesPage({ params }: { params: { id: string } })
     const ns: Node[] = services.map((s, i) => ({
       id: s.id,
       type: "service",
-      data: { label: s.name, touched: touched.has(s.id), unstable: s.unstable },
+      data: {
+        label: s.name,
+        touched: touched.has(s.id),
+        unstable: s.unstable,
+        selected: selectedServiceId === s.id,
+      },
       position: { x: (i % 4) * 220, y: Math.floor(i / 4) * 120 },
     }));
     const es: Edge[] = services.flatMap((s) =>
@@ -53,7 +60,13 @@ export default function DependenciesPage({ params }: { params: { id: string } })
       }))
     );
     return { nodes: ns, edges: es };
-  }, [release]);
+  }, [release, selectedServiceId]);
+
+  const onNodeClick: NodeMouseHandler = (_, node) => {
+    if (services.some((s) => s.id === node.id)) {
+      setSelectedServiceId((prev) => (prev === node.id ? null : node.id));
+    }
+  };
 
   if (!release) return <p className="text-slate-500">Release not found.</p>;
 
@@ -65,35 +78,42 @@ export default function DependenciesPage({ params }: { params: { id: string } })
         </ProgressLink>
         <TopBar
           title={`Dependency Map — ${release.version}`}
-          subtitle="Services touched by this release highlighted in blue"
+          subtitle="Click a service node for incident history, releases, and risk status"
           className="mb-0 flex-1"
         />
       </div>
       <div className="flex flex-1 gap-4 min-h-0">
         <MagicCard gradient="from-brand-200/40 via-white to-violet-200/40" className="flex-1" innerClassName="h-full overflow-hidden">
-          <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} fitView>
+          <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} fitView onNodeClick={onNodeClick}>
             <Background gap={16} color="#E2E8F0" />
             <Controls className="!rounded-xl" />
             <MiniMap className="!rounded-xl" />
           </ReactFlow>
         </MagicCard>
-        <AdvancedCard
-          title="Dependency Warnings"
-          icon={Network}
-          variant="ai"
-          action={<AgentBadge agent="Dependency Agent" />}
-          className="w-80 shrink-0"
-          innerClassName="overflow-y-auto max-h-full"
-        >
-          {loading && <AICardSkeleton />}
-          {!loading && warnings.map((w, i) => (
-            <div key={i} className="rounded-xl border border-violet-100 bg-white/80 p-3 mb-3 text-sm backdrop-blur-sm">
-              <p className="text-gray-700">{w.warning}</p>
-              {w.citations?.length > 0 && <p className="text-xs text-gray-400 mt-2">{w.citations.join(" · ")}</p>}
-            </div>
-          ))}
-          {!loading && warnings.length === 0 && <p className="text-sm text-gray-500">No dependency warnings.</p>}
-        </AdvancedCard>
+        <div className="w-80 shrink-0 flex flex-col gap-4 min-h-0 overflow-y-auto">
+          {selectedServiceId && (
+            <ServiceDetailPanel
+              serviceId={selectedServiceId}
+              onClose={() => setSelectedServiceId(null)}
+            />
+          )}
+          <AdvancedCard
+            title="Dependency Warnings"
+            icon={Network}
+            variant="ai"
+            action={<AgentBadge agent="Dependency Agent" />}
+            innerClassName="overflow-y-auto"
+          >
+            {loading && <AICardSkeleton />}
+            {!loading && warnings.map((w, i) => (
+              <div key={i} className="rounded-xl border border-violet-100 bg-white/80 p-3 mb-3 text-sm backdrop-blur-sm">
+                <p className="text-gray-700">{w.warning}</p>
+                {w.citations?.length > 0 && <p className="text-xs text-gray-400 mt-2">{w.citations.join(" · ")}</p>}
+              </div>
+            ))}
+            {!loading && warnings.length === 0 && <p className="text-sm text-gray-500">No dependency warnings.</p>}
+          </AdvancedCard>
+        </div>
       </div>
     </div>
   );

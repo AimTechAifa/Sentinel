@@ -5,14 +5,16 @@ import { ProgressLink } from "@/components/layout/NavigationProgress";
 import { useSidebar } from "@/context/SidebarContext";
 import {
   LayoutDashboard, Package, Calendar, History, Plug, Settings,
-  Bot, LineChart, Shield, Briefcase, Share2,
+  Bot, LineChart, Shield, Briefcase, Share2, Columns2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PRODUCT_TAGLINE } from "@/lib/brand";
 
 const nav = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/executive", label: "Executive", icon: Briefcase },
   { href: "/releases", label: "Releases", icon: Package },
+  { href: "/compare", label: "Compare", icon: Columns2 },
   { href: "/calendar", label: "Calendar", icon: Calendar },
   { href: "/insights", label: "Insights", icon: LineChart },
   { href: "/knowledge-graph", label: "Knowledge Graph", icon: Share2 },
@@ -43,7 +45,10 @@ export function Sidebar() {
             <Shield className="h-5 w-5 text-white" />
           </div>
           {wide && (
-            <span className="text-xl font-bold text-gray-800 tracking-tight">Sentinel</span>
+            <div>
+              <span className="text-xl font-bold text-gray-800 tracking-tight">Sentinel</span>
+              <p className="mt-0.5 text-[11px] leading-snug text-gray-400">{PRODUCT_TAGLINE}</p>
+            </div>
           )}
         </ProgressLink>
       </div>
@@ -83,7 +88,7 @@ export function Sidebar() {
         <div className="border-t border-gray-200 py-4">
           <div className="rounded-2xl bg-brand-950 px-4 py-4">
             <p className="text-sm font-semibold text-white">Release Command Center</p>
-            <p className="mt-1 text-xs text-gray-400">AI agents monitoring your releases 24/7</p>
+            <p className="mt-1 text-xs text-gray-400">{PRODUCT_TAGLINE}</p>
           </div>
         </div>
       )}

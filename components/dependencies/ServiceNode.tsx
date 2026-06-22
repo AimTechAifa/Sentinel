@@ -2,17 +2,22 @@
 
 import { memo } from "react";
 import { Handle, Position, type NodeProps } from "reactflow";
+import { cn } from "@/lib/utils";
 
 export interface ServiceNodeData {
   label: string;
   touched: boolean;
   unstable?: boolean;
+  selected?: boolean;
 }
 
 function ServiceNodeComponent({ data }: NodeProps<ServiceNodeData>) {
   return (
     <div
-      className="relative rounded-lg px-2.5 py-2 text-xs"
+      className={cn(
+        "relative rounded-lg px-2.5 py-2 text-xs cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]",
+        data.selected && "ring-2 ring-brand-500 ring-offset-1"
+      )}
       style={{
         background: data.touched ? "#DBEAFE" : "#fff",
         border: data.touched

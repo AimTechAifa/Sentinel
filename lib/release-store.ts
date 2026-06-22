@@ -209,14 +209,16 @@ export function getDeployment(
 function withDeployHistory(
   state: ReleaseStoreState,
   releaseId: string,
-  action: string
+  action: string,
+  actor = "Priya Sharma"
 ): ReleaseStoreState {
   const entry: HistoryEntry = {
     id: `dep-${releaseId}-${Date.now()}`,
     timestamp: new Date().toISOString(),
-    actor: "Priya Sharma",
+    actor,
     action,
-    type: "human",
+    type: actor.endsWith(" Agent") ? "agent" : "human",
+    ...(actor.endsWith(" Agent") ? { agent: actor as HistoryEntry["agent"] } : {}),
   };
   return {
     ...state,
@@ -269,6 +271,30 @@ export function tickDeploymentLive(
     deployments: { ...state.deployments, [releaseId]: next },
   };
 
+  if (next.autoRollback && !current.autoRollback) {
+    nextState = withDeployHistory(
+      nextState,
+      releaseId,
+      `Auto-rollback triggered — ${next.rollbackReason ?? "metric threshold breached"}`,
+      "Risk Agent"
+    );
+    nextState = {
+      ...nextState,
+      notifications: [
+        {
+          id: `n-arb-${Date.now()}`,
+          timestamp: new Date().toISOString(),
+          title: "Auto-rollback triggered",
+          message: `${release.version}: ${next.rollbackReason ?? "Live metrics exceeded threshold"}`,
+          releaseId,
+          read: false,
+          type: "decision",
+        },
+        ...nextState.notifications,
+      ],
+    };
+  }
+
   if (current.phase !== next.phase && next.phase === "Verified") {
     nextState = withDeployHistory(nextState, releaseId, `Deployment verified — smoke tests passed`);
     nextState = {
@@ -291,14 +317,31 @@ export function tickDeploymentLive(
   return nextState;
 }
 
+export function setRollbackNarrative(
+  state: ReleaseStoreState,
+  releaseId: string,
+  narrative: string
+): ReleaseStoreState {
+  const deploy = state.deployments[releaseId];
+  if (!deploy) return state;
+  return {
+    ...state,
+    deployments: {
+      ...state.deployments,
+      [releaseId]: { ...deploy, rollbackNarrative: narrative },
+    },
+  };
+}
+
 export function initiateRollback(
   state: ReleaseStoreState,
   releaseId: string,
   release: Release,
-  version: string
+  version: string,
+  opts?: { auto?: boolean; reason?: string }
 ): ReleaseStoreState {
   const current = getDeployment(state, releaseId, release);
-  const rolled = rollbackDeploymentState(current, release);
+  const rolled = rollbackDeploymentState(current, release, opts);
   return withDeployHistory(
     {
       ...state,
@@ -307,8 +350,8 @@ export function initiateRollback(
         {
           id: `n-rb-${Date.now()}`,
           timestamp: new Date().toISOString(),
-          title: "Rollback initiated",
-          message: `${version} reverting via blue-green switch`,
+          title: opts?.auto ? "Auto-rollback initiated" : "Rollback initiated",
+          message: `${version} reverting via blue-green switch${opts?.reason ? ` — ${opts.reason}` : ""}`,
           releaseId,
           read: false,
           type: "decision",
@@ -317,6 +360,9 @@ export function initiateRollback(
       ],
     },
     releaseId,
-    `Rollback initiated for ${version} — ${release.deployment?.pipeline ?? "Argo CD"}`
+    opts?.auto
+      ? `Auto-rollback for ${version} — ${opts.reason ?? "threshold breach"}`
+      : `Rollback initiated for ${version} — ${release.deployment?.pipeline ?? "Argo CD"}`,
+    opts?.auto ? "Risk Agent" : undefined
   );
 }

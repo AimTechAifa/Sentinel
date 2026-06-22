@@ -4,6 +4,7 @@ import { memo } from "react";
 import { Handle, Position, type NodeProps } from "reactflow";
 import { ProgressLink } from "@/components/layout/NavigationProgress";
 import type { KgNodeType } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 export interface KgNodeData {
   label: string;
@@ -11,6 +12,7 @@ export interface KgNodeData {
   nodeType: KgNodeType;
   href?: string;
   meta?: Record<string, string>;
+  selected?: boolean;
 }
 
 const styles: Record<KgNodeType, { bg: string; border: string; text: string }> = {
@@ -26,7 +28,11 @@ function KgNodeComponent({ data }: NodeProps<KgNodeData>) {
   const s = styles[data.nodeType];
   const inner = (
     <div
-      className="rounded-lg px-3 py-2 min-w-[120px] max-w-[160px] shadow-sm"
+      className={cn(
+        "rounded-lg px-3 py-2 min-w-[120px] max-w-[160px] shadow-sm relative",
+        data.nodeType === "service" && "cursor-pointer hover:shadow-md transition-shadow",
+        data.selected && "ring-2 ring-brand-500 ring-offset-1"
+      )}
       style={{ background: s.bg, border: `2px solid ${s.border}` }}
     >
       <p className="text-xs font-semibold truncate" style={{ color: s.text }}>

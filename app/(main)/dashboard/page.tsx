@@ -15,6 +15,7 @@ import { RiskHoverCell } from "@/components/dashboard/RiskHoverCell";
 import { ReleaseDecisionBadge } from "@/components/releases/ReleaseDecisionBadge";
 import { calcReadiness, formatDate, getOrgStats, medianFilesChanged } from "@/lib/utils";
 import { Flag, TrendingUp, AlertTriangle, Clock, Package } from "lucide-react";
+import { PRODUCT_TAGLINE } from "@/lib/brand";
 
 export default function DashboardPage() {
   const [summary, setSummary] = useState<string | null>(null);
@@ -44,7 +45,12 @@ export default function DashboardPage() {
   return (
     <div className="grid grid-cols-12 gap-4 md:gap-6">
       <div className="col-span-12">
-        <TopBar title="Dashboard" subtitle="Executive release overview" highlight />
+        <TopBar
+          title="Dashboard"
+          subtitle="Executive release overview"
+          positioning={PRODUCT_TAGLINE}
+          highlight
+        />
       </div>
 
       {metrics.map(({ label, value, icon: Icon }, i) => (

@@ -152,6 +152,20 @@ export interface DeploymentLiveState {
   metrics: LiveMetricSnapshot[];
   startedAt?: string;
   completedAt?: string;
+  autoRollback?: boolean;
+  rollbackReason?: string;
+  rollbackNarrative?: string;
+}
+
+export type EnvironmentStage = "dev" | "staging" | "prod";
+export type RegionCode = "us-east-1" | "eu-west-1" | "ap-southeast-2";
+
+export interface EnvironmentPromotion {
+  environment: EnvironmentStage;
+  region: RegionCode;
+  version: string;
+  status: "live" | "deploying" | "pending" | "failed" | "rolled-back";
+  deployedAt?: string;
 }
 
 export interface ReleaseDecisionRecord {
@@ -200,6 +214,7 @@ export interface Release {
   history: HistoryEntry[];
   changeRecord?: ChangeRecord;
   deployment?: ReleaseDeploymentConfig;
+  environmentPromotions?: EnvironmentPromotion[];
 }
 
 export interface Service {
