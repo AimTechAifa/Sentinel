@@ -6,6 +6,7 @@ import { formatDateTime } from "@/lib/utils";
 
 const CATEGORY_ORDER: ConnectorCategory[] = [
   "Issue Tracking",
+  "Source Control",
   "CI/CD",
   "Change Management",
   "Monitoring",
@@ -14,6 +15,7 @@ const CATEGORY_ORDER: ConnectorCategory[] = [
   "Documentation",
   "Communication",
   "Deployment",
+  "Artifact Registry",
   "Feature Flags",
   "Secrets & Config",
 ];

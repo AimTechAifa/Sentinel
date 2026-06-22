@@ -53,4 +53,17 @@ body {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+  .border-beam-spin {
+    background: conic-gradient(from 0deg, transparent 0 340deg, var(--color-from) 360deg);
+    animation: border-beam var(--duration, 8s) linear infinite;
+    inset: -50%;
+    position: absolute;
+  }
+  .marquee-track {
+    animation-play-state: running;
+  }
+  .marquee-track.paused,
+  .group:hover .marquee-track {
+    animation-play-state: paused;
+  }
 }

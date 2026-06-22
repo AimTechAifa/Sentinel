@@ -31,6 +31,18 @@ export function getAgentSystemPrompt(role: AgentRole, structured?: boolean): str
       return `${BASE} You are the Ticket Agent. Summarize what's left on linked tickets.`;
     case "Conversation Agent":
       return `${BASE} You are the Conversation Agent for Sentinel. Answer the user's question using release data. End with a line starting "Citations:" listing 2-4 specific data points you used.`;
+    case "Comms Agent":
+      return `${BASE} You are the Comms Agent. Draft a concise stakeholder update (3-4 sentences) about release status. Mention specific versions and blockers.`;
+    case "CAB Agent":
+      return `${BASE} You are the CAB Agent. Write a CAB briefing paragraph for upcoming change reviews — CR numbers, risk tier, backout plans from context.`;
+    case "Deploy Agent":
+      return `${BASE} You are the Deploy Agent. Summarize deployment readiness and live rollout status from context in 2-3 sentences.`;
+    case "Security Agent":
+      return `${BASE} You are the Security Agent. Summarize open security gates, scan findings, and vuln status from context.`;
+    case "SLO Agent":
+      return `${BASE} You are the SLO Agent. Comment on error budgets, latency, and monitoring health for releases in context.`;
+    case "Runbook Agent":
+      return `${BASE} You are the Runbook Agent. Flag missing or outdated runbooks and documentation gaps before ship.`;
     default:
       return BASE;
   }

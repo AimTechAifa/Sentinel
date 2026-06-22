@@ -489,6 +489,18 @@ export const connectors: Connector[] = [
   { id: "c12", name: "Jenkins", category: "CI/CD", description: "Legacy payment jobs — 3 controllers, nightly builds", status: "Connected", lastSynced: daysAgo(0.08), maskedToken: "jen_••••••••2c7d" },
   { id: "c13", name: "GitLab CI", category: "CI/CD", description: "Data platform pipelines — 8 projects", status: "Connected", lastSynced: daysAgo(0.05), maskedToken: "glpat-••••••••8a4f" },
   { id: "c14", name: "Harness", category: "CI/CD", description: "Enterprise CD orchestration — prod promotion gates", status: "Connected", lastSynced: daysAgo(0.07), maskedToken: "hns_••••••••3e9b" },
+  { id: "c33", name: "CircleCI", category: "CI/CD", description: "Cloud CI — 24 orbs, parallel test workflows", status: "Connected", lastSynced: daysAgo(0.04), maskedToken: "cci_••••••••2f8a" },
+  { id: "c34", name: "TeamCity", category: "CI/CD", description: "On-prem build chain — Core platform nightly builds", status: "Connected", lastSynced: daysAgo(0.09), maskedToken: "tc_••••••••6d1c" },
+  { id: "c35", name: "Buildkite", category: "CI/CD", description: "Agent-based pipelines — elastic QA runners", status: "Connected", lastSynced: daysAgo(0.05), maskedToken: "bk_••••••••9e4b" },
+  { id: "c36", name: "Codefresh", category: "CI/CD", description: "GitOps-native CI — Docker build & deploy graphs", status: "Connected", lastSynced: daysAgo(0.08), maskedToken: "cf_••••••••1a7d" },
+  { id: "c37", name: "AWS CodePipeline", category: "CI/CD", description: "AWS-native delivery — 4 cross-account pipelines", status: "Connected", lastSynced: daysAgo(0.06), maskedToken: "cp_••••••••5b2e" },
+  { id: "c38", name: "Google Cloud Build", category: "CI/CD", description: "GCP builds — analytics & data platform images", status: "Connected", lastSynced: daysAgo(0.1), maskedToken: "gcb_••••••••8c3f" },
+
+  // Source control
+  { id: "c39", name: "Bitbucket", category: "Source Control", description: "Git repos — Billing monorepo, branch policies synced", status: "Connected", lastSynced: daysAgo(0.03), maskedToken: "bb_••••••••4e9a" },
+  { id: "c40", name: "GitHub Enterprise Server", category: "Source Control", description: "Self-hosted Git — 142 repos, protected main branches", status: "Connected", lastSynced: daysAgo(0.02), maskedToken: "ghes_••••••••7f2c" },
+  { id: "c41", name: "GitLab", category: "Source Control", description: "SCM — merge request approvals tied to release gates", status: "Connected", lastSynced: daysAgo(0.04), maskedToken: "gl_••••••••3d8b" },
+  { id: "c42", name: "Azure Repos", category: "Source Control", description: "Identity team repos — policy checks on release branches", status: "Connected", lastSynced: daysAgo(0.05), maskedToken: "azr_••••••••6a1e" },
 
   // Change management
   { id: "c4", name: "ServiceNow", category: "Change Management", description: "ITSM change records — 6 open CRs, CAB calendar synced", status: "Connected", lastSynced: daysAgo(0.1), maskedToken: "sn_••••••••2a8f" },
@@ -500,6 +512,9 @@ export const connectors: Connector[] = [
   { id: "c17", name: "Grafana Cloud", category: "Monitoring", description: "Dashboards & SLO burn alerts — 34 panels linked", status: "Connected", lastSynced: daysAgo(0.04), maskedToken: "grf_••••••••7b1c" },
   { id: "c18", name: "Dynatrace", category: "Monitoring", description: "Full-stack APM — payment path synthetic checks", status: "Connected", lastSynced: daysAgo(0.06), maskedToken: "dt_••••••••9f3a" },
   { id: "c19", name: "New Relic", category: "Monitoring", description: "Mobile BFF transaction tracing", status: "Connected", lastSynced: daysAgo(0.11), maskedToken: "nr_••••••••2e5d" },
+  { id: "c43", name: "Prometheus", category: "Monitoring", description: "Metrics TSDB — SLO recording rules for release windows", status: "Connected", lastSynced: daysAgo(0.04), maskedToken: "prom_••••••••2c9f" },
+  { id: "c44", name: "OpenTelemetry", category: "Monitoring", description: "Unified traces & metrics — collector fleet in all clusters", status: "Connected", lastSynced: daysAgo(0.05), maskedToken: "otel_••••••••7b4a" },
+  { id: "c45", name: "Jaeger", category: "Monitoring", description: "Distributed tracing — payment path span analysis", status: "Connected", lastSynced: daysAgo(0.07), maskedToken: "jgr_••••••••5e1d" },
 
   // Incident & on-call
   { id: "c8", name: "PagerDuty", category: "Incident", description: "On-call schedules — 2 active Sev-2 incidents", status: "Connected", lastSynced: daysAgo(0.03), maskedToken: "pd_••••••••8e2c" },
@@ -524,11 +539,27 @@ export const connectors: Connector[] = [
   { id: "c27", name: "Argo CD", category: "Deployment", description: "GitOps — 18 apps across prod & staging clusters", status: "Connected", lastSynced: daysAgo(0.04), maskedToken: "argo_••••••••9a2b" },
   { id: "c28", name: "Kubernetes (EKS)", category: "Deployment", description: "Target clusters — 4 envs, rollout status synced", status: "Connected", lastSynced: daysAgo(0.03), maskedToken: "k8s_••••••••2d5f" },
   { id: "c29", name: "Terraform Cloud", category: "Deployment", description: "IaC state — infra drift checks pre-deploy", status: "Connected", lastSynced: daysAgo(0.09), maskedToken: "tf_••••••••8b3c" },
+  { id: "c46", name: "Flux CD", category: "Deployment", description: "GitOps reconciler — staging cluster auto-sync", status: "Connected", lastSynced: daysAgo(0.04), maskedToken: "flux_••••••••9c2e" },
+  { id: "c47", name: "Spinnaker", category: "Deployment", description: "Multi-cloud CD — canary & red-black strategies", status: "Connected", lastSynced: daysAgo(0.06), maskedToken: "spin_••••••••4a8f" },
+  { id: "c48", name: "Octopus Deploy", category: "Deployment", description: ".NET & worker services — tenanted prod deploys", status: "Connected", lastSynced: daysAgo(0.08), maskedToken: "octo_••••••••3f7b" },
+  { id: "c49", name: "OpenShift", category: "Deployment", description: "Enterprise K8s — 2 clusters, rollout monitoring", status: "Connected", lastSynced: daysAgo(0.05), maskedToken: "ocp_••••••••6d4c" },
+  { id: "c50", name: "AWS CodeDeploy", category: "Deployment", description: "Blue-green & in-place — legacy billing workers", status: "Connected", lastSynced: daysAgo(0.07), maskedToken: "cd_••••••••1e9a" },
+  { id: "c51", name: "Pulumi Cloud", category: "Deployment", description: "IaC deployments — preview runs on release PRs", status: "Connected", lastSynced: daysAgo(0.09), maskedToken: "plm_••••••••8b5d" },
+  { id: "c52", name: "Ansible Automation Platform", category: "Deployment", description: "Config management — pre/post-deploy playbooks", status: "Disconnected", lastSynced: daysAgo(21), maskedToken: "aap_••••••••2c6e" },
+
+  // Artifact registry
+  { id: "c53", name: "JFrog Artifactory", category: "Artifact Registry", description: "Universal artifacts — Maven, npm, Docker promotion", status: "Connected", lastSynced: daysAgo(0.03), maskedToken: "jfrog_••••••••7a3f" },
+  { id: "c54", name: "Sonatype Nexus", category: "Artifact Registry", description: "Binary repo — release candidate image tagging", status: "Connected", lastSynced: daysAgo(0.05), maskedToken: "nxs_••••••••4d2b" },
+  { id: "c55", name: "AWS ECR", category: "Artifact Registry", description: "Container registry — 186 images across 9 repos", status: "Connected", lastSynced: daysAgo(0.02), maskedToken: "ecr_••••••••9f1c" },
+  { id: "c56", name: "Harbor", category: "Artifact Registry", description: "Private registry — vulnerability scan on push", status: "Connected", lastSynced: daysAgo(0.06), maskedToken: "hrb_••••••••5c8a" },
+  { id: "c57", name: "Docker Hub", category: "Artifact Registry", description: "Public base images — pinned tags in Dockerfiles", status: "Connected", lastSynced: daysAgo(0.1), maskedToken: "dhub_••••••••3e7d" },
 
   // Feature flags & secrets
   { id: "c30", name: "LaunchDarkly", category: "Feature Flags", description: "Progressive rollout flags — 12 tied to releases", status: "Connected", lastSynced: daysAgo(0.06), maskedToken: "ld_••••••••5e7a" },
   { id: "c31", name: "HashiCorp Vault", category: "Secrets & Config", description: "Secrets rotation — pre-deploy validation hooks", status: "Connected", lastSynced: daysAgo(0.08), maskedToken: "hvt_••••••••1f9d" },
   { id: "c32", name: "AWS Secrets Manager", category: "Secrets & Config", description: "Cloud secrets — payments & auth namespaces", status: "Connected", lastSynced: daysAgo(0.07), maskedToken: "asm_••••••••4c2b" },
+  { id: "c58", name: "Consul", category: "Secrets & Config", description: "Service mesh config — traffic split during canaries", status: "Connected", lastSynced: daysAgo(0.08), maskedToken: "csl_••••••••6f3a" },
+  { id: "c59", name: "etcd", category: "Secrets & Config", description: "Cluster config store — K8s backup before major releases", status: "Connected", lastSynced: daysAgo(0.11), maskedToken: "etcd_••••••••2b9e" },
 ];
 
 export const activityFeed: ActivityFeedItem[] = [
@@ -567,7 +598,8 @@ export const activityFeed: ActivityFeedItem[] = [
 export const agents: AgentMeta[] = [
   {
     id: "ag1", name: "Ticket Agent", watches: "Linked tickets/stories", description: "Flags stuck or reopened tickets",
-    status: "Active", lastRanMinutesAgo: 4, sparkline: [2, 3, 1, 4, 2, 3, 5],
+    tagline: "Work tracking", accent: "from-violet-500 via-purple-500 to-fuchsia-500",
+    status: "Active", lastRanMinutesAgo: 4, liveAi: true, sparkline: [2, 3, 1, 4, 2, 3, 5],
     sampleFindings: [
       { text: "PLAT-4418 Security review still in progress", releaseId: "rel-v2140", timestamp: daysAgo(0.1) },
       { text: "PLAT-4422 runbook update open — blocking documentation gate", releaseId: "rel-v2140", timestamp: daysAgo(0.3) },
@@ -575,8 +607,9 @@ export const agents: AgentMeta[] = [
     ],
   },
   {
-    id: "ag2", name: "Build Agent", watches: "CI/CD connector", description: "Explains build failures in plain English",
-    status: "Active", lastRanMinutesAgo: 2, sparkline: [1, 2, 5, 3, 2, 1, 4],
+    id: "ag2", name: "Build Agent", watches: "CI/CD connectors", description: "Explains build failures in plain English",
+    tagline: "Pipeline intel", accent: "from-orange-500 via-amber-500 to-yellow-500",
+    status: "Active", lastRanMinutesAgo: 2, liveAi: true, sparkline: [1, 2, 5, 3, 2, 1, 4],
     sampleFindings: [
       { text: "Build #4468 failed — 22 invoice integration test failures", releaseId: "rel-v2135", timestamp: daysAgo(0.2) },
       { text: "Suspect commit c4d8e91 — rounding logic change", releaseId: "rel-v2135", timestamp: daysAgo(0.4) },
@@ -585,7 +618,8 @@ export const agents: AgentMeta[] = [
   },
   {
     id: "ag3", name: "Approval Agent", watches: "Approval checklist", description: "Nudges overdue sign-offs",
-    status: "Active", lastRanMinutesAgo: 6, sparkline: [3, 2, 4, 3, 5, 4, 3],
+    tagline: "Gate keeper", accent: "from-blue-500 via-brand-500 to-indigo-500",
+    status: "Active", lastRanMinutesAgo: 6, liveAi: true, sparkline: [3, 2, 4, 3, 5, 4, 3],
     sampleFindings: [
       { text: "Security pending 72h on v2.14.0 (typical: 6h)", releaseId: "rel-v2140", timestamp: daysAgo(0.5) },
       { text: "Identity v2.13.8 Security review overdue 36h", releaseId: "rel-v2138", timestamp: daysAgo(1) },
@@ -594,7 +628,8 @@ export const agents: AgentMeta[] = [
   },
   {
     id: "ag4", name: "Dependency Agent", watches: "Service graph", description: "Cross-service impact warnings",
-    status: "Active", lastRanMinutesAgo: 8, sparkline: [1, 1, 2, 3, 2, 2, 3],
+    tagline: "Blast radius", accent: "from-cyan-500 via-teal-500 to-emerald-500",
+    status: "Active", lastRanMinutesAgo: 8, liveAi: true, sparkline: [1, 1, 2, 3, 2, 2, 3],
     sampleFindings: [
       { text: "v2.14.0 touches payments-api with 4 downstream dependents", releaseId: "rel-v2140", timestamp: daysAgo(1) },
       { text: "analytics-pipeline unstable — in v2.15.0 scope", releaseId: "rel-v2150", timestamp: daysAgo(0.6) },
@@ -602,8 +637,9 @@ export const agents: AgentMeta[] = [
     ],
   },
   {
-    id: "ag5", name: "Risk Agent", watches: "Release history", description: "Unusual pattern flags",
-    status: "Active", lastRanMinutesAgo: 3, sparkline: [2, 4, 3, 5, 4, 6, 5],
+    id: "ag5", name: "Risk Agent", watches: "Release history & ML", description: "Unusual patterns and forecast flags",
+    tagline: "Pattern detection", accent: "from-rose-500 via-red-500 to-orange-500",
+    status: "Active", lastRanMinutesAgo: 3, liveAi: true, sparkline: [2, 4, 3, 5, 4, 6, 5],
     sampleFindings: [
       { text: "847 files changed on v2.14.0 — 3x team median", releaseId: "rel-v2140", timestamp: daysAgo(0.2) },
       { text: "Friday releases: 2x rollback rate vs weekday (6-month trend)", releaseId: undefined, timestamp: daysAgo(2) },
@@ -612,7 +648,8 @@ export const agents: AgentMeta[] = [
   },
   {
     id: "ag6", name: "Summary Agent", watches: "All agents", description: "Daily plain-English digest",
-    status: "Active", lastRanMinutesAgo: 1, sparkline: [1, 1, 1, 2, 1, 1, 1],
+    tagline: "Executive brief", accent: "from-indigo-500 via-violet-500 to-purple-500",
+    status: "Active", lastRanMinutesAgo: 1, liveAi: false, sparkline: [1, 1, 1, 2, 1, 1, 1],
     sampleFindings: [
       { text: "Morning digest: 5 active releases, 2 at risk, 1 blocked", timestamp: daysAgo(0.05) },
       { text: "Weekly summary: 8 releases shipped, 2 rollbacks", timestamp: daysAgo(7) },
@@ -620,11 +657,72 @@ export const agents: AgentMeta[] = [
   },
   {
     id: "ag7", name: "Conversation Agent", watches: "All data", description: "Free-text Q&A with citations",
-    status: "Active", lastRanMinutesAgo: 0, sparkline: [5, 8, 6, 10, 7, 9, 12],
+    tagline: "Ask anything", accent: "from-fuchsia-500 via-pink-500 to-rose-500",
+    status: "Active", lastRanMinutesAgo: 0, liveAi: false, sparkline: [5, 8, 6, 10, 7, 9, 12],
     sampleFindings: [
       { text: "Answered 'Can we ship v2.14.0 tonight?'", releaseId: "rel-v2140", timestamp: daysAgo(0.01) },
       { text: "Answered 'Which team has most blockers?'", timestamp: daysAgo(0.5) },
       { text: "14 readiness questions answered today", timestamp: daysAgo(0.1) },
+    ],
+  },
+  {
+    id: "ag8", name: "Comms Agent", watches: "Slack, Teams, email", description: "Drafts stakeholder and exec comms",
+    tagline: "Stakeholder voice", accent: "from-sky-500 via-blue-500 to-indigo-500",
+    status: "Active", lastRanMinutesAgo: 5, liveAi: true, sparkline: [2, 3, 2, 4, 3, 5, 4],
+    sampleFindings: [
+      { text: "Drafted exec update for v2.14.0 Security delay", releaseId: "rel-v2140", timestamp: daysAgo(0.3) },
+      { text: "Suggested #release-ops post for v2.13.5 build failure", releaseId: "rel-v2135", timestamp: daysAgo(0.4) },
+      { text: "Teams CAB reminder queued for tomorrow", releaseId: "rel-v2140", timestamp: daysAgo(0.6) },
+    ],
+  },
+  {
+    id: "ag9", name: "CAB Agent", watches: "ServiceNow CRs", description: "Pre-CAB briefings and change narratives",
+    tagline: "Change governance", accent: "from-slate-600 via-gray-700 to-zinc-800",
+    status: "Active", lastRanMinutesAgo: 7, liveAi: true, sparkline: [1, 2, 1, 3, 2, 2, 4],
+    sampleFindings: [
+      { text: "CR-8842 briefing pack ready for Weekly Production CAB", releaseId: "rel-v2140", timestamp: daysAgo(0.5) },
+      { text: "High-risk tier flagged — backout plan validated", releaseId: "rel-v2140", timestamp: daysAgo(0.7) },
+      { text: "v2.14.1 low-risk — fast-track CAB slot available", releaseId: "rel-v2141", timestamp: daysAgo(0.4) },
+    ],
+  },
+  {
+    id: "ag10", name: "Deploy Agent", watches: "Argo CD, K8s, Harness", description: "Live rollout monitoring and smoke test analysis",
+    tagline: "Ship watch", accent: "from-emerald-500 via-green-500 to-teal-500",
+    status: "Active", lastRanMinutesAgo: 1, liveAi: true, sparkline: [3, 5, 4, 6, 8, 5, 7],
+    sampleFindings: [
+      { text: "v2.14.0 rollout simulation: 847-file deploy — allow 45min window", releaseId: "rel-v2140", timestamp: daysAgo(0.1) },
+      { text: "payments-api pod rollout at 73% — error rate stable", releaseId: "rel-v2140", timestamp: daysAgo(0.05) },
+      { text: "v2.14.1 Harness pipeline green — ready for one-click promote", releaseId: "rel-v2141", timestamp: daysAgo(0.2) },
+    ],
+  },
+  {
+    id: "ag11", name: "Security Agent", watches: "Snyk, SonarQube, Checkmarx", description: "Vuln scans and security gate analysis",
+    tagline: "Threat surface", accent: "from-red-600 via-rose-600 to-pink-600",
+    status: "Active", lastRanMinutesAgo: 4, liveAi: true, sparkline: [2, 3, 4, 3, 5, 4, 6],
+    sampleFindings: [
+      { text: "3 critical Snyk vulns open on v2.14.0 scope", releaseId: "rel-v2140", timestamp: daysAgo(0.3) },
+      { text: "Checkmarx sync failed — retry before Security sign-off", releaseId: undefined, timestamp: daysAgo(0.5) },
+      { text: "SonarQube gate passed for v2.14.1", releaseId: "rel-v2141", timestamp: daysAgo(0.4) },
+    ],
+  },
+  {
+    id: "ag12", name: "SLO Agent", watches: "Datadog, Prometheus, Grafana", description: "Error budgets and latency SLO burn alerts",
+    tagline: "Reliability", accent: "from-amber-500 via-orange-500 to-red-500",
+    status: "Active", lastRanMinutesAgo: 2, liveAi: true, sparkline: [4, 3, 5, 4, 6, 5, 7],
+    sampleFindings: [
+      { text: "payments-api error budget 68% consumed this month", releaseId: "rel-v2140", timestamp: daysAgo(0.2) },
+      { text: "p99 latency spike risk during v2.14.0 deploy window", releaseId: "rel-v2140", timestamp: daysAgo(0.4) },
+      { text: "All SLOs green for v2.14.1 mobile patch", releaseId: "rel-v2141", timestamp: daysAgo(0.3) },
+    ],
+  },
+  {
+    id: "ag13", name: "Runbook Agent", watches: "Confluence, SharePoint", description: "Runbook completeness before ship",
+    tagline: "Ops docs", accent: "from-teal-500 via-cyan-500 to-blue-500",
+    status: "Active", lastRanMinutesAgo: 9, liveAi: true, sparkline: [1, 2, 2, 3, 2, 3, 2],
+    sampleFindings: [
+      { text: "PLAT-4422 runbook update still open for v2.14.0", releaseId: "rel-v2140", timestamp: daysAgo(0.3) },
+      { text: "DB migration runbook missing rollback section", releaseId: "rel-v2140", timestamp: daysAgo(0.6) },
+      { text: "v2.14.1 runbook verified — 24 Confluence pages linked", releaseId: "rel-v2141", timestamp: daysAgo(0.5) },
     ],
   },
 ];

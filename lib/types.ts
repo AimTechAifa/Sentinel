@@ -11,7 +11,13 @@ export type AgentRole =
   | "Dependency Agent"
   | "Risk Agent"
   | "Summary Agent"
-  | "Conversation Agent";
+  | "Conversation Agent"
+  | "Comms Agent"
+  | "CAB Agent"
+  | "Deploy Agent"
+  | "Security Agent"
+  | "SLO Agent"
+  | "Runbook Agent";
 
 export interface TeamMember {
   id: string;
@@ -207,6 +213,7 @@ export interface Service {
 
 export type ConnectorCategory =
   | "Issue Tracking"
+  | "Source Control"
   | "CI/CD"
   | "Change Management"
   | "Monitoring"
@@ -215,6 +222,7 @@ export type ConnectorCategory =
   | "Documentation"
   | "Communication"
   | "Deployment"
+  | "Artifact Registry"
   | "Feature Flags"
   | "Secrets & Config";
 
@@ -233,9 +241,12 @@ export interface AgentMeta {
   name: AgentRole;
   watches: string;
   description: string;
+  tagline: string;
+  accent: string;
   status: "Active" | "Paused";
   lastRanMinutesAgo: number;
   sparkline: number[];
+  liveAi: boolean;
   sampleFindings: { text: string; releaseId?: string; timestamp: string }[];
 }
 
