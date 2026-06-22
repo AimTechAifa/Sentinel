@@ -9,6 +9,7 @@ import { AICardSkeleton } from "@/components/ui/AISkeleton";
 import { callAgent } from "@/lib/agent-client";
 import { releases, activityFeed, getOrgContext } from "@/lib/dummy-data";
 import { RiskHoverCell } from "@/components/dashboard/RiskHoverCell";
+import { ReleaseDecisionBadge } from "@/components/releases/ReleaseDecisionBadge";
 import { calcReadiness, formatDate, getOrgStats, medianFilesChanged } from "@/lib/utils";
 import { taMetricIcon, taTableWrap } from "@/lib/styles";
 import { Flag, TrendingUp, AlertTriangle, Clock, Package } from "lucide-react";
@@ -84,6 +85,7 @@ export default function DashboardPage() {
                   <th className="p-3 text-left font-medium">Team</th>
                   <th className="p-3 text-left font-medium">Readiness</th>
                   <th className="p-3 text-left font-medium">Status</th>
+                  <th className="p-3 text-left font-medium">Decision</th>
                   <th className="p-3 text-left font-medium">Target</th>
                   <th className="p-3 text-left font-medium">Risk</th>
                 </tr>
@@ -99,6 +101,7 @@ export default function DashboardPage() {
                     <td className="p-3 text-gray-600">{r.team}</td>
                     <td className="p-3 text-gray-800">{calcReadiness(r)}%</td>
                     <td className="p-3"><StatusBadge status={r.status} /></td>
+                    <td className="p-3"><ReleaseDecisionBadge releaseId={r.id} fallback={r.decision} /></td>
                     <td className="p-3 text-gray-500">{formatDate(r.targetDate)}</td>
                     <td className="p-3">
                       <RiskHoverCell

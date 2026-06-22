@@ -102,6 +102,45 @@ export function getReleaseById(releases: Release[], id: string) {
   return releases.find((r) => r.id === id);
 }
 
+export function isFriday(date: Date): boolean {
+  return date.getDay() === 5;
+}
+
+export function isInFreezeWindow(date: Date, windows: { start: string; end: string }[]): boolean {
+  const t = date.getTime();
+  return windows.some((w) => {
+    const start = new Date(w.start).setHours(0, 0, 0, 0);
+    const end = new Date(w.end).setHours(23, 59, 59, 999);
+    return t >= start && t <= end;
+  });
+}
+
+export function getDayConflicts(
+  dayReleases: Release[],
+  allServices: { id: string; criticality: string }[]
+): string[] {
+  const warnings: string[] = [];
+  const critical = dayReleases.filter((r) =>
+    r.dependsOnServices.some((sid) => allServices.find((s) => s.id === sid)?.criticality === "Critical")
+  );
+  if (critical.length >= 2) {
+    warnings.push(`${critical.length} critical-path releases scheduled`);
+  }
+
+  const serviceHits: Record<string, number> = {};
+  dayReleases.forEach((r) => {
+    r.dependsOnServices.forEach((sid) => {
+      serviceHits[sid] = (serviceHits[sid] ?? 0) + 1;
+    });
+  });
+  const shared = Object.entries(serviceHits).filter(([, n]) => n >= 2);
+  if (shared.length > 0) {
+    warnings.push(`${shared.length} shared service conflict${shared.length > 1 ? "s" : ""}`);
+  }
+
+  return warnings;
+}
+
 export function parseCitations(text: string): { content: string; citations: string[] } {
   const match = text.match(/\nCitations:\s*([\s\S]+)$/);
   if (!match) return { content: text, citations: [] };

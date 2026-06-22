@@ -6,6 +6,7 @@ import { Backdrop } from "./Backdrop";
 import { ChatProvider } from "@/components/chat/ChatProvider";
 import { ChatPanel } from "@/components/chat/ChatPanel";
 import { SidebarProvider, useSidebar } from "@/context/SidebarContext";
+import { ReleaseStoreProvider } from "@/context/ReleaseStoreContext";
 import { cn } from "@/lib/utils";
 
 function ShellInner({ children }: { children: React.ReactNode }) {
@@ -31,7 +32,9 @@ function ShellInner({ children }: { children: React.ReactNode }) {
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <SidebarProvider>
-      <ShellInner>{children}</ShellInner>
+      <ReleaseStoreProvider>
+        <ShellInner>{children}</ShellInner>
+      </ReleaseStoreProvider>
     </SidebarProvider>
   );
 }

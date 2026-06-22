@@ -1,6 +1,9 @@
+"use client";
+
 import { ProgressLink } from "@/components/layout/NavigationProgress";
 import { TopBar } from "@/components/layout/TopBar";
 import { StatusBadge } from "@/components/badges/StatusBadge";
+import { ReleaseDecisionBadge } from "@/components/releases/ReleaseDecisionBadge";
 import { releases } from "@/lib/dummy-data";
 import { calcReadiness, formatDate } from "@/lib/utils";
 import { Flag } from "lucide-react";
@@ -20,6 +23,7 @@ export default function ReleasesPage() {
               <th className="text-left p-3 font-medium">Owner</th>
               <th className="text-left p-3 font-medium">Readiness</th>
               <th className="text-left p-3 font-medium">Status</th>
+              <th className="text-left p-3 font-medium">Decision</th>
               <th className="text-left p-3 font-medium">Target</th>
               <th className="text-left p-3 font-medium">Risk</th>
             </tr>
@@ -33,6 +37,7 @@ export default function ReleasesPage() {
                 <td className="p-3 text-gray-600">{r.owner}</td>
                 <td className="p-3">{calcReadiness(r)}%</td>
                 <td className="p-3"><StatusBadge status={r.status} /></td>
+                <td className="p-3"><ReleaseDecisionBadge releaseId={r.id} fallback={r.decision} /></td>
                 <td className="p-3 text-gray-500">{formatDate(r.targetDate)}</td>
                 <td className="p-3">{r.filesChanged > 400 && <Flag className="w-4 h-4 text-ai" />}</td>
               </tr>

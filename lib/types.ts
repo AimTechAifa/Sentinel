@@ -58,6 +58,57 @@ export interface IncidentRecord {
   summary: string;
 }
 
+export type ChangeRiskTier = "Low" | "Medium" | "High" | "Critical";
+export type CabVoteStatus = "Pending" | "Approved" | "Deferred" | "Rejected";
+
+export interface ChangeRecord {
+  crNumber: string;
+  riskTier: ChangeRiskTier;
+  scheduledStart: string;
+  scheduledEnd: string;
+  backoutPlan: string;
+  affectedServices: string[];
+  description: string;
+  cabStatus: CabVoteStatus;
+  cabSessionDate: string;
+  submittedBy: string;
+}
+
+export interface CabSession {
+  id: string;
+  title: string;
+  date: string;
+  releaseIds: string[];
+  chair: string;
+  status: "Scheduled" | "In Progress" | "Completed";
+}
+
+export interface FreezeWindow {
+  id: string;
+  name: string;
+  start: string;
+  end: string;
+  reason: string;
+}
+
+export interface ReleaseDecisionRecord {
+  decision: ReleaseDecision;
+  rationale?: string;
+  decidedAt: string;
+  decidedBy: string;
+  overridden?: boolean;
+}
+
+export interface AppNotification {
+  id: string;
+  timestamp: string;
+  title: string;
+  message: string;
+  releaseId?: string;
+  read: boolean;
+  type: "approval" | "build" | "cab" | "comms" | "decision";
+}
+
 export interface Release {
   id: string;
   name: string;
@@ -84,6 +135,7 @@ export interface Release {
   };
   notes: string;
   history: HistoryEntry[];
+  changeRecord?: ChangeRecord;
 }
 
 export interface Service {

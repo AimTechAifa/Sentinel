@@ -1,29 +1,30 @@
 "use client";
 
-import { useState } from "react";
 import { ProgressLink } from "@/components/layout/NavigationProgress";
 import { TopBar } from "@/components/layout/TopBar";
-import { ReadinessGauge } from "@/components/gauges/ReadinessGauge";
 import { StatusBadge } from "@/components/badges/StatusBadge";
 import { BlockerList } from "@/components/releases/BlockerList";
 import { ApprovalChecklist } from "@/components/releases/ApprovalChecklist";
 import { AIRiskPanel } from "@/components/releases/AIRiskPanel";
 import { BuildExplainer } from "@/components/releases/BuildExplainer";
 import { ApprovalNudge } from "@/components/releases/ApprovalNudge";
+import { CabPanel } from "@/components/releases/CabPanel";
+import { GoNoGoControls } from "@/components/releases/GoNoGoControls";
+import { useReleaseStore } from "@/context/ReleaseStoreContext";
 import { releases } from "@/lib/dummy-data";
-import { calcReadiness, formatDate, formatDateTime } from "@/lib/utils";
-import type { ReleaseDecision } from "@/lib/types";
+import { formatDate, formatDateTime } from "@/lib/utils";
 import { GitBranch, Network } from "lucide-react";
 
 export default function ReleaseDetailPage({ params }: { params: { id: string } }) {
   const release = releases.find((r) => r.id === params.id);
-  const [decision, setDecision] = useState<ReleaseDecision>(release?.decision ?? null);
+  const { getReleaseDecision, getReleaseHistory } = useReleaseStore();
+  const stored = release ? getReleaseDecision(release.id) : null;
+  const decision = stored?.decision ?? release?.decision ?? null;
+  const history = release ? getReleaseHistory(release.id, release.history) : [];
 
   if (!release) {
     return <div className="text-slate-500">Release not found.</div>;
   }
-
-  const readiness = calcReadiness(release);
 
   return (
     <div>
@@ -38,17 +39,14 @@ export default function ReleaseDetailPage({ params }: { params: { id: string } }
       </div>
 
       <ApprovalNudge release={release} />
+      <div className="mt-6">
+        <CabPanel release={release} />
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
         <div className="lg:col-span-2 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white border border-border rounded-xl p-5 flex flex-col items-center">
-              <ReadinessGauge value={readiness} />
-              <div className="flex gap-3 mt-4">
-                <button onClick={() => setDecision("Go")} className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700">Go</button>
-                <button onClick={() => setDecision("No-Go")} className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700">No-Go</button>
-              </div>
-            </div>
+            <GoNoGoControls release={release} />
             <BlockerList release={release} />
           </div>
 
@@ -101,7 +99,7 @@ export default function ReleaseDetailPage({ params }: { params: { id: string } }
 
           <div className="bg-white border border-border rounded-xl p-5">
             <h3 className="font-semibold text-slate-900 mb-3">History</h3>
-            {release.history.map((h) => (
+            {history.map((h) => (
               <div key={h.id} className="py-2 border-b border-slate-50 last:border-0 text-sm">
                 <p className="text-slate-700">{h.action}</p>
                 <p className="text-xs text-slate-400">{h.actor} · {formatDateTime(h.timestamp)}</p>
