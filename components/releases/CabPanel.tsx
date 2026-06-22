@@ -2,6 +2,7 @@
 
 import { Calendar, FileText, Shield, Users } from "lucide-react";
 import { StatusBadge } from "@/components/badges/StatusBadge";
+import { AdvancedCard } from "@/components/ui/advanced-card";
 import { cabSessions } from "@/lib/dummy-data";
 import type { Release } from "@/lib/types";
 import { cn, formatDate, formatDateTime } from "@/lib/utils";
@@ -20,18 +21,13 @@ export function CabPanel({ release }: { release: Release }) {
   const session = cabSessions.find((s) => s.releaseIds.includes(release.id));
 
   return (
-    <div className="bg-white border border-border rounded-xl p-5">
-      <div className="flex items-start justify-between gap-3 mb-4">
-        <div>
-          <h3 className="font-semibold text-slate-900 flex items-center gap-2">
-            <FileText className="w-4 h-4 text-brand-500" />
-            Change Record — {cr.crNumber}
-          </h3>
-          <p className="text-sm text-slate-500 mt-1">ServiceNow · Submitted by {cr.submittedBy}</p>
-        </div>
-        <StatusBadge status={cr.cabStatus} />
-      </div>
-
+    <AdvancedCard
+      title={`Change Record — ${cr.crNumber}`}
+      subtitle={`ServiceNow · Submitted by ${cr.submittedBy}`}
+      icon={FileText}
+      variant="default"
+      action={<StatusBadge status={cr.cabStatus} />}
+    >
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
         <div className="rounded-lg bg-slate-50 p-3">
           <p className="text-xs text-slate-500 mb-1">Risk tier</p>
@@ -82,6 +78,6 @@ export function CabPanel({ release }: { release: Release }) {
           </span>
         </div>
       )}
-    </div>
+    </AdvancedCard>
   );
 }

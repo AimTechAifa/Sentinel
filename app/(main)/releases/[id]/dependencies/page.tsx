@@ -4,10 +4,13 @@ import { useEffect, useMemo, useState } from "react";
 import ReactFlow, { Background, Controls, MiniMap, Node, Edge, MarkerType } from "reactflow";
 import "reactflow/dist/style.css";
 import { ProgressLink } from "@/components/layout/NavigationProgress";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Network } from "lucide-react";
 import { ServiceNode } from "@/components/dependencies/ServiceNode";
 import { AgentBadge } from "@/components/badges/AgentBadge";
 import { AICardSkeleton } from "@/components/ui/AISkeleton";
+import { AdvancedCard } from "@/components/ui/advanced-card";
+import { MagicCard } from "@/components/ui/magic-card";
+import { TopBar } from "@/components/layout/TopBar";
 import { callAgent } from "@/lib/agent-client";
 import { releases, services } from "@/lib/dummy-data";
 import type { DependencyWarning } from "@/lib/types";
@@ -57,34 +60,40 @@ export default function DependenciesPage({ params }: { params: { id: string } })
   return (
     <div className="h-[calc(100vh-4rem)] flex flex-col">
       <div className="flex items-center gap-4 mb-4">
-        <ProgressLink href={`/releases/${release.id}`} className="text-slate-500 hover:text-slate-700"><ArrowLeft className="w-5 h-5" /></ProgressLink>
-        <div>
-          <h1 className="text-xl font-bold text-slate-900">Dependency Map — {release.version}</h1>
-          <p className="text-sm text-slate-500">Services touched by this release highlighted in blue</p>
-        </div>
+        <ProgressLink href={`/releases/${release.id}`} className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200/80 bg-white/80 text-gray-500 hover:bg-brand-50 hover:text-brand-600 transition-colors">
+          <ArrowLeft className="w-5 h-5" />
+        </ProgressLink>
+        <TopBar
+          title={`Dependency Map — ${release.version}`}
+          subtitle="Services touched by this release highlighted in blue"
+          className="mb-0 flex-1"
+        />
       </div>
       <div className="flex flex-1 gap-4 min-h-0">
-        <div className="flex-1 bg-white border border-border rounded-xl overflow-hidden">
+        <MagicCard gradient="from-brand-200/40 via-white to-violet-200/40" className="flex-1" innerClassName="h-full overflow-hidden">
           <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} fitView>
-            <Background />
-            <Controls />
-            <MiniMap />
+            <Background gap={16} color="#E2E8F0" />
+            <Controls className="!rounded-xl" />
+            <MiniMap className="!rounded-xl" />
           </ReactFlow>
-        </div>
-        <div className="w-80 bg-white border border-border rounded-xl p-4 overflow-y-auto">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-slate-900">Dependency Warnings</h3>
-            <AgentBadge agent="Dependency Agent" />
-          </div>
+        </MagicCard>
+        <AdvancedCard
+          title="Dependency Warnings"
+          icon={Network}
+          variant="ai"
+          action={<AgentBadge agent="Dependency Agent" />}
+          className="w-80 shrink-0"
+          innerClassName="overflow-y-auto max-h-full"
+        >
           {loading && <AICardSkeleton />}
           {!loading && warnings.map((w, i) => (
-            <div key={i} className="ai-card p-3 mb-3 text-sm">
-              <p className="text-slate-700">{w.warning}</p>
-              {w.citations?.length > 0 && <p className="text-xs text-slate-400 mt-2">{w.citations.join(" · ")}</p>}
+            <div key={i} className="rounded-xl border border-violet-100 bg-white/80 p-3 mb-3 text-sm backdrop-blur-sm">
+              <p className="text-gray-700">{w.warning}</p>
+              {w.citations?.length > 0 && <p className="text-xs text-gray-400 mt-2">{w.citations.join(" · ")}</p>}
             </div>
           ))}
-          {!loading && warnings.length === 0 && <p className="text-sm text-slate-500">No dependency warnings.</p>}
-        </div>
+          {!loading && warnings.length === 0 && <p className="text-sm text-gray-500">No dependency warnings.</p>}
+        </AdvancedCard>
       </div>
     </div>
   );

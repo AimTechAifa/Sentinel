@@ -1,11 +1,12 @@
+import { CheckSquare } from "lucide-react";
 import { StatusBadge } from "@/components/badges/StatusBadge";
+import { AdvancedCard } from "@/components/ui/advanced-card";
 import type { Release } from "@/lib/types";
 import { formatDateTime } from "@/lib/utils";
 
 export function ApprovalChecklist({ release }: { release: Release }) {
   return (
-    <div className="bg-white ta-card p-5">
-      <h3 className="font-semibold text-gray-800 mb-4">Approval Checklist</h3>
+    <AdvancedCard title="Approval Checklist" icon={CheckSquare} variant="default">
       <div className="space-y-2">
         {release.approvals.map((a) => (
           <div key={a.gate} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
@@ -18,6 +19,6 @@ export function ApprovalChecklist({ release }: { release: Release }) {
           </div>
         ))}
       </div>
-    </div>
+    </AdvancedCard>
   );
 }

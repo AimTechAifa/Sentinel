@@ -4,13 +4,15 @@ import { useEffect, useState, useMemo } from "react";
 import { TopBar } from "@/components/layout/TopBar";
 import { AgentBadge } from "@/components/badges/AgentBadge";
 import { AICardSkeleton } from "@/components/ui/AISkeleton";
+import { AdvancedCard } from "@/components/ui/advanced-card";
 import { TrendChart } from "@/components/insights/TrendChart";
 import { PredictiveForecastPanel } from "@/components/predictive/PredictiveForecastPanel";
 import { callAgent } from "@/lib/agent-client";
 import { historicalTrend, getOrgContext, releases, services } from "@/lib/dummy-data";
 import { predictAllReleases } from "@/lib/predictive";
+import { taBtnPrimary, taInput } from "@/lib/styles";
 import type { RiskFlag } from "@/lib/types";
-import { Send } from "lucide-react";
+import { MessageSquare, Send, Sparkles } from "lucide-react";
 
 export default function InsightsPage() {
   const [patterns, setPatterns] = useState<RiskFlag[]>([]);
@@ -49,22 +51,21 @@ export default function InsightsPage() {
 
   return (
     <div>
-      <TopBar title="Insights" subtitle="Org-wide AI risk and trend analysis" />
+      <TopBar title="Insights" subtitle="Org-wide AI risk and trend analysis" highlight />
 
-      <div className="bg-white ta-card p-4 mb-6">
-        <label className="text-sm font-medium text-gray-700 mb-2 block">Ask Insights</label>
+      <AdvancedCard title="Ask Insights" icon={MessageSquare} variant="ai" className="mb-6">
         <div className="flex gap-2">
-          <input value={question} onChange={(e) => setQuestion(e.target.value)} onKeyDown={(e) => e.key === "Enter" && ask()} placeholder="Which team has the most blocked releases?" className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ai/30" />
-          <button onClick={ask} disabled={asking} className="px-4 py-2 bg-ai text-white rounded-lg hover:bg-violet-700 disabled:opacity-50 flex items-center gap-1"><Send className="w-4 h-4" /> Ask</button>
+          <input value={question} onChange={(e) => setQuestion(e.target.value)} onKeyDown={(e) => e.key === "Enter" && ask()} placeholder="Which team has the most blocked releases?" className={taInput} />
+          <button onClick={ask} disabled={asking} className={`${taBtnPrimary} shrink-0 flex items-center gap-1`}><Send className="w-4 h-4" /> Ask</button>
         </div>
         {asking && <div className="mt-3"><AICardSkeleton /></div>}
         {answer && !asking && (
-          <div className="mt-3 ai-card p-4 text-sm text-gray-700">
+          <AdvancedCard variant="glass" innerClassName="p-4 mt-3" noPadding>
             <AgentBadge agent="Conversation Agent" className="mb-2" />
-            <p className="whitespace-pre-wrap">{answer}</p>
-          </div>
+            <p className="text-sm text-gray-700 whitespace-pre-wrap">{answer}</p>
+          </AdvancedCard>
         )}
-      </div>
+      </AdvancedCard>
 
       <TrendChart data={historicalTrend} />
 
@@ -74,6 +75,7 @@ export default function InsightsPage() {
 
       <div className="mt-6">
         <div className="flex items-center gap-2 mb-4">
+          <Sparkles className="w-5 h-5 text-ai" />
           <h2 className="font-semibold text-gray-800">Patterns Detected</h2>
           <AgentBadge agent="Risk Agent" />
         </div>
@@ -82,11 +84,10 @@ export default function InsightsPage() {
         {!loading && !error && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {patterns.map((p, i) => (
-              <div key={i} className="ai-card p-5">
-                <h3 className="font-medium text-gray-800 mb-2">{p.title}</h3>
+              <AdvancedCard key={i} title={p.title} variant="ai">
                 <p className="text-sm text-gray-600">{p.explanation}</p>
                 {p.citations?.length > 0 && <p className="text-xs text-gray-400 mt-3">{p.citations.join(" · ")}</p>}
-              </div>
+              </AdvancedCard>
             ))}
           </div>
         )}

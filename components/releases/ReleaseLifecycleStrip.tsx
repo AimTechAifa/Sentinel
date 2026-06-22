@@ -9,6 +9,7 @@ import {
   Settings2,
   TestTube2,
 } from "lucide-react";
+import { AdvancedCard } from "@/components/ui/advanced-card";
 import type { LifecycleStageView } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -30,10 +31,7 @@ const statusStyles: Record<string, { circle: string; line: string; text: string 
 
 export function ReleaseLifecycleStrip({ stages }: { stages: LifecycleStageView[] }) {
   return (
-    <div className="bg-white border border-border rounded-xl p-5 md:p-6 overflow-x-auto">
-      <h3 className="font-semibold text-slate-900 mb-5 text-xs uppercase tracking-wide text-gray-500">
-        Release Lifecycle
-      </h3>
+    <AdvancedCard title="Release Lifecycle" variant="glass" innerClassName="p-5 md:p-6 overflow-x-auto">
       <div className="flex items-start min-w-[640px]">
         {stages.map((stage, idx) => {
           const Icon = icons[stage.id] ?? GitBranch;
@@ -66,6 +64,6 @@ export function ReleaseLifecycleStrip({ stages }: { stages: LifecycleStageView[]
           );
         })}
       </div>
-    </div>
+    </AdvancedCard>
   );
 }

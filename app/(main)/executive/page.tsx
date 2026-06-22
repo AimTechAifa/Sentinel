@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { TopBar } from "@/components/layout/TopBar";
-import { AgentBadge } from "@/components/badges/AgentBadge";
-import { AICardSkeleton } from "@/components/ui/AISkeleton";
+import { AIPanel } from "@/components/ui/ai-panel";
+import { MetricCard } from "@/components/ui/metric-card";
 import { TeamRiskHeatmap } from "@/components/executive/TeamRiskHeatmap";
 import { ReleasesAtRiskTable } from "@/components/executive/ReleasesAtRiskTable";
 import { PredictiveForecastPanel } from "@/components/predictive/PredictiveForecastPanel";
@@ -14,7 +14,6 @@ import {
   getTeamRiskHeatmap,
   predictAllReleases,
 } from "@/lib/predictive";
-import { taMetricIcon } from "@/lib/styles";
 import { Briefcase, TrendingDown, TrendingUp, AlertTriangle, Calendar, Brain } from "lucide-react";
 
 export default function ExecutivePage() {
@@ -50,32 +49,20 @@ export default function ExecutivePage() {
       <TopBar
         title="Executive Dashboard"
         subtitle="Portfolio view — risk heatmap, ML forecasts, and board-ready metrics"
+        highlight
       />
 
       <div className="grid grid-cols-12 gap-4 md:gap-6">
-        {metrics.map(({ label, value, icon: Icon }) => (
+        {metrics.map(({ label, value, icon: Icon }, i) => (
           <div key={label} className="col-span-6 sm:col-span-4 xl:col-span-2">
-            <div className="ta-card">
-              <div className={taMetricIcon}>
-                <Icon className="h-5 w-5 text-gray-800" />
-              </div>
-              <div className="mt-4">
-                <span className="text-xs text-gray-500">{label}</span>
-                <h4 className="mt-1 text-title-sm font-bold text-gray-800">{value}</h4>
-              </div>
-            </div>
+            <MetricCard label={label} value={value} icon={Icon} delay={i * 0.06} />
           </div>
         ))}
       </div>
 
-      <div className="ai-card p-5 md:p-6">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="font-semibold text-gray-800">Executive Briefing</h2>
-          <AgentBadge agent="Summary Agent" />
-        </div>
-        {loading && <AICardSkeleton />}
-        {summary && !loading && <p className="text-sm leading-relaxed text-gray-600">{summary}</p>}
-      </div>
+      <AIPanel title="Executive Briefing" agent="Summary Agent" loading={loading}>
+        {summary && <p>{summary}</p>}
+      </AIPanel>
 
       <TeamRiskHeatmap data={heatmap} />
       <ReleasesAtRiskTable predictions={predictions} />

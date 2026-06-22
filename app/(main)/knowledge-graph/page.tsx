@@ -7,6 +7,7 @@ export default function KnowledgeGraphPage() {
       <TopBar
         title="Knowledge Graph"
         subtitle="Releases, services, people, tickets, and change records — connected"
+        highlight
       />
       <KnowledgeGraphView />
     </div>

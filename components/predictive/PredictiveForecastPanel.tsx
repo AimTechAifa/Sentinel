@@ -9,6 +9,7 @@ import { callAgent } from "@/lib/agent-client";
 import { historicalTrend } from "@/lib/dummy-data";
 import type { ReleasePrediction } from "@/lib/types";
 import { buildForecastTrend, getRiskTextColor } from "@/lib/predictive";
+import { AdvancedCard } from "@/components/ui/advanced-card";
 import { cn } from "@/lib/utils";
 import { Brain, ChevronDown, ChevronUp } from "lucide-react";
 
@@ -44,25 +45,26 @@ export function PredictiveForecastPanel({ predictions, compact }: PredictiveFore
     <div className="space-y-6">
       <ForecastChart data={forecastData} />
 
-      <div className="ai-card p-5">
-        <div className="flex items-center justify-between mb-3">
+      <AdvancedCard
+        title="Release Outcome Predictions"
+        icon={Brain}
+        variant="ai"
+        action={
           <div className="flex items-center gap-2">
-            <Brain className="w-5 h-5 text-ai" />
-            <h3 className="font-semibold text-gray-800">Release Outcome Predictions</h3>
             <AgentBadge agent="Risk Agent" />
+            {compact && (
+              <button
+                type="button"
+                onClick={() => setExpanded((v) => !v)}
+                className="text-xs text-brand-500 flex items-center gap-1"
+              >
+                {expanded ? "Collapse" : "Expand"}
+                {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </button>
+            )}
           </div>
-          {compact && (
-            <button
-              type="button"
-              onClick={() => setExpanded((v) => !v)}
-              className="text-xs text-brand-500 flex items-center gap-1"
-            >
-              {expanded ? "Collapse" : "Expand"}
-              {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-            </button>
-          )}
-        </div>
-
+        }
+      >
         {loading ? (
           <AICardSkeleton />
         ) : (
@@ -114,7 +116,7 @@ export function PredictiveForecastPanel({ predictions, compact }: PredictiveFore
             ))}
           </div>
         )}
-      </div>
+      </AdvancedCard>
     </div>
   );
 }

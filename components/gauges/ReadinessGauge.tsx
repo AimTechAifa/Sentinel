@@ -1,15 +1,21 @@
 "use client";
 
+import { motion } from "framer-motion";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 
 export function ReadinessGauge({ value, size = 160 }: { value: number; size?: number }) {
   const color = value >= 80 ? "#12B76A" : value >= 50 ? "#F79009" : "#F04438";
-  const data = [
-    { value },
-    { value: 100 - value },
-  ];
+  const data = [{ value }, { value: 100 - value }];
+
   return (
-    <div className="relative" style={{ width: size, height: size }}>
+    <motion.div
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+      className="relative"
+      style={{ width: size, height: size }}
+    >
+      <div className="absolute inset-0 rounded-full bg-gradient-to-br from-brand-50/50 to-violet-50/50 blur-sm" />
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           <Pie data={data} cx="50%" cy="50%" innerRadius={size * 0.35} outerRadius={size * 0.45} startAngle={90} endAngle={-270} dataKey="value" stroke="none">
@@ -19,9 +25,16 @@ export function ReadinessGauge({ value, size = 160 }: { value: number; size?: nu
         </PieChart>
       </ResponsiveContainer>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-3xl font-bold text-gray-800">{value}%</span>
+        <motion.span
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+          className="text-3xl font-bold text-gray-800 tabular-nums"
+        >
+          {value}%
+        </motion.span>
         <span className="text-xs text-gray-500">Ready</span>
       </div>
-    </div>
+    </motion.div>
   );
 }

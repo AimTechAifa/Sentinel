@@ -4,6 +4,7 @@ import { useState } from "react";
 import { AlertTriangle } from "lucide-react";
 import { StatusBadge } from "@/components/badges/StatusBadge";
 import { ReadinessGauge } from "@/components/gauges/ReadinessGauge";
+import { AdvancedCard } from "@/components/ui/advanced-card";
 import { useReleaseStore } from "@/context/ReleaseStoreContext";
 import type { Release, ReleaseDecision } from "@/lib/types";
 import { calcReadiness, getBlockers } from "@/lib/utils";
@@ -42,7 +43,7 @@ export function GoNoGoControls({ release }: { release: Release }) {
 
   return (
     <>
-      <div className="bg-white border border-border rounded-xl p-5 flex flex-col items-center">
+      <AdvancedCard variant="ai" beam glow innerClassName="p-5 flex flex-col items-center">
         <ReadinessGauge value={readiness} />
         <div className="flex items-center gap-2 mt-3">
           {decision && <StatusBadge status={decision} />}
@@ -78,11 +79,11 @@ export function GoNoGoControls({ release }: { release: Release }) {
             {" — override required for Go"}
           </p>
         )}
-      </div>
+      </AdvancedCard>
 
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="glass-panel max-w-md w-full p-6 shadow-theme-md">
             <div className="flex items-start gap-3 mb-4">
               <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
               <div>

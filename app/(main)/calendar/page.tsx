@@ -1,12 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Snowflake, AlertTriangle } from "lucide-react";
+import { ChevronLeft, ChevronRight, Snowflake, AlertTriangle, CalendarDays } from "lucide-react";
 import { ProgressLink } from "@/components/layout/NavigationProgress";
 import { TopBar } from "@/components/layout/TopBar";
 import { StatusBadge } from "@/components/badges/StatusBadge";
+import { AdvancedCard } from "@/components/ui/advanced-card";
 import { freezeWindows, releases, services } from "@/lib/dummy-data";
 import { cn, formatDate, getDayConflicts, isFriday, isInFreezeWindow } from "@/lib/utils";
+import { taBtnSecondary } from "@/lib/styles";
 
 export default function CalendarPage() {
   const [viewDate, setViewDate] = useState(() => new Date());
@@ -51,9 +53,9 @@ export default function CalendarPage() {
       <div
         key={day}
         className={cn(
-          "min-h-[96px] border p-2 rounded-lg",
-          frozen ? "bg-slate-100 border-slate-200" : "bg-white border-slate-100",
-          isToday && "ring-2 ring-brand-500/30"
+          "min-h-[96px] border p-2 rounded-xl transition-all",
+          frozen ? "bg-slate-100/80 border-slate-200" : "bg-white/80 border-gray-100 hover:border-brand-100 hover:shadow-theme-sm",
+          isToday && "ring-2 ring-brand-500/40 shadow-theme-sm"
         )}
       >
         <div className="flex items-center justify-between mb-1">
@@ -77,7 +79,7 @@ export default function CalendarPage() {
             <ProgressLink
               key={r.id}
               href={`/releases/${r.id}`}
-              className="block text-xs truncate hover:bg-brand-50 rounded px-1 py-0.5 -mx-1"
+              className="block text-xs truncate hover:bg-brand-50 rounded px-1 py-0.5 -mx-1 transition-colors"
             >
               <StatusBadge status={r.status} className="text-[10px] px-1.5 py-0" />
               <span className="ml-1 text-gray-600">{r.version}</span>
@@ -99,40 +101,45 @@ export default function CalendarPage() {
 
   return (
     <div>
-      <TopBar title="Release Calendar" subtitle="Deploy windows, freeze periods, and conflicts" />
+      <TopBar title="Release Calendar" subtitle="Deploy windows, freeze periods, and conflicts" highlight />
 
-      <div className="flex items-center justify-between mb-4">
-        <button type="button" onClick={prevMonth} className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50">
-          <ChevronLeft className="w-5 h-5 text-gray-600" />
-        </button>
-        <h2 className="font-semibold text-gray-800">{monthName}</h2>
-        <button type="button" onClick={nextMonth} className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50">
-          <ChevronRight className="w-5 h-5 text-gray-600" />
-        </button>
-      </div>
-
-      {monthFreeze.length > 0 && (
-        <div className="mb-4 flex flex-wrap gap-2">
-          {monthFreeze.map((w) => (
-            <span key={w.id} className="inline-flex items-center gap-1.5 text-xs bg-slate-100 text-slate-600 px-3 py-1.5 rounded-full">
-              <Snowflake className="w-3 h-3" /> {w.name}: {formatDate(w.start)} – {formatDate(w.end)}
-            </span>
-          ))}
+      <AdvancedCard variant="glass" noPadding innerClassName="p-4 md:p-5">
+        <div className="flex items-center justify-between mb-4">
+          <button type="button" onClick={prevMonth} className={taBtnSecondary + " !p-2"}>
+            <ChevronLeft className="w-5 h-5 text-gray-600" />
+          </button>
+          <h2 className="font-semibold text-gray-800 flex items-center gap-2">
+            <CalendarDays className="w-5 h-5 text-brand-500" />
+            {monthName}
+          </h2>
+          <button type="button" onClick={nextMonth} className={taBtnSecondary + " !p-2"}>
+            <ChevronRight className="w-5 h-5 text-gray-600" />
+          </button>
         </div>
-      )}
 
-      <div className="grid grid-cols-7 gap-2">
-        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
-          <div key={d} className="text-center text-xs font-medium text-gray-500 py-2">{d}</div>
-        ))}
-        {cells}
-      </div>
+        {monthFreeze.length > 0 && (
+          <div className="mb-4 flex flex-wrap gap-2">
+            {monthFreeze.map((w) => (
+              <span key={w.id} className="inline-flex items-center gap-1.5 text-xs bg-slate-100/80 text-slate-600 px-3 py-1.5 rounded-full border border-slate-200/80">
+                <Snowflake className="w-3 h-3" /> {w.name}: {formatDate(w.start)} – {formatDate(w.end)}
+              </span>
+            ))}
+          </div>
+        )}
 
-      <div className="mt-4 flex flex-wrap gap-4 text-xs text-gray-500">
-        <span className="flex items-center gap-1"><Snowflake className="w-3 h-3" /> Freeze window</span>
-        <span className="flex items-center gap-1"><span className="text-amber-600 bg-amber-50 px-1 rounded">Fri</span> Elevated rollback risk</span>
-        <span className="flex items-center gap-1"><AlertTriangle className="w-3 h-3 text-orange-500" /> Schedule conflict</span>
-      </div>
+        <div className="grid grid-cols-7 gap-2">
+          {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
+            <div key={d} className="text-center text-xs font-medium text-gray-500 py-2">{d}</div>
+          ))}
+          {cells}
+        </div>
+
+        <div className="mt-4 flex flex-wrap gap-4 text-xs text-gray-500">
+          <span className="flex items-center gap-1"><Snowflake className="w-3 h-3" /> Freeze window</span>
+          <span className="flex items-center gap-1"><span className="text-amber-600 bg-amber-50 px-1 rounded">Fri</span> Elevated rollback risk</span>
+          <span className="flex items-center gap-1"><AlertTriangle className="w-3 h-3 text-orange-500" /> Schedule conflict</span>
+        </div>
+      </AdvancedCard>
     </div>
   );
 }

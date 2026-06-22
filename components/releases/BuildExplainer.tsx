@@ -3,8 +3,10 @@
 import { useEffect, useState } from "react";
 import { AgentBadge } from "@/components/badges/AgentBadge";
 import { AICardSkeleton } from "@/components/ui/AISkeleton";
+import { AdvancedCard } from "@/components/ui/advanced-card";
 import { callAgent } from "@/lib/agent-client";
 import type { BuildExplanation, Release } from "@/lib/types";
+import { Hammer } from "lucide-react";
 
 export function BuildExplainer({ release }: { release: Release }) {
   const [data, setData] = useState<BuildExplanation | null>(null);
@@ -27,11 +29,12 @@ export function BuildExplainer({ release }: { release: Release }) {
   if (release.build.status !== "Failed") return null;
 
   return (
-    <div className="ai-card p-5">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold text-gray-800">Build Failure Explainer</h3>
-        <AgentBadge agent="Build Agent" />
-      </div>
+    <AdvancedCard
+      title="Build Failure Explainer"
+      icon={Hammer}
+      variant="ai"
+      action={<AgentBadge agent="Build Agent" />}
+    >
       {loading && <AICardSkeleton />}
       {error && !loading && <p className="text-sm text-error-600">{error}</p>}
       {data && !loading && (
@@ -42,6 +45,6 @@ export function BuildExplainer({ release }: { release: Release }) {
           {data.citations?.length > 0 && <p className="text-xs text-gray-400">Sources: {data.citations.join(" · ")}</p>}
         </div>
       )}
-    </div>
+    </AdvancedCard>
   );
 }

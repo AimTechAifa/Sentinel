@@ -11,6 +11,7 @@ import {
   Rocket,
 } from "lucide-react";
 import { StatusBadge } from "@/components/badges/StatusBadge";
+import { AdvancedCard } from "@/components/ui/advanced-card";
 import { useReleaseStore } from "@/context/ReleaseStoreContext";
 import type { Release, ReleaseDecision } from "@/lib/types";
 import { cn, formatDateTime } from "@/lib/utils";
@@ -49,12 +50,12 @@ export function DeploymentMonitor({
   const canRollback = ["In Progress", "Verifying", "Verified"].includes(deploy.phase);
 
   return (
-    <div className="bg-white border border-border rounded-xl p-5">
+    <AdvancedCard variant="glass" beam={isLive} glow={isLive} innerClassName="p-5">
       <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
         <div>
           <div className="flex items-center gap-2">
             <Rocket className="w-5 h-5 text-brand-500" />
-            <h3 className="font-semibold text-slate-900">Deployment & Live Monitoring</h3>
+            <h3 className="font-semibold text-gray-900">Deployment & Live Monitoring</h3>
             {isLive && (
               <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase bg-red-50 text-red-600 px-2 py-0.5 rounded-full">
                 <Radio className="w-3 h-3 animate-pulse" /> Live
@@ -154,6 +155,6 @@ export function DeploymentMonitor({
       <p className="text-[10px] text-gray-400 mt-3">
         Live metrics simulated from Datadog · Argo CD · Kubernetes connectors (2.5s refresh)
       </p>
-    </div>
+    </AdvancedCard>
   );
 }

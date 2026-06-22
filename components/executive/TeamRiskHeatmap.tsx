@@ -2,22 +2,27 @@
 
 import type { TeamRiskCell } from "@/lib/types";
 import { getRiskColor, getRiskTextColor } from "@/lib/predictive";
+import { AdvancedCard } from "@/components/ui/advanced-card";
 import { cn } from "@/lib/utils";
+import { Flame } from "lucide-react";
 
 export function TeamRiskHeatmap({ data }: { data: TeamRiskCell[] }) {
   return (
-    <div className="ta-card p-5">
-      <h3 className="font-semibold text-gray-800 mb-1">Team Risk Heatmap</h3>
-      <p className="text-xs text-gray-500 mb-4">Composite risk from blockers, readiness, and release status</p>
+    <AdvancedCard
+      title="Team Risk Heatmap"
+      subtitle="Composite risk from blockers, readiness, and release status"
+      icon={Flame}
+      variant="glass"
+    >
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
         {data.map((cell) => (
           <div
             key={cell.team}
-            className="rounded-xl border border-gray-100 p-3 hover:shadow-sm transition-shadow"
+            className="rounded-xl border border-gray-100/80 bg-white/60 p-3 hover:shadow-theme-sm hover:border-brand-100 transition-all backdrop-blur-sm"
           >
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium text-gray-800">{cell.team}</span>
-              <span className={cn("text-lg font-bold", getRiskTextColor(cell.riskScore))}>
+              <span className={cn("text-lg font-bold tabular-nums", getRiskTextColor(cell.riskScore))}>
                 {cell.riskScore}
               </span>
             </div>
@@ -36,6 +41,6 @@ export function TeamRiskHeatmap({ data }: { data: TeamRiskCell[] }) {
           </div>
         ))}
       </div>
-    </div>
+    </AdvancedCard>
   );
 }

@@ -12,11 +12,12 @@ import { CabPanel } from "@/components/releases/CabPanel";
 import { DeploymentMonitor } from "@/components/releases/DeploymentMonitor";
 import { GoNoGoControls } from "@/components/releases/GoNoGoControls";
 import { ReleaseLifecycleStrip } from "@/components/releases/ReleaseLifecycleStrip";
+import { AdvancedCard } from "@/components/ui/advanced-card";
 import { useReleaseStore } from "@/context/ReleaseStoreContext";
 import { releases } from "@/lib/dummy-data";
 import { computeLifecycleStages } from "@/lib/lifecycle";
 import { formatDate, formatDateTime } from "@/lib/utils";
-import { GitBranch, Network } from "lucide-react";
+import { GitBranch, Network, Ticket, Wrench, FileText, History } from "lucide-react";
 
 export default function ReleaseDetailPage({ params }: { params: { id: string } }) {
   const release = releases.find((r) => r.id === params.id);
@@ -33,13 +34,13 @@ export default function ReleaseDetailPage({ params }: { params: { id: string } }
 
   return (
     <div>
-      <TopBar title={`${release.version} — ${release.name}`} subtitle={`${release.team} · Owner: ${release.owner} · Target: ${formatDate(release.targetDate)}`} />
+      <TopBar title={`${release.version} — ${release.name}`} subtitle={`${release.team} · Owner: ${release.owner} · Target: ${formatDate(release.targetDate)}`} highlight />
 
       <div className="flex items-center gap-3 mb-6">
         <StatusBadge status={release.status} />
         {decision && <StatusBadge status={decision} />}
         {deploy && deploy.phase !== "Not Started" && <StatusBadge status={deploy.phase} />}
-        <ProgressLink href={`/releases/${release.id}/dependencies`} className="ml-auto flex items-center gap-1.5 text-sm text-primary hover:text-blue-700 font-medium">
+        <ProgressLink href={`/releases/${release.id}/dependencies`} className="ml-auto flex items-center gap-1.5 text-sm text-brand-500 hover:text-brand-600 font-medium transition-colors">
           <Network className="w-4 h-4" /> Dependency Map
         </ProgressLink>
       </div>
@@ -66,58 +67,53 @@ export default function ReleaseDetailPage({ params }: { params: { id: string } }
           <BuildExplainer release={release} />
           <ApprovalChecklist release={release} />
 
-          <div className="bg-white border border-border rounded-xl p-5">
-            <h3 className="font-semibold text-slate-900 mb-4">Linked Tickets</h3>
+          <AdvancedCard title="Linked Tickets" icon={Ticket} variant="glass">
             <div className="space-y-2">
               {release.tickets.map((t) => (
-                <div key={t.id} className="flex items-center justify-between py-2 border-b border-slate-50 last:border-0">
-                  <div><span className="text-xs text-slate-400">{t.id}</span><p className="text-sm text-slate-700">{t.title}</p></div>
+                <div key={t.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+                  <div><span className="text-xs text-gray-400">{t.id}</span><p className="text-sm text-gray-700">{t.title}</p></div>
                   <StatusBadge status={t.status === "Done" ? "Approved" : t.status === "Blocked" ? "Blocked" : "Pending"} />
                 </div>
               ))}
             </div>
-          </div>
+          </AdvancedCard>
 
-          <div className="bg-white border border-border rounded-xl p-5">
-            <h3 className="font-semibold text-slate-900 mb-4">Build Status</h3>
-            <div className="flex items-center gap-4">
+          <AdvancedCard title="Build Status" icon={Wrench} variant="default">
+            <div className="flex items-center gap-4 flex-wrap">
               <StatusBadge status={release.build.status} />
-              <span className="text-sm text-slate-600">Build #{release.build.id} · {release.build.pipeline}</span>
-              <span className="text-sm text-slate-400">{formatDateTime(release.build.lastRun)}</span>
+              <span className="text-sm text-gray-600">Build #{release.build.id} · {release.build.pipeline}</span>
+              <span className="text-sm text-gray-400">{formatDateTime(release.build.lastRun)}</span>
             </div>
-            <p className="text-sm text-slate-500 mt-2">{release.build.passedTests}/{release.build.testCount} tests passed</p>
-          </div>
+            <p className="text-sm text-gray-500 mt-2">{release.build.passedTests}/{release.build.testCount} tests passed</p>
+          </AdvancedCard>
 
           {release.notes && (
-            <div className="bg-white border border-border rounded-xl p-5">
-              <h3 className="font-semibold text-slate-900 mb-2">Notes</h3>
-              <p className="text-sm text-slate-600">{release.notes}</p>
-            </div>
+            <AdvancedCard title="Notes" icon={FileText} variant="plain">
+              <p className="text-sm text-gray-600">{release.notes}</p>
+            </AdvancedCard>
           )}
         </div>
 
         <div className="space-y-6">
-          <div className="bg-white border border-border rounded-xl p-5">
-            <h3 className="font-semibold text-slate-900 mb-3 flex items-center gap-2"><GitBranch className="w-4 h-4" /> Commits</h3>
+          <AdvancedCard title="Commits" icon={GitBranch} variant="glass">
             {release.commits.map((c) => (
-              <div key={c.sha} className="py-2 border-b border-slate-50 last:border-0">
+              <div key={c.sha} className="py-2 border-b border-gray-100 last:border-0">
                 <code className="text-xs bg-slate-100 px-1 rounded">{c.sha}</code>
-                <p className="text-sm text-slate-700 mt-1">{c.message}</p>
-                <p className="text-xs text-slate-400">{c.author} · {formatDateTime(c.timestamp)}</p>
+                <p className="text-sm text-gray-700 mt-1">{c.message}</p>
+                <p className="text-xs text-gray-400">{c.author} · {formatDateTime(c.timestamp)}</p>
               </div>
             ))}
-            <p className="text-xs text-slate-400 mt-3">{release.filesChanged} files changed</p>
-          </div>
+            <p className="text-xs text-gray-400 mt-3">{release.filesChanged} files changed</p>
+          </AdvancedCard>
 
-          <div className="bg-white border border-border rounded-xl p-5">
-            <h3 className="font-semibold text-slate-900 mb-3">History</h3>
+          <AdvancedCard title="History" icon={History} variant="default">
             {history.map((h) => (
-              <div key={h.id} className="py-2 border-b border-slate-50 last:border-0 text-sm">
-                <p className="text-slate-700">{h.action}</p>
-                <p className="text-xs text-slate-400">{h.actor} · {formatDateTime(h.timestamp)}</p>
+              <div key={h.id} className="py-2 border-b border-gray-100 last:border-0 text-sm">
+                <p className="text-gray-700">{h.action}</p>
+                <p className="text-xs text-gray-400">{h.actor} · {formatDateTime(h.timestamp)}</p>
               </div>
             ))}
-          </div>
+          </AdvancedCard>
         </div>
       </div>
     </div>

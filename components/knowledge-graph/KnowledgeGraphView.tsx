@@ -7,6 +7,7 @@ import { KgNode } from "@/components/knowledge-graph/KgNode";
 import { buildKnowledgeGraph, KG_LEGEND, layoutKgNodes } from "@/lib/knowledge-graph";
 import { releases, services, teamMembers } from "@/lib/dummy-data";
 import type { KgNodeType } from "@/lib/types";
+import { MagicCard } from "@/components/ui/magic-card";
 import { cn } from "@/lib/utils";
 
 const nodeTypes = { kg: KgNode };
@@ -75,7 +76,7 @@ export function KnowledgeGraphView() {
             onClick={() => toggle(type)}
             className={cn(
               "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors",
-              filters.has(type) ? "bg-white border-gray-200 text-gray-700" : "bg-gray-100 border-transparent text-gray-400"
+              filters.has(type) ? "bg-white/80 border-gray-200 text-gray-700 shadow-theme-sm backdrop-blur-sm" : "bg-gray-100/80 border-transparent text-gray-400"
             )}
           >
             <span className="w-2 h-2 rounded-full" style={{ background: color }} />
@@ -85,13 +86,13 @@ export function KnowledgeGraphView() {
         <span className="text-xs text-gray-400 ml-auto">{nodes.length} nodes · {edges.length} edges</span>
       </div>
 
-      <div className="flex-1 bg-white border border-gray-200 rounded-xl overflow-hidden min-h-[480px]">
+      <MagicCard gradient="from-brand-200/40 via-white to-violet-200/40" className="flex-1 min-h-[480px]" innerClassName="h-full overflow-hidden">
         <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} fitView minZoom={0.3}>
-          <Background gap={16} />
-          <Controls />
-          <MiniMap nodeStrokeWidth={2} zoomable pannable />
+          <Background gap={16} color="#E2E8F0" />
+          <Controls className="!rounded-xl !border-gray-200/80 !shadow-theme-sm" />
+          <MiniMap nodeStrokeWidth={2} zoomable pannable className="!rounded-xl !border-gray-200/80" />
         </ReactFlow>
-      </div>
+      </MagicCard>
     </div>
   );
 }

@@ -30,7 +30,7 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        "fixed top-0 left-0 z-50 flex h-screen flex-col border-r border-gray-200 bg-white px-5 transition-all duration-300 ease-in-out lg:mt-0",
+        "fixed top-0 left-0 z-50 flex h-screen flex-col border-r border-gray-200/80 bg-white/95 px-5 shadow-theme-sm backdrop-blur-xl transition-all duration-300 ease-in-out lg:mt-0",
         wide ? "w-[290px]" : "w-[90px]",
         isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
       )}
@@ -39,7 +39,7 @@ export function Sidebar() {
     >
       <div className={cn("flex py-8", !wide ? "lg:justify-center" : "justify-start")}>
         <ProgressLink href="/dashboard" className="flex items-center gap-2.5">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-500">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-violet-600 shadow-theme-sm">
             <Shield className="h-5 w-5 text-white" />
           </div>
           {wide && (

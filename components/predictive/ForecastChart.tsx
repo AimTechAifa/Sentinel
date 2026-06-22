@@ -11,29 +11,30 @@ import {
   ResponsiveContainer,
   ReferenceLine,
 } from "recharts";
+import { AdvancedCard } from "@/components/ui/advanced-card";
 import type { ForecastTrendPoint } from "@/lib/types";
+import { Brain } from "lucide-react";
 
 export function ForecastChart({ data }: { data: ForecastTrendPoint[] }) {
   const forecastStart = data.findIndex((d) => d.isForecast);
 
   return (
-    <div className="bg-white ta-card p-5">
-      <div className="flex items-start justify-between mb-4">
-        <div>
-          <h3 className="font-semibold text-gray-800">Predictive Readiness Model</h3>
-          <p className="text-xs text-gray-500 mt-1">
-            sentinel-rm-v1.2 · 8 weeks actual + 4 week forecast
-          </p>
-        </div>
+    <AdvancedCard
+      title="Predictive Readiness Model"
+      subtitle="sentinel-rm-v1.2 · 8 weeks actual + 4 week forecast"
+      icon={Brain}
+      variant="glass"
+      action={
         <span className="text-[10px] bg-violet-50 text-ai px-2 py-1 rounded-full font-medium">ML Forecast</span>
-      </div>
+      }
+    >
       <ResponsiveContainer width="100%" height={260}>
         <ComposedChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
           <XAxis dataKey="week" tick={{ fontSize: 10 }} stroke="#94A3B8" />
           <YAxis yAxisId="left" domain={[50, 100]} tick={{ fontSize: 10 }} stroke="#94A3B8" />
           <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10 }} stroke="#94A3B8" />
-          <Tooltip />
+          <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid #E4E7EC" }} />
           {forecastStart >= 0 && (
             <ReferenceLine
               x={data[forecastStart]?.week}
@@ -46,8 +47,8 @@ export function ForecastChart({ data }: { data: ForecastTrendPoint[] }) {
             yAxisId="left"
             type="monotone"
             dataKey="actualReadiness"
-            fill="#2563EB15"
-            stroke="#2563EB"
+            fill="#465fff15"
+            stroke="#465fff"
             name="Actual readiness %"
             connectNulls={false}
           />
@@ -64,12 +65,12 @@ export function ForecastChart({ data }: { data: ForecastTrendPoint[] }) {
             yAxisId="right"
             type="monotone"
             dataKey="predictedRollbacks"
-            stroke="#EF4444"
+            stroke="#F04438"
             name="Predicted rollbacks"
             dot={false}
           />
         </ComposedChart>
       </ResponsiveContainer>
-    </div>
+    </AdvancedCard>
   );
 }
