@@ -12,6 +12,7 @@ import {
   Share2,
   Columns2,
   Sparkles,
+  Server,
 } from "lucide-react";
 
 export type NavItem = {
@@ -40,6 +41,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { href: "/releases", label: "Releases", icon: Package },
       { href: "/compare", label: "Compare", icon: Columns2 },
       { href: "/calendar", label: "Calendar", icon: Calendar },
+      { href: "/environments", label: "Environment Desk", icon: Server },
       { href: "/insights", label: "Insights", icon: LineChart },
     ],
   },

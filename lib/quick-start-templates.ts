@@ -443,6 +443,23 @@ export const QUICK_START_TEMPLATES: QuickStartTemplate[] = [
       { label: "Trace v2.14.0", detail: "Follow CR-8842 and PLAT tickets to platform release." },
     ],
   },
+  {
+    id: "environment-desk",
+    title: "Environment desk",
+    description:
+      "Release timeline, SAP booking, system mapping, version matrix, and app config tables.",
+    category: "Planning",
+    icon: GitBranch,
+    href: "/environments",
+    seed: "reset",
+    duration: "4 min",
+    highlights: ["Env booking", "Version matrix", "Enterprise impact"],
+    steps: [
+      { label: "Scan release timeline", detail: "Filter by department, size, and impact on the Gantt strip." },
+      { label: "Check SAP booking", detail: "Review FIN SIT/UAT months booked with Guru as contact." },
+      { label: "Compare versions", detail: "See SAP V2.0 in TEST vs V1.0 in PROD — promotion gap." },
+    ],
+  },
 ];
 
 export function getQuickStartTemplate(id: string): QuickStartTemplate | undefined {

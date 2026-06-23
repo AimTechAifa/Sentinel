@@ -353,3 +353,76 @@ export interface ForecastTrendPoint {
   predictedRollbacks?: number;
   isForecast?: boolean;
 }
+
+export type EnterpriseDepartment = "FIN" | "HR" | "Security" | "Platform" | "CRM" | "Operations";
+export type ReleaseSize = "high" | "medium" | "low";
+export type ReleaseImpact = "high" | "medium" | "low";
+export type EnvBookingStatus = "IDLE" | "BOOKED" | "MAINTENANCE";
+export type EnterpriseEnvStage = "DEV" | "TEST" | "UAT" | "PROD";
+
+export interface ReleaseTimelineEntry {
+  id: string;
+  name: string;
+  department: EnterpriseDepartment;
+  size: ReleaseSize;
+  impact: ReleaseImpact;
+  startDate: string;
+  endDate: string;
+  status: ReleaseStatus;
+}
+
+export interface EnvBooking {
+  id: string;
+  system: string;
+  month: string;
+  status: EnvBookingStatus;
+  team?: string;
+  purpose?: string;
+  contact?: string;
+}
+
+export interface EnterpriseSystemNode {
+  id: string;
+  label: string;
+  type: "environment" | "application";
+  parentId?: string;
+}
+
+export interface ApplicationVersionRow {
+  application: string;
+  dev: string;
+  test: string;
+  prod: string;
+}
+
+export interface ApplicationEnvConfig {
+  application: string;
+  environment: EnterpriseEnvStage;
+  infra: string;
+  firewall: string;
+  networkZone: string;
+  lastUpdated: string;
+}
+
+export interface ApplicationConfig {
+  application: string;
+  baseUrl: string;
+  apiUrl: string;
+  featureFlags: { name: string; enabled: boolean; environment: EnterpriseEnvStage }[];
+  lastUpdated: string;
+}
+
+export type EnterpriseImpactCondition =
+  | "queues paused"
+  | "events paused"
+  | "DB freezes"
+  | "apps down"
+  | "customer support down";
+
+export interface EnterpriseReleaseImpact {
+  releaseId: string;
+  releaseName: string;
+  prerequisites: string[];
+  conditions: EnterpriseImpactCondition[];
+  active: boolean;
+}
