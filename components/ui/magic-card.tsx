@@ -24,14 +24,19 @@ export function MagicCard({
   return (
     <div
       className={cn(
-        "relative rounded-lg p-[1px] bg-gradient-to-br shadow-theme-md transition-shadow hover:shadow-theme-md",
+        "relative rounded-xl p-px bg-gradient-to-br shadow-theme-sm transition-shadow hover:shadow-theme-md",
         gradient,
         glow && "shadow-[0_0_40px_-12px_rgba(145,85,253,0.35)]",
         className
       )}
     >
       {beam && <BorderBeam />}
-      <div className={cn("relative rounded-2xl bg-white/95 backdrop-blur-sm h-full overflow-hidden", innerClassName)}>
+      <div
+        className={cn(
+          "relative h-full overflow-hidden rounded-[11px] bg-white/95 backdrop-blur-sm",
+          innerClassName
+        )}
+      >
         {children}
       </div>
     </div>

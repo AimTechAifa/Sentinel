@@ -6,12 +6,10 @@ import { Plus, Pencil, Trash2, Package } from "lucide-react";
 import { ProgressLink } from "@/components/layout/NavigationProgress";
 import { TopBar } from "@/components/layout/TopBar";
 import { StatusBadge } from "@/components/badges/StatusBadge";
-import { SourceBadgeInline } from "@/components/dashboard/UnifiedPortfolioPanel";
 import { NeedsAttentionPanel } from "@/components/dashboard/NeedsAttentionPanel";
 import { ReleaseFormModal, type ReleaseFormData } from "@/components/releases/ReleaseFormModal";
 import { ReleasePlaybookBar } from "@/components/releases/ReleasePlaybookBar";
 import { ReleaseFiltersBar } from "@/components/releases/ReleaseFiltersBar";
-import { ReadinessBadge } from "@/components/releases/ReadinessBadge";
 import { DataTable, tableCell, tableHeadRow, tableRow } from "@/components/ui/data-table";
 import { useReleaseFilters } from "@/context/ReleaseFiltersContext";
 import { releases as demoReleases } from "@/lib/dummy-data";
@@ -371,24 +369,24 @@ export default function ReleasesPageContent() {
         <table className="w-full text-sm">
           <thead className={tableHeadRow}>
             <tr>
-              <th className={`${tableCell} text-left font-medium`}>Source</th>
               <th className={`${tableCell} text-left font-medium`}>Release ID</th>
-              <th className={`${tableCell} text-left font-medium`}>Name</th>
+              <th className={`${tableCell} text-left font-medium`}>Release Name</th>
+              <th className={`${tableCell} text-left font-medium`}>Program / Project</th>
               <th className={`${tableCell} text-left font-medium`}>Owner</th>
               <th className={`${tableCell} text-left font-medium`}>Status</th>
-              <th className={`${tableCell} text-left font-medium`}>Readiness</th>
               <th className={`${tableCell} text-left font-medium`}>Release date</th>
-              <th className={`${tableCell} text-left font-medium`}>Group</th>
-              {hasRefinement && (
-                <th className={`${tableCell} text-left font-medium`}>Applications</th>
-              )}
+              <th className={`${tableCell} text-left font-medium`}>Priority</th>
+              <th className={`${tableCell} text-left font-medium`}>Impact</th>
+              <th className={`${tableCell} text-left font-medium`}>Department</th>
+              <th className={`${tableCell} text-left font-medium`}>Application/s</th>
+              <th className={`${tableCell} text-left font-medium`}>Dependent on release</th>
               {canEdit && <th className={`${tableCell} text-left font-medium`} />}
             </tr>
           </thead>
           <tbody>
             {sorted.length === 0 ? (
               <tr>
-                <td colSpan={hasRefinement ? (canEdit ? 10 : 9) : canEdit ? 9 : 8} className={`${tableCell} text-center text-gray-400 py-8`}>
+                <td colSpan={canEdit ? 12 : 11} className={`${tableCell} text-center text-gray-400 py-8`}>
                   No releases match the current filters.
                 </td>
               </tr>
@@ -398,8 +396,6 @@ export default function ReleasesPageContent() {
                   key={`${r.source}-${r.id}`}
                   row={r}
                   dbRow={dbRowById(r.id)}
-                  readiness={readinessByKey[readinessKey(r.source, r.id)]}
-                  showApps={hasRefinement}
                   canEdit={canEdit}
                   onEdit={() => {
                     const db = dbRowById(r.id);
@@ -431,6 +427,7 @@ export default function ReleasesPageContent() {
           dependsOnReleaseIds: editRow.dependsOn.map((d) => d.dependsOnRelease.id),
           notes: "",
         } : formPrefill ?? undefined}
+        existingReleaseCodes={releaseCodes}
         departments={departments.map((d) => ({ value: d.id, label: d.name }))}
         applications={applications.map((a) => ({ value: a.id, label: a.name }))}
         releases={(dbRows as ReleaseRow[]).map((r) => ({ value: r.id, label: r.releaseCode }))}
@@ -444,50 +441,47 @@ export default function ReleasesPageContent() {
 function UnifiedRow({
   row,
   dbRow,
-  readiness,
-  showApps,
   canEdit,
   onEdit,
   onDelete,
 }: {
   row: UnifiedRelease;
   dbRow?: ReleaseRow;
-  readiness?: { readiness: number; blockerCount: number };
-  showApps: boolean;
   canEdit: boolean;
   onEdit: () => void;
   onDelete: () => void;
 }) {
-  const appLabel =
-    row.source === "database" && dbRow
-      ? dbRow.applications.map((a) => a.application.name).join(", ") || "—"
-      : row.source === "demo"
-        ? row.group
-        : "—";
+  const programProject =
+    dbRow?.programProject ?? row.programProject ?? "—";
+  const priority = dbRow?.priority ?? row.priority ?? "—";
+  const impact = dbRow?.impact ?? row.impact ?? "—";
+  const department = row.departmentName ?? row.group ?? "—";
+  const applications =
+    dbRow?.applications.map((a) => a.application.name).join(", ") ||
+    row.applicationName ||
+    "—";
+  const dependsOn =
+    dbRow?.dependsOn.map((d) => d.dependsOnRelease.releaseCode).join(", ") ||
+    row.dependsOnLabel ||
+    "—";
 
   return (
     <tr className={cn(tableRow, "group")}>
-      <td className={tableCell}><SourceBadgeInline source={row.source} /></td>
       <td className={tableCell}>
         <ProgressLink href={row.href} className="font-mono text-xs text-brand-600 hover:underline">{row.code}</ProgressLink>
       </td>
       <td className={tableCell}>
         <ProgressLink href={row.href} className="hover:text-brand-600">{row.name}</ProgressLink>
       </td>
+      <td className={`${tableCell} text-gray-600`}>{programProject || "N/A"}</td>
       <td className={`${tableCell} text-gray-600`}>{row.owner}</td>
       <td className={tableCell}><StatusBadge status={row.status as "Ready"} /></td>
-      <td className={tableCell}>
-        {readiness ? (
-          <ReadinessBadge value={readiness.readiness} blockerCount={readiness.blockerCount} compact />
-        ) : (
-          <span className="text-xs text-gray-400">—</span>
-        )}
-      </td>
       <td className={`${tableCell} text-gray-500`}>{formatDate(row.date)}</td>
-      <td className={tableCell}>{row.group}</td>
-      {showApps && (
-        <td className={`${tableCell} text-xs text-gray-500`}>{appLabel}</td>
-      )}
+      <td className={tableCell}>{priority}</td>
+      <td className={tableCell}>{impact}</td>
+      <td className={tableCell}>{department}</td>
+      <td className={`${tableCell} text-xs text-gray-600 max-w-[140px]`}>{applications}</td>
+      <td className={`${tableCell} text-xs text-gray-600 font-mono`}>{dependsOn}</td>
       {canEdit && (
         <td className={tableCell}>
           {row.source === "database" ? (
@@ -496,7 +490,7 @@ function UnifiedRow({
               <button type="button" onClick={onDelete} className="text-error-500"><Trash2 className="h-4 w-4" /></button>
             </div>
           ) : (
-            <span className="text-[10px] text-violet-600">Demo only</span>
+            <span className="text-[10px] text-violet-600">Demo</span>
           )}
         </td>
       )}

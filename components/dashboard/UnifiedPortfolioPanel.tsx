@@ -11,7 +11,7 @@ import { Database, Layers, Package, Sparkles } from "lucide-react";
 
 type Overview = {
   counts: {
-    combined: { planned: number; inProgress: number; blocked: number; atRisk: number; total: number };
+    combined: { planned: number; inProgress: number; blocked: number; atRisk: number; shipped?: number; total: number };
     database: { total: number; atRisk: number; blocked: number };
     demo: { total: number; atRisk: number; blocked: number };
   };
@@ -49,24 +49,23 @@ export function UnifiedPortfolioPanel({ data }: { data: Overview }) {
         </div>
       </AdvancedCard>
 
-      <DataTable title="Releases across sources" subtitle="Click to open database MVP detail or demo command center" icon={Package}>
+      <DataTable title="Releases" subtitle="Filtered releases across the portfolio" icon={Package}>
         <table className="w-full text-sm">
           <thead>
             <tr className={tableHeadRow}>
-              <th className={cn(tableCell, "text-left")}>Source</th>
-              <th className={cn(tableCell, "text-left")}>ID / Version</th>
-              <th className={cn(tableCell, "text-left")}>Name</th>
-              <th className={cn(tableCell, "text-left")}>Group</th>
+              <th className={cn(tableCell, "text-left")}>Release ID</th>
+              <th className={cn(tableCell, "text-left")}>Release Name</th>
+              <th className={cn(tableCell, "text-left")}>Program / Project</th>
+              <th className={cn(tableCell, "text-left")}>Owner</th>
               <th className={cn(tableCell, "text-left")}>Status</th>
-              <th className={cn(tableCell, "text-left")}>Date</th>
+              <th className={cn(tableCell, "text-left")}>Release date</th>
+              <th className={cn(tableCell, "text-left")}>Department</th>
+              <th className={cn(tableCell, "text-left")}>Application/s</th>
             </tr>
           </thead>
           <tbody>
             {data.releases.map((r) => (
               <tr key={`${r.source}-${r.id}`} className={tableRow}>
-                <td className={tableCell}>
-                  <SourceBadge source={r.source} />
-                </td>
                 <td className={tableCell}>
                   <ProgressLink href={r.href} className="font-mono text-xs text-brand-600 hover:underline">
                     {r.code}
@@ -75,9 +74,12 @@ export function UnifiedPortfolioPanel({ data }: { data: Overview }) {
                 <td className={tableCell}>
                   <ProgressLink href={r.href} className="hover:text-brand-600">{r.name}</ProgressLink>
                 </td>
-                <td className={cn(tableCell, "text-gray-600")}>{r.group}</td>
+                <td className={cn(tableCell, "text-gray-600")}>{r.programProject ?? "N/A"}</td>
+                <td className={cn(tableCell, "text-gray-600")}>{r.owner}</td>
                 <td className={tableCell}><StatusBadge status={r.status as "Ready"} /></td>
                 <td className={cn(tableCell, "text-gray-500")}>{formatDate(r.date)}</td>
+                <td className={cn(tableCell, "text-gray-600")}>{r.departmentName ?? r.group}</td>
+                <td className={cn(tableCell, "text-gray-600")}>{r.applicationName ?? "—"}</td>
               </tr>
             ))}
           </tbody>

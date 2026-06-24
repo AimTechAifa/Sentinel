@@ -17,6 +17,7 @@ async function main() {
   await prisma.releaseApplication.deleteMany();
   await prisma.envBooking.deleteMany();
   await prisma.systemMappingEdge.deleteMany();
+  await prisma.systemMappingGroup.deleteMany();
   await prisma.p1Issue.deleteMany();
   await prisma.workItem.deleteMany();
   await prisma.release.deleteMany();
@@ -96,9 +97,18 @@ async function main() {
     data: { applicationId: crmApp.id, name: "DEV CRM", type: "Dev", owner: "David Frost", lastDbRefresh: daysAgo(4), status: "Available" },
   });
 
+  const defaultGroup = await prisma.systemMappingGroup.create({
+    data: {
+      name: "Default enterprise setup",
+      status: "accepted",
+      sourceNotes: "Seeded demo mappings for SAP, FIN, Oracle, and CRM integration paths.",
+    },
+  });
+
   await prisma.systemMappingEdge.createMany({
     data: [
       {
+        groupId: defaultGroup.id,
         sourceAppId: sap.id,
         sourceEnvId: sapTest.id,
         targetAppId: finApp.id,
@@ -108,6 +118,7 @@ async function main() {
         isDefault: true,
       },
       {
+        groupId: defaultGroup.id,
         sourceAppId: sap.id,
         sourceEnvId: sapTest.id,
         targetAppId: oracle.id,
@@ -117,6 +128,7 @@ async function main() {
         isDefault: true,
       },
       {
+        groupId: defaultGroup.id,
         sourceAppId: finApp.id,
         sourceEnvId: finUat.id,
         targetAppId: crmApp.id,

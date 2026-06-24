@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import { ProgressLink } from "@/components/layout/NavigationProgress";
 import { useSidebar } from "@/context/SidebarContext";
-import { Shield, Sparkles } from "lucide-react";
+import { ChevronsLeft, ChevronsRight, Shield, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PRODUCT_TAGLINE } from "@/lib/brand";
 import { QUICK_START_TEMPLATES } from "@/lib/quick-start-templates";
@@ -11,44 +11,86 @@ import { NAV_SECTIONS } from "@/lib/navigation";
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
-  const wide = isExpanded || isHovered || isMobileOpen;
+  const {
+    isExpanded,
+    isMobileOpen,
+    isHovered,
+    isWide,
+    toggleSidebar,
+    toggleMobileSidebar,
+    setIsHovered,
+    closeMobileSidebar,
+  } = useSidebar();
+
+  const handleNavClick = () => {
+    if (isMobileOpen) closeMobileSidebar();
+  };
+
+  const handleToggle = () => {
+    if (typeof window !== "undefined" && window.innerWidth >= 1024) {
+      toggleSidebar();
+    } else {
+      toggleMobileSidebar();
+    }
+  };
 
   return (
     <aside
       className={cn(
-        "materio-sidebar fixed top-0 left-0 z-50 flex h-screen flex-col border-r border-[var(--border)] bg-[var(--sidebar)] px-5 shadow-theme-sm transition-all duration-300 ease-in-out lg:mt-0",
-        wide ? "w-[290px]" : "w-[90px]",
+        "materio-sidebar fixed top-0 left-0 z-50 flex h-screen flex-col border-r border-[var(--border)] bg-[var(--sidebar)] shadow-theme-sm transition-[width] duration-300 ease-in-out lg:mt-0",
+        isWide ? "w-[var(--sidebar-width-expanded)]" : "w-[var(--sidebar-width-collapsed)]",
         isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
       )}
       onMouseEnter={() => !isExpanded && setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <div className={cn("flex py-8", !wide ? "lg:justify-center" : "justify-start")}>
-        <ProgressLink href="/dashboard" className="flex items-center gap-2.5">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-500 shadow-theme-sm">
-            <Shield className="h-5 w-5 text-white" />
+      <div
+        className={cn(
+          "flex shrink-0 items-center border-b border-[var(--border)] px-4 py-5",
+          isWide ? "justify-between gap-3" : "flex-col gap-3 lg:px-3"
+        )}
+      >
+        <ProgressLink
+          href="/dashboard"
+          className={cn("flex min-w-0 items-center gap-2.5", !isWide && "lg:justify-center")}
+          onClick={handleNavClick}
+        >
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-500 shadow-theme-sm">
+            <Shield className="h-[18px] w-[18px] text-white" />
           </div>
-          {wide && (
-            <div>
-              <span className="text-xl font-bold text-gray-900 tracking-tight">Sentinel</span>
-              <p className="mt-0.5 text-[11px] leading-snug text-gray-500">{PRODUCT_TAGLINE}</p>
+          {isWide && (
+            <div className="min-w-0">
+              <span className="block truncate text-lg font-bold tracking-tight text-gray-900">Sentinel</span>
+              <p className="mt-0.5 truncate text-[11px] leading-snug text-gray-500">{PRODUCT_TAGLINE}</p>
             </div>
           )}
         </ProgressLink>
+
+        <button
+          type="button"
+          onClick={handleToggle}
+          className={cn(
+            "materio-sidebar-toggle flex shrink-0 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--sidebar)] text-gray-500 transition-colors hover:bg-brand-50 hover:text-brand-600",
+            isWide ? "h-8 w-8" : "h-8 w-8"
+          )}
+          aria-label={isExpanded ? "Collapse sidebar" : "Expand sidebar"}
+        >
+          {isExpanded ? <ChevronsLeft className="h-4 w-4" /> : <ChevronsRight className="h-4 w-4" />}
+        </button>
       </div>
 
-      <nav className="flex-1 overflow-y-auto no-scrollbar">
+      <nav className="flex-1 overflow-y-auto px-3 py-4 no-scrollbar">
         {NAV_SECTIONS.map((section, sectionIndex) => (
-          <div key={section.title ?? `section-${sectionIndex}`} className={sectionIndex > 0 ? "mt-5" : ""}>
-            {section.title && (
-              <p className={cn("mb-3 text-xs font-semibold uppercase text-gray-400", !wide && "lg:hidden")}>
-                {section.title}
-              </p>
-            )}
-            {!section.title && sectionIndex === 0 && (
-              <p className={cn("mb-3 text-xs font-semibold uppercase text-gray-400", !wide && "lg:hidden")}>
-                Menu
+          <div key={section.title ?? `section-${sectionIndex}`} className={sectionIndex > 0 ? "mt-6" : ""}>
+            {(section.title || sectionIndex === 0) && (
+              <p
+                className={cn(
+                  "menu-section-label mb-2 px-2",
+                  !isWide && "lg:mx-auto lg:w-6 lg:overflow-hidden lg:px-0 lg:text-center lg:text-[0px]"
+                )}
+                aria-hidden={!isWide}
+              >
+                {section.title ?? "Menu"}
               </p>
             )}
             <ul className="flex flex-col gap-1">
@@ -58,19 +100,25 @@ export function Sidebar() {
                   <li key={href}>
                     <ProgressLink
                       href={href}
-                      title={!wide ? label : undefined}
+                      title={!isWide ? label : undefined}
+                      onClick={handleNavClick}
                       className={cn(
                         "menu-item group",
                         active ? "menu-item-active" : "menu-item-inactive",
-                        !wide && "lg:justify-center"
+                        !isWide && "lg:justify-center lg:px-0"
                       )}
                     >
                       <span className={active ? "menu-item-icon-active" : "menu-item-icon-inactive"}>
-                        <Icon className="h-5 w-5 shrink-0" />
+                        <Icon className="h-[22px] w-[22px] shrink-0" />
                       </span>
-                      {wide && <span className="flex-1">{label}</span>}
-                      {wide && pulse && (
-                        <span className="h-2 w-2 rounded-full bg-ai animate-pulseDot" />
+                      {isWide && <span className="flex-1 truncate">{label}</span>}
+                      {isWide && pulse && (
+                        <span className="h-2 w-2 shrink-0 rounded-full bg-ai animate-pulseDot" />
+                      )}
+                      {!isWide && (
+                        <span className="menu-item-tooltip lg:group-hover:opacity-100 lg:group-focus-visible:opacity-100">
+                          {label}
+                        </span>
                       )}
                     </ProgressLink>
                   </li>
@@ -81,17 +129,20 @@ export function Sidebar() {
         ))}
       </nav>
 
-      {wide && (
-        <div className="border-t border-gray-200 py-4">
+      {isWide && (
+        <div className="shrink-0 border-t border-[var(--border)] px-3 py-4">
           <ProgressLink
             href="/templates"
-            className="block rounded-lg bg-gradient-to-br from-brand-500 to-brand-600 px-4 py-4 transition hover:from-brand-600 hover:to-brand-700 shadow-theme-sm"
+            onClick={handleNavClick}
+            className="block rounded-lg bg-gradient-to-br from-brand-500 to-brand-600 px-4 py-4 shadow-theme-sm transition hover:from-brand-600 hover:to-brand-700"
           >
-            <p className="text-sm font-semibold text-white flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-brand-100" />
+            <p className="flex items-center gap-2 text-sm font-semibold text-white">
+              <Sparkles className="h-4 w-4 text-brand-100" />
               Templates
             </p>
-            <p className="mt-1 text-xs text-brand-100/90">{QUICK_START_TEMPLATES.length} guided demo scenarios</p>
+            <p className="mt-1 text-xs text-brand-100/90">
+              {QUICK_START_TEMPLATES.length} guided demo scenarios
+            </p>
           </ProgressLink>
         </div>
       )}

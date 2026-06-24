@@ -11,7 +11,7 @@ import { ThemeModeToggle } from "@/components/materio/ThemeModeToggle";
 import { useReleaseStore } from "@/context/ReleaseStoreContext";
 
 export function AppHeader() {
-  const { toggleSidebar, toggleMobileSidebar } = useSidebar();
+  const { toggleMobileSidebar } = useSidebar();
   const { unreadNotifications } = useReleaseStore();
   const [searchOpen, setSearchOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -28,21 +28,16 @@ export function AppHeader() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  const handleToggle = () => {
-    if (typeof window !== "undefined" && window.innerWidth >= 1024) toggleSidebar();
-    else toggleMobileSidebar();
-  };
-
   return (
     <>
-      <header className="materio-header sticky top-0 z-30 flex w-full border-b border-[var(--border)] bg-[var(--header)] shadow-theme-sm">
-        <div className="flex grow flex-col items-center justify-between lg:flex-row lg:px-6">
-          <div className="flex w-full items-center justify-between gap-2 border-b border-gray-200 px-3 py-3 sm:gap-4 lg:border-b-0 lg:px-0 lg:py-4">
+      <header className="materio-header sticky top-0 z-30 w-full border-b border-[var(--border)] bg-[var(--header)]">
+        <div className="flex h-[var(--header-height)] items-center justify-between gap-4 px-4 lg:px-6">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
             <button
               type="button"
-              onClick={handleToggle}
-              className="flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 shadow-theme-sm hover:bg-brand-50 hover:text-brand-600 lg:h-11 lg:w-11 transition-colors"
-              aria-label="Toggle sidebar"
+              onClick={toggleMobileSidebar}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[var(--border)] text-gray-600 transition-colors hover:bg-brand-50 hover:text-brand-600 lg:hidden"
+              aria-label="Open navigation menu"
             >
               <Menu className="h-5 w-5" />
             </button>
@@ -50,59 +45,62 @@ export function AppHeader() {
             <button
               type="button"
               onClick={() => setSearchOpen(true)}
-              className="hidden flex-1 max-w-md lg:flex items-center relative text-left"
+              className="relative hidden max-w-md flex-1 items-center text-left lg:flex"
             >
               <Search className="absolute left-3 h-4 w-4 text-gray-400" />
-              <span className="h-11 w-full rounded-lg border border-gray-200 bg-white pl-10 pr-4 text-sm text-gray-500 flex items-center shadow-theme-sm">
+              <span className="flex h-10 w-full items-center rounded-lg border border-[var(--border)] bg-white pl-10 pr-16 text-sm text-gray-500 shadow-theme-sm">
                 Search releases, tickets, CRs...
               </span>
-              <kbd className="absolute right-3 hidden -translate-y-0 sm:inline rounded border border-gray-200 bg-white px-1.5 py-0.5 text-xs text-gray-400">
+              <kbd className="absolute right-3 hidden rounded border border-[var(--border)] bg-white px-1.5 py-0.5 text-xs text-gray-400 sm:inline">
                 ⌘K
               </kbd>
             </button>
+          </div>
 
+          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
             <button
               type="button"
               onClick={() => setSearchOpen(true)}
-              className="flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 lg:hidden"
+              className="flex h-10 w-10 items-center justify-center rounded-lg border border-[var(--border)] text-gray-500 transition-colors hover:bg-gray-50 lg:hidden"
               aria-label="Search"
             >
               <Search className="h-5 w-5" />
             </button>
 
-            <div className="flex items-center gap-3">
-              <ThemeModeToggle />
+            <ThemeModeToggle />
+
+            <button
+              type="button"
+              onClick={() => setHelpOpen(true)}
+              className="flex h-10 w-10 items-center justify-center rounded-lg border border-[var(--border)] text-gray-500 transition-colors hover:bg-brand-50 hover:text-brand-600"
+              aria-label="Help and navigation"
+              title="Help & navigation"
+            >
+              <CircleHelp className="h-5 w-5" />
+            </button>
+
+            <div className="relative">
               <button
                 type="button"
-                onClick={() => setHelpOpen(true)}
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 text-gray-500 hover:bg-brand-50 hover:text-brand-600"
-                aria-label="Help and navigation"
-                title="Help & navigation"
+                onClick={() => setNotificationsOpen((v) => !v)}
+                className="relative flex h-10 w-10 items-center justify-center rounded-lg border border-[var(--border)] text-gray-500 transition-colors hover:bg-gray-50"
+                aria-label="Notifications"
               >
-                <CircleHelp className="h-5 w-5" />
+                <Bell className="h-5 w-5" />
+                {unreadNotifications > 0 && (
+                  <span className="absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-error-500 text-[10px] font-medium text-white">
+                    {unreadNotifications > 9 ? "9+" : unreadNotifications}
+                  </span>
+                )}
               </button>
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setNotificationsOpen((v) => !v)}
-                  className="relative flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 text-gray-500 hover:bg-gray-50"
-                  aria-label="Notifications"
-                >
-                  <Bell className="h-5 w-5" />
-                  {unreadNotifications > 0 && (
-                    <span className="absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-error-500 text-[10px] font-medium text-white">
-                      {unreadNotifications > 9 ? "9+" : unreadNotifications}
-                    </span>
-                  )}
-                </button>
-                <NotificationPanel open={notificationsOpen} onClose={() => setNotificationsOpen(false)} />
-              </div>
-              <div className="flex items-center gap-2">
-                <Avatar name="Priya Sharma" size="sm" />
-                <div className="hidden sm:block">
-                  <p className="text-sm font-medium text-gray-800">Priya Sharma</p>
-                  <p className="text-xs text-gray-500">Release Manager</p>
-                </div>
+              <NotificationPanel open={notificationsOpen} onClose={() => setNotificationsOpen(false)} />
+            </div>
+
+            <div className="ml-1 flex items-center gap-2 border-l border-[var(--border)] pl-3">
+              <Avatar name="Priya Sharma" size="sm" />
+              <div className="hidden sm:block">
+                <p className="text-sm font-medium text-gray-800">Priya Sharma</p>
+                <p className="text-xs text-gray-500">Release Manager</p>
               </div>
             </div>
           </div>

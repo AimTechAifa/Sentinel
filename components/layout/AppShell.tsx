@@ -14,18 +14,21 @@ import { ReleaseFiltersProvider } from "@/context/ReleaseFiltersContext";
 import { cn } from "@/lib/utils";
 
 function ShellInner({ children }: { children: React.ReactNode }) {
-  const { isExpanded, isHovered, isMobileOpen } = useSidebar();
-  const wide = isExpanded || isHovered || isMobileOpen;
-  const margin = isMobileOpen ? "ml-0" : wide ? "lg:ml-[290px]" : "lg:ml-[90px]";
+  const { isMobileOpen } = useSidebar();
 
   return (
     <ChatProvider>
-      <div className="min-h-screen materio-page-bg xl:flex">
+      <div className="min-h-screen materio-page-bg">
         <Sidebar />
         <Backdrop />
-        <div className={cn("flex flex-1 flex-col transition-all duration-300 ease-in-out", margin)}>
+        <div
+          className={cn(
+            "flex min-h-screen flex-1 flex-col transition-[margin] duration-300 ease-in-out",
+            isMobileOpen ? "ml-0" : "lg:ml-[var(--sidebar-width)]"
+          )}
+        >
           <AppHeader />
-          <main className="mx-auto w-full max-w-screen-2xl flex-1 p-4 md:p-6">
+          <main className="materio-main flex-1 px-6 pb-6 pt-0">
             <PageHelpBanner />
             {children}
           </main>

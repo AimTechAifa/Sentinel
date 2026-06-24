@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth/api";
 import { prisma } from "@/lib/prisma";
+import { normalizeProgramProject } from "@/lib/release-id";
 
 const releaseInclude = {
   department: true,
@@ -32,8 +33,11 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const data: Record<string, unknown> = {};
-  for (const key of ["name", "programProject", "owner", "status", "priority", "impact", "notes", "decision", "departmentId", "releaseCode"]) {
+  for (const key of ["name", "owner", "status", "priority", "impact", "notes", "decision", "departmentId", "releaseCode"]) {
     if (body[key] !== undefined) data[key] = body[key];
+  }
+  if (body.programProject !== undefined) {
+    data.programProject = normalizeProgramProject(body.programProject) ?? "N/A";
   }
   if (body.releaseDate) data.releaseDate = new Date(body.releaseDate);
 

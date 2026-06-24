@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth/api";
 import { prisma } from "@/lib/prisma";
+import { generateReleaseId, normalizeProgramProject } from "@/lib/release-id";
 
 export async function GET() {
   const { error } = await requireRole("readonly");
@@ -20,11 +21,17 @@ export async function POST(req: Request) {
   const { error } = await requireRole("editor");
   if (error) return error;
   const body = await req.json();
+
+  const existing = await prisma.release.findMany({ select: { releaseCode: true } });
+  const releaseCode =
+    body.releaseCode?.trim() ||
+    generateReleaseId(existing.map((r) => r.releaseCode));
+
   const row = await prisma.release.create({
     data: {
-      releaseCode: body.releaseCode,
+      releaseCode,
       name: body.name,
-      programProject: body.programProject ?? null,
+      programProject: normalizeProgramProject(body.programProject ?? "") ?? "N/A",
       owner: body.owner,
       status: body.status ?? "Planned",
       releaseDate: new Date(body.releaseDate),

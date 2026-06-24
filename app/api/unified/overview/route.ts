@@ -35,7 +35,12 @@ export async function GET(req: Request) {
   const [dbReleases, bookings, apps, versions, connectors, p1Issues] = await Promise.all([
     prisma.release.findMany({
       where: dbWhere,
-      include: { department: true },
+      include: {
+        department: true,
+        applications: { include: { application: true } },
+        bookings: { include: { environment: true, application: true } },
+        dependsOn: { include: { dependsOnRelease: true } },
+      },
       orderBy: { releaseDate: "asc" },
     }),
     prisma.envBooking.findMany({ include: { application: true }, orderBy: { fromDate: "asc" }, take: 8 }),

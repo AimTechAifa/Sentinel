@@ -230,6 +230,7 @@ export function DbReleaseDetail({ id }: { id: string }) {
           dependsOnReleaseIds: release.dependsOn.map((d) => d.dependsOnRelease.id),
           notes: release.notes ?? "",
         }}
+        existingReleaseCodes={lookups.releases.map((r) => r.releaseCode)}
         departments={lookups.departments.map((d) => ({ value: d.id, label: d.name }))}
         applications={lookups.applications.map((a) => ({ value: a.id, label: a.name }))}
         releases={lookups.releases.map((r) => ({ value: r.id, label: r.releaseCode }))}

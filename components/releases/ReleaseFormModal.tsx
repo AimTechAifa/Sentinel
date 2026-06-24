@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { RefreshCw } from "lucide-react";
 import { taBtnPrimary, taBtnSecondary, taInput } from "@/lib/styles";
+import { generateReleaseId, normalizeProgramProject } from "@/lib/release-id";
 import { cn } from "@/lib/utils";
 
 export type ReleaseFormData = {
@@ -22,12 +24,28 @@ export type ReleaseFormData = {
 
 type Option = { value: string; label: string };
 
-const STATUSES = ["Planned", "In Progress", "Blocked", "At Risk", "Complete"];
-const PRIORITIES = ["High", "Medium", "Low"];
+const STATUSES = ["Planned", "In Progress", "Blocked", "At Risk", "Complete", "Shipped", "Scheduled", "Ready"];
+const LEVELS = ["High", "Medium", "Low"];
+
+const EMPTY_FORM: ReleaseFormData = {
+  releaseCode: "",
+  name: "",
+  programProject: "",
+  owner: "",
+  status: "Planned",
+  releaseDate: new Date().toISOString().slice(0, 10),
+  priority: "Medium",
+  impact: "Medium",
+  departmentId: "",
+  applicationIds: [],
+  dependsOnReleaseIds: [],
+  notes: "",
+};
 
 export function ReleaseFormModal({
   open,
   initial,
+  existingReleaseCodes,
   departments,
   applications,
   releases,
@@ -36,32 +54,22 @@ export function ReleaseFormModal({
 }: {
   open: boolean;
   initial?: Partial<ReleaseFormData> | null;
+  existingReleaseCodes: string[];
   departments: Option[];
   applications: Option[];
   releases: Option[];
   onClose: () => void;
   onSaved: () => void;
 }) {
-  const [form, setForm] = useState<ReleaseFormData>({
-    releaseCode: "",
-    name: "",
-    programProject: "",
-    owner: "",
-    status: "Planned",
-    releaseDate: new Date().toISOString().slice(0, 10),
-    priority: "Medium",
-    impact: "Medium",
-    departmentId: "",
-    applicationIds: [],
-    dependsOnReleaseIds: [],
-    notes: "",
-  });
+  const [form, setForm] = useState<ReleaseFormData>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
+  const isEdit = Boolean(initial?.id);
 
   useEffect(() => {
     if (!open) return;
-    setForm({
-      releaseCode: initial?.releaseCode ?? "",
+    const next: ReleaseFormData = {
+      ...EMPTY_FORM,
+      releaseCode: initial?.releaseCode ?? generateReleaseId(existingReleaseCodes),
       name: initial?.name ?? "",
       programProject: initial?.programProject ?? "",
       owner: initial?.owner ?? "",
@@ -73,18 +81,30 @@ export function ReleaseFormModal({
       applicationIds: initial?.applicationIds ?? [],
       dependsOnReleaseIds: initial?.dependsOnReleaseIds ?? [],
       notes: initial?.notes ?? "",
-    });
-  }, [open, initial]);
+    };
+    if (initial?.id) next.id = initial.id;
+    setForm(next);
+  }, [open, initial, existingReleaseCodes]);
 
   if (!open) return null;
 
+  const regenerateId = () => {
+    const codes = isEdit
+      ? existingReleaseCodes.filter((c) => c !== initial?.releaseCode)
+      : existingReleaseCodes;
+    setForm((f) => ({ ...f, releaseCode: generateReleaseId(codes) }));
+  };
+
   const save = async () => {
     setSaving(true);
-    const isEdit = Boolean(initial?.id);
+    const payload = {
+      ...form,
+      programProject: normalizeProgramProject(form.programProject) ?? "N/A",
+    };
     const res = await fetch(isEdit ? `/api/releases/${initial!.id}` : "/api/releases", {
       method: isEdit ? "PATCH" : "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
+      body: JSON.stringify(payload),
     });
     setSaving(false);
     if (res.ok) {
@@ -103,45 +123,75 @@ export function ReleaseFormModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
       <div className="w-full max-w-2xl rounded-2xl bg-white shadow-theme-lg p-6 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-        <h2 className="text-lg font-semibold text-gray-800 mb-4">{initial?.id ? "Edit release" : "New release"}</h2>
+        <h2 className="text-lg font-semibold text-gray-800 mb-1">{isEdit ? "Edit release" : "New release"}</h2>
+        <p className="text-xs text-gray-500 mb-4">Program / Project accepts N/A for hotfixes, infra, security, and independent releases.</p>
+
         <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Release ID" value={form.releaseCode} onChange={(v) => setForm({ ...form, releaseCode: v })} />
-          <Field label="Name" value={form.name} onChange={(v) => setForm({ ...form, name: v })} />
-          <Field label="Program / Project" value={form.programProject} onChange={(v) => setForm({ ...form, programProject: v })} placeholder="N/A for hotfixes" />
+          <div className="sm:col-span-2">
+            <label className="text-xs font-medium text-gray-500">Release ID</label>
+            <div className="mt-1 flex gap-2">
+              <input
+                className={cn(taInput, "font-mono text-sm", !isEdit && "bg-gray-50")}
+                value={form.releaseCode}
+                onChange={(e) => setForm({ ...form, releaseCode: e.target.value.toUpperCase() })}
+                readOnly={!isEdit}
+                placeholder="Auto-generated unique ID"
+              />
+              {!isEdit && (
+                <button
+                  type="button"
+                  onClick={regenerateId}
+                  className="shrink-0 rounded-lg border border-gray-200 px-3 text-gray-500 hover:bg-brand-50 hover:text-brand-600"
+                  title="Generate new ID"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          <Field label="Release Name" value={form.name} onChange={(v) => setForm({ ...form, name: v })} />
+          <Field
+            label="Program / Project"
+            value={form.programProject}
+            onChange={(v) => setForm({ ...form, programProject: v })}
+            placeholder="N/A for hotfixes, infra, security…"
+          />
           <Field label="Owner" value={form.owner} onChange={(v) => setForm({ ...form, owner: v })} />
           <div>
-            <label className="text-xs text-gray-500">Department</label>
+            <label className="text-xs font-medium text-gray-500">Department</label>
             <select className={taInput} value={form.departmentId} onChange={(e) => setForm({ ...form, departmentId: e.target.value })}>
-              <option value="">Select…</option>
+              <option value="">Select department…</option>
               {departments.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
             </select>
           </div>
           <div>
-            <label className="text-xs text-gray-500">Status</label>
+            <label className="text-xs font-medium text-gray-500">Status</label>
             <select className={taInput} value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
               {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
           <div>
-            <label className="text-xs text-gray-500">Release date</label>
+            <label className="text-xs font-medium text-gray-500">Release date</label>
             <input type="date" className={taInput} value={form.releaseDate} onChange={(e) => setForm({ ...form, releaseDate: e.target.value })} />
           </div>
           <div>
-            <label className="text-xs text-gray-500">Priority</label>
+            <label className="text-xs font-medium text-gray-500">Priority</label>
             <select className={taInput} value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })}>
-              {PRIORITIES.map((p) => <option key={p} value={p}>{p}</option>)}
+              {LEVELS.map((p) => <option key={p} value={p}>{p}</option>)}
             </select>
           </div>
           <div>
-            <label className="text-xs text-gray-500">Impact</label>
+            <label className="text-xs font-medium text-gray-500">Impact</label>
             <select className={taInput} value={form.impact} onChange={(e) => setForm({ ...form, impact: e.target.value })}>
-              {PRIORITIES.map((p) => <option key={p} value={p}>{p}</option>)}
+              {LEVELS.map((p) => <option key={p} value={p}>{p}</option>)}
             </select>
           </div>
         </div>
-        <div className="mt-3">
-          <label className="text-xs text-gray-500">Applications</label>
-          <div className="flex flex-wrap gap-2 mt-1">
+
+        <div className="mt-4">
+          <label className="text-xs font-medium text-gray-500">Application/s</label>
+          <div className="flex flex-wrap gap-2 mt-1.5">
             {applications.map((a) => (
               <button
                 key={a.value}
@@ -157,9 +207,10 @@ export function ReleaseFormModal({
             ))}
           </div>
         </div>
-        <div className="mt-3">
-          <label className="text-xs text-gray-500">Depends on release</label>
-          <div className="flex flex-wrap gap-2 mt-1">
+
+        <div className="mt-4">
+          <label className="text-xs font-medium text-gray-500">Dependent on release</label>
+          <div className="flex flex-wrap gap-2 mt-1.5">
             {releases.filter((r) => r.value !== initial?.id).map((r) => (
               <button
                 key={r.value}
@@ -175,13 +226,20 @@ export function ReleaseFormModal({
             ))}
           </div>
         </div>
-        <div className="mt-3">
-          <label className="text-xs text-gray-500">Notes</label>
-          <textarea className={`${taInput} min-h-[72px]`} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+
+        <div className="mt-4">
+          <label className="text-xs font-medium text-gray-500">Notes (optional)</label>
+          <textarea className={`${taInput} min-h-[72px] mt-1`} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
         </div>
+
         <div className="mt-5 flex justify-end gap-2">
           <button type="button" className={taBtnSecondary} onClick={onClose}>Cancel</button>
-          <button type="button" className={taBtnPrimary} onClick={save} disabled={saving || !form.releaseCode || !form.name || !form.departmentId}>
+          <button
+            type="button"
+            className={taBtnPrimary}
+            onClick={save}
+            disabled={saving || !form.releaseCode || !form.name || !form.departmentId}
+          >
             {saving ? "Saving…" : "Save"}
           </button>
         </div>
@@ -193,7 +251,7 @@ export function ReleaseFormModal({
 function Field({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string }) {
   return (
     <div>
-      <label className="text-xs text-gray-500">{label}</label>
+      <label className="text-xs font-medium text-gray-500">{label}</label>
       <input className={taInput} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} />
     </div>
   );

@@ -143,21 +143,33 @@ model EnvBooking {
   updatedAt     DateTime     @updatedAt
 }
 
+model SystemMappingGroup {
+  id          String              @id @default(cuid())
+  name        String
+  status      String              @default("accepted")
+  sourceNotes String?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  edges       SystemMappingEdge[]
+}
+
 model SystemMappingEdge {
-  id           String      @id @default(cuid())
+  id           String               @id @default(cuid())
+  groupId      String?
+  group        SystemMappingGroup?  @relation(fields: [groupId], references: [id], onDelete: Cascade)
   sourceAppId  String
-  sourceApp    Application @relation("MappingSourceApp", fields: [sourceAppId], references: [id], onDelete: Cascade)
+  sourceApp    Application          @relation("MappingSourceApp", fields: [sourceAppId], references: [id], onDelete: Cascade)
   sourceEnvId  String
-  sourceEnv    Environment @relation("MappingSourceEnv", fields: [sourceEnvId], references: [id], onDelete: Cascade)
+  sourceEnv    Environment          @relation("MappingSourceEnv", fields: [sourceEnvId], references: [id], onDelete: Cascade)
   targetAppId  String
-  targetApp    Application @relation("MappingTargetApp", fields: [targetAppId], references: [id], onDelete: Cascade)
+  targetApp    Application          @relation("MappingTargetApp", fields: [targetAppId], references: [id], onDelete: Cascade)
   targetEnvId  String
-  targetEnv    Environment @relation("MappingTargetEnv", fields: [targetEnvId], references: [id], onDelete: Cascade)
+  targetEnv    Environment          @relation("MappingTargetEnv", fields: [targetEnvId], references: [id], onDelete: Cascade)
   direction    String
   notes        String?
-  isDefault    Boolean     @default(true)
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+  isDefault    Boolean              @default(true)
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
 }
 
 model ConnectorSync {

@@ -8,6 +8,11 @@
   --foreground: #2e263d;
   --surface: #f4f5fa;
   --border: #eaeaf4;
+  --sidebar-width-expanded: 260px;
+  --sidebar-width-collapsed: 78px;
+  --sidebar-width: var(--sidebar-width-expanded);
+  --header-height: 64px;
+  --materio-grid-gap: 24px;
   --brand-500: #9155fd;
   --brand-600: #804bdf;
   --accent-500: #9155fd;
@@ -55,13 +60,16 @@ body {
 }
 
 @layer components {
+  .menu-section-label {
+    @apply text-[11px] font-semibold uppercase tracking-[0.4px] text-gray-400;
+  }
   .menu-item {
-    @apply relative flex items-center w-full gap-3 px-3 py-2 font-medium rounded-lg text-theme-sm transition-all duration-200;
+    @apply relative flex items-center w-full gap-3 px-3 py-2.5 font-medium rounded-lg text-theme-sm transition-all duration-200;
   }
   .menu-item-active {
     @apply text-brand-600 shadow-none;
     background-color: var(--materio-primary-o-light);
-    box-shadow: 0 0 0 1px rgba(145, 85, 253, 0.08);
+    box-shadow: none;
   }
   .menu-item-inactive {
     @apply text-gray-600 hover:text-gray-900;
@@ -74,6 +82,12 @@ body {
   }
   .menu-item-icon-inactive {
     @apply text-gray-500 group-hover:text-brand-500 transition-colors;
+  }
+  .menu-item-tooltip {
+    @apply pointer-events-none absolute left-full top-1/2 z-[60] ml-3 -translate-y-1/2 whitespace-nowrap rounded-md bg-gray-900 px-2.5 py-1.5 text-xs font-medium text-white opacity-0 shadow-theme-md transition-opacity duration-150;
+  }
+  .materio-sidebar-toggle {
+    box-shadow: 0 0 0 1px rgba(46, 38, 61, 0.04);
   }
   .ta-card {
     @apply rounded-lg border border-gray-200 bg-white p-5 shadow-theme-sm md:p-6 transition-shadow hover:shadow-theme-md;
@@ -140,6 +154,14 @@ body {
     background-color: var(--background);
     color: var(--foreground);
   }
+  .materio-main {
+    max-width: 100%;
+  }
+  .materio-dashboard-grid {
+    display: flex;
+    flex-direction: column;
+    gap: var(--materio-grid-gap);
+  }
   .materio-sidebar {
     background-color: var(--sidebar);
     border-color: var(--border);
@@ -147,6 +169,11 @@ body {
   .materio-header {
     background-color: var(--header);
     border-color: var(--border);
+    box-shadow: 0 1px 0 rgba(46, 38, 61, 0.04);
+  }
+  .theme-semi-dark .menu-section-label,
+  .theme-dark .menu-section-label {
+    color: rgba(231, 227, 252, 0.45);
   }
   .theme-dark .ta-card,
   .theme-dark .ta-table-wrap,

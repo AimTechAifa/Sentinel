@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth/api";
+import { analyseMappingRisks } from "@/lib/system-mapping-risk";
 import { prisma } from "@/lib/prisma";
 
-function overlaps(aStart: Date, aEnd: Date, bStart: Date, bEnd: Date) {
-  return aStart <= bEnd && bStart <= aEnd;
-}
+const edgeInclude = {
+  sourceApp: true,
+  sourceEnv: true,
+  targetApp: true,
+  targetEnv: true,
+  group: { select: { id: true, name: true } },
+} as const;
 
 export async function GET(req: Request) {
   const { error } = await requireRole("readonly");
@@ -14,14 +19,7 @@ export async function GET(req: Request) {
   const from = searchParams.get("from");
   const to = searchParams.get("to");
 
-  const edges = await prisma.systemMappingEdge.findMany({
-    include: {
-      sourceApp: true,
-      sourceEnv: true,
-      targetApp: true,
-      targetEnv: true,
-    },
-  });
+  const edges = await prisma.systemMappingEdge.findMany({ include: edgeInclude });
 
   if (!from || !to) {
     return NextResponse.json({ edges, risks: [] });
@@ -35,31 +33,7 @@ export async function GET(req: Request) {
     include: { application: true, environment: true },
   });
 
-  const risks = edges.flatMap((edge) => {
-    const targetBooking = bookings.find(
-      (b) =>
-        b.applicationId === edge.targetAppId &&
-        (!b.environmentId || b.environmentId === edge.targetEnvId) &&
-        overlaps(fromDate, toDate, b.fromDate, b.toDate)
-    );
-
-    if (!targetBooking) return [];
-
-    return [
-      {
-        edgeId: edge.id,
-        source: `${edge.sourceApp.name} / ${edge.sourceEnv.name}`,
-        target: `${edge.targetApp.name} / ${edge.targetEnv.name}`,
-        notes: edge.notes,
-        risk: `${edge.targetEnv.name} required by mapping is booked by ${targetBooking.bookedBy} (${targetBooking.team})`,
-        bookedBy: targetBooking.bookedBy,
-        team: targetBooking.team,
-        fromDate: targetBooking.fromDate,
-        toDate: targetBooking.toDate,
-        purpose: targetBooking.purpose,
-      },
-    ];
-  });
+  const risks = analyseMappingRisks(edges, bookings, fromDate, toDate);
 
   return NextResponse.json({ edges, risks, period: { from, to } });
 }

@@ -1,26 +1,34 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Box from "@mui/material/Box";
+import Grid from "@mui/material/Grid";
+import Typography from "@mui/material/Typography";
+import { AlertTriangle, Calendar, Flag, Package } from "lucide-react";
 import { EnvironmentDeskDashboardCard } from "@/components/environments/EnvironmentDeskDashboardCard";
 import { NeedsAttentionPanel } from "@/components/dashboard/NeedsAttentionPanel";
-import { CrmPortfolioDashboard } from "@/components/dashboard/CrmPortfolioDashboard";
 import { UnifiedPortfolioPanel } from "@/components/dashboard/UnifiedPortfolioPanel";
-import { TopBar } from "@/components/layout/TopBar";
+import { DashboardChartsSection } from "@/components/dashboard/DashboardChartsSection";
+import { DashboardP1Panel } from "@/components/dashboard/DashboardP1Panel";
+import { FilteredReleasesTable } from "@/components/dashboard/FilteredReleasesTable";
 import { ReleaseFiltersBar } from "@/components/releases/ReleaseFiltersBar";
+import { CrmStatCard } from "@/components/materio/crm/CrmStatCard";
 import { AIPanel } from "@/components/ui/ai-panel";
 import { callAgent } from "@/lib/agent-client";
 import { buildDashboardSummaryContext } from "@/lib/summary-context";
 import { filterLabel } from "@/lib/release-filters";
+import { snapshotHeading } from "@/lib/period-labels";
 import type { NeedsAttentionItem } from "@/lib/needs-attention";
 import { useReleaseFilters } from "@/context/ReleaseFiltersContext";
-import { formatDateTime, cn } from "@/lib/utils";
-import { Clock } from "lucide-react";
+import { formatDate, formatDateTime } from "@/lib/utils";
+import type { Period } from "@/lib/period-range";
+import type { ScheduleItem } from "@/components/materio/crm/MeetingScheduleList";
+import type { ActivityItem } from "@/components/materio/crm/ActivityFeedCard";
+import { buildSparkline, buildWeeklyOverview, pctChange } from "@/lib/materio/chart-data";
 import { PRODUCT_TAGLINE } from "@/lib/brand";
 
-type Period = "month" | "quarter" | "year";
-
 type DashboardData = {
-  counts: { planned: number; inProgress: number; blocked: number; atRisk: number };
+  counts: { planned: number; inProgress: number; blocked: number; atRisk: number; shipped: number };
   connectors: { name: string; lastSynced: string }[];
   p1Issues: { externalId: string; title: string; application: string | null; releaseCode: string | null; status: string }[];
 };
@@ -31,15 +39,13 @@ function isDashboardData(v: unknown): v is DashboardData {
   return !!v && typeof v === "object" && "counts" in v && "p1Issues" in v;
 }
 
-function buildFallbackSummary(
-  dashboard: DashboardData,
-  scopeLabel: string | null
-): string {
+function buildFallbackSummary(dashboard: DashboardData, scopeLabel: string | null): string {
   const { counts, p1Issues } = dashboard;
   const scope = scopeLabel ?? "all departments, applications, and environments";
   const parts = [
     `${counts.planned} planned`,
     `${counts.inProgress} in progress`,
+    `${counts.shipped} shipped`,
     counts.blocked ? `${counts.blocked} blocked` : null,
     counts.atRisk ? `${counts.atRisk} at risk` : null,
   ].filter(Boolean);
@@ -61,12 +67,12 @@ export default function DashboardPage() {
   const [attention, setAttention] = useState<NeedsAttentionItem[]>([]);
 
   const {
-    filters,
     filterQuery,
     hasRefinement,
     departments,
     applications,
     environments,
+    filters,
   } = useReleaseFilters();
 
   const scopeLabel = useMemo(
@@ -164,47 +170,84 @@ export default function DashboardPage() {
     };
   }, [data, overview, period, scopeLabel]);
 
+  const statusCounts = useMemo(() => {
+    if (overview?.counts?.combined) {
+      const c = overview.counts.combined;
+      return {
+        planned: c.planned,
+        blocked: c.blocked,
+        shipped: c.shipped ?? 0,
+        atRisk: c.atRisk,
+        inProgress: c.inProgress,
+      };
+    }
+    if (data?.counts) {
+      return {
+        planned: data.counts.planned,
+        blocked: data.counts.blocked,
+        shipped: data.counts.shipped ?? 0,
+        atRisk: data.counts.atRisk,
+        inProgress: data.counts.inProgress,
+      };
+    }
+    return { planned: 0, blocked: 0, shipped: 0, atRisk: 0, inProgress: 0 };
+  }, [overview, data]);
+
+  const weekly = useMemo(() => buildWeeklyOverview(overview?.releases ?? []), [overview?.releases]);
+  const spark = useMemo(() => buildSparkline(overview?.releases ?? []), [overview?.releases]);
+  const lastWeek = weekly[weekly.length - 1]?.releases ?? 0;
+  const prevWeek = weekly[weekly.length - 2]?.releases ?? 0;
+  const plannedTrend = pctChange(lastWeek, prevWeek);
+
+  const scheduleItems: ScheduleItem[] = useMemo(
+    () =>
+      attention.slice(0, 5).map((a) => ({
+        id: a.id,
+        title: a.name,
+        subtitle: a.reason,
+        time: formatDate(a.date),
+        status: a.status,
+        href: a.href,
+        avatarLabel: a.code.slice(0, 2),
+      })),
+    [attention]
+  );
+
+  const activityItems: ActivityItem[] = useMemo(
+    () =>
+      (data?.connectors ?? []).slice(0, 4).map((c, i) => ({
+        id: c.name,
+        title: `${c.name} synced`,
+        description: "Connector refresh completed for release desk data.",
+        time: formatDateTime(c.lastSynced),
+        type: i === 0 ? "agent" : "release",
+      })),
+    [data?.connectors]
+  );
+
+  const statCards = [
+    { title: "Planned", value: statusCounts.planned, icon: Calendar, color: "primary" as const, trend: plannedTrend, sparkline: spark },
+    { title: "In progress", value: statusCounts.inProgress, icon: Package, color: "info" as const },
+    { title: "Blocked", value: statusCounts.blocked, icon: AlertTriangle, color: "error" as const },
+    { title: "At risk", value: statusCounts.atRisk, icon: Flag, color: "warning" as const },
+  ];
+
   return (
-    <div className="space-y-6">
-      <TopBar
-        title="Dashboard"
-        subtitle={hasRefinement ? `Portfolio summary · ${scopeLabel}` : "Portfolio summary"}
-        positioning={PRODUCT_TAGLINE}
-        highlight
-      />
-
-      <ReleaseFiltersBar />
-
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex gap-1 rounded-xl border border-gray-200 bg-white/80 p-1">
-          {(["month", "quarter", "year"] as Period[]).map((p) => (
-            <button
-              key={p}
-              type="button"
-              onClick={() => setPeriod(p)}
-              className={cn(
-                "rounded-lg px-3 py-1.5 text-xs font-medium capitalize transition-colors",
-                period === p ? "bg-brand-500 text-white" : "text-gray-600 hover:bg-gray-50"
-              )}
-            >
-              {p}
-            </button>
-          ))}
-        </div>
-        {data?.connectors && (
-          <div className="flex flex-wrap gap-3 text-[10px] text-gray-500">
-            {data.connectors.map((c) => (
-              <span key={c.name} className="flex items-center gap-1">
-                <Clock className="h-3 w-3" />
-                {c.name}: {formatDateTime(c.lastSynced)}
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
+    <Box className="materio-dashboard-grid">
+      <Box>
+        <Typography variant="h4" sx={{ fontWeight: 600, mb: 0.5 }} color="text.primary">
+          Dashboard
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          {hasRefinement ? `Portfolio summary · ${scopeLabel}` : "Portfolio summary"}
+        </Typography>
+        <Typography variant="caption" color="text.disabled" sx={{ display: "block", mt: 0.5 }}>
+          {PRODUCT_TAGLINE}
+        </Typography>
+      </Box>
 
       <AIPanel
-        title="AI Daily Summary"
+        title="AI-Generated Daily Release Summary"
         agent="Summary Agent"
         loading={summaryLoading && !fetchError}
         error={fetchError ?? summaryError}
@@ -212,24 +255,53 @@ export default function DashboardPage() {
         {summary && <p>{summary}</p>}
       </AIPanel>
 
+      <Grid container spacing={3}>
+        <Grid size={{ xs: 12, lg: 7 }}>
+          <DashboardP1Panel issues={data?.p1Issues ?? []} />
+        </Grid>
+        <Grid size={{ xs: 12, lg: 5 }}>
+          <EnvironmentDeskDashboardCard />
+        </Grid>
+      </Grid>
+
+      <ReleaseFiltersBar variant="large" period={period} onPeriodChange={setPeriod} />
+
       {data && (
-        <CrmPortfolioDashboard
-          counts={data.counts}
-          overviewReleases={overview?.releases ?? []}
-          attention={attention}
-          p1Issues={data.p1Issues}
-          connectors={data.connectors}
-        />
+        <>
+          <Box>
+            <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }} color="text.primary">
+              {snapshotHeading(period)}
+            </Typography>
+            <Grid container spacing={3}>
+              {statCards.map((s) => (
+                <Grid key={s.title} size={{ xs: 12, sm: 6, lg: 3 }}>
+                  <CrmStatCard
+                    title={s.title}
+                    value={s.value}
+                    icon={s.icon}
+                    color={s.color}
+                    trend={s.trend}
+                    sparkline={s.sparkline}
+                  />
+                </Grid>
+              ))}
+            </Grid>
+          </Box>
+
+          <DashboardChartsSection
+            releases={overview?.releases ?? []}
+            scheduleItems={scheduleItems}
+            activityItems={activityItems}
+          />
+
+          {overview && <FilteredReleasesTable releases={overview.releases} />}
+        </>
       )}
 
       <NeedsAttentionPanel
         items={attention.slice(0, 8)}
         viewAllHref={`/inbox${filterQuery.replace(/^&/, "?")}`}
       />
-
-      {overview && <UnifiedPortfolioPanel data={overview} />}
-
-      <EnvironmentDeskDashboardCard />
-    </div>
+    </Box>
   );
 }

@@ -33,7 +33,7 @@ export function TopActionsToday({ filterQuery }: { filterQuery?: string }) {
 
   if (loading) {
     return (
-      <AdvancedCard title="Top 3 actions today" icon={Zap} variant="ai">
+      <AdvancedCard title="Top 3 actions today" icon={Zap} variant="plain">
         <p className="text-sm text-gray-400">Loading priorities…</p>
       </AdvancedCard>
     );
@@ -41,7 +41,7 @@ export function TopActionsToday({ filterQuery }: { filterQuery?: string }) {
 
   if (!actions.length) {
     return (
-      <AdvancedCard title="Top 3 actions today" icon={Zap} variant="ai">
+      <AdvancedCard title="Top 3 actions today" icon={Zap} variant="plain">
         <p className="text-sm text-gray-500">Nothing urgent in scope — check the full inbox below.</p>
       </AdvancedCard>
     );
@@ -53,7 +53,7 @@ export function TopActionsToday({ filterQuery }: { filterQuery?: string }) {
         title="Top 3 actions today"
         subtitle="Rule-ranked priorities with AI briefing below"
         icon={Zap}
-        variant="ai"
+        variant="plain"
       >
         <ol className="space-y-2">
           {actions.map((action) => (

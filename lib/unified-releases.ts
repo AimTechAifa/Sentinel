@@ -15,20 +15,58 @@ export type UnifiedRelease = {
   source: DataSource;
   href: string;
   priority?: string;
+  impact?: string;
+  departmentName?: string;
+  applicationName?: string;
+  environmentName?: string;
+  programProject?: string;
+  dependsOnLabel?: string;
 };
 
 type DbRelease = {
   id: string;
   releaseCode: string;
   name: string;
+  programProject?: string | null;
   status: string;
   owner: string;
   releaseDate: string | Date;
   priority: string;
+  impact: string;
   department: { name: string };
+  applications?: { application: { name: string } }[];
+  bookings?: { environment?: { name: string } | null; application?: { name: string } }[];
+  dependsOn?: { dependsOnRelease: { releaseCode: string; name: string } }[];
+};
+
+/** Maps synthetic demo teams to Release Desk department names. */
+export const DEMO_TEAM_DEPARTMENT: Record<string, string> = {
+  Platform: "Platform",
+  Billing: "FIN",
+  Search: "CRM",
+  Payments: "Platform",
+  Core: "Platform",
+  Identity: "Security",
+  Mobile: "CRM",
+  Data: "Operations",
+};
+
+/** Primary applications touched by each demo team (for app/env filters). */
+export const DEMO_TEAM_APPLICATIONS: Record<string, string[]> = {
+  Platform: ["SAP"],
+  Billing: ["FIN"],
+  Search: ["CRM"],
+  Payments: ["SAP"],
+  Core: ["SAP"],
+  Identity: ["SAP"],
+  Mobile: ["CRM"],
+  Data: ["Oracle"],
 };
 
 export function demoToUnified(r: (typeof demoReleases)[0]): UnifiedRelease {
+  const apps = DEMO_TEAM_APPLICATIONS[r.team] ?? [];
+  const idx = parseInt(r.id.replace(/\D/g, ""), 10) || 0;
+  const levels = ["High", "Medium", "Low"] as const;
   return {
     id: r.id,
     code: r.version,
@@ -39,10 +77,23 @@ export function demoToUnified(r: (typeof demoReleases)[0]): UnifiedRelease {
     date: r.targetDate,
     source: "demo",
     href: `/releases/${r.id}`,
+    departmentName: DEMO_TEAM_DEPARTMENT[r.team] ?? r.team,
+    applicationName: apps.join(", ") || "—",
+    environmentName: "PROD",
+    programProject: idx % 4 === 0 ? "N/A" : `${r.team} Program`,
+    priority: levels[idx % 3],
+    impact: levels[(idx + 1) % 3],
+    dependsOnLabel: r.dependsOnServices?.length ? r.dependsOnServices.join(", ") : "—",
   };
 }
 
 export function dbToUnified(r: DbRelease): UnifiedRelease {
+  const appNames =
+    r.applications?.map((a) => a.application.name).filter(Boolean) ?? [];
+  const bookingEnv = r.bookings?.find((b) => b.environment?.name)?.environment?.name;
+  const deps =
+    r.dependsOn?.map((d) => d.dependsOnRelease.releaseCode).filter(Boolean) ?? [];
+
   return {
     id: r.id,
     code: r.releaseCode,
@@ -54,6 +105,12 @@ export function dbToUnified(r: DbRelease): UnifiedRelease {
     source: "database",
     href: `/releases/${r.id}`,
     priority: r.priority,
+    impact: r.impact,
+    programProject: r.programProject ?? "—",
+    departmentName: r.department.name,
+    applicationName: appNames.length ? appNames.join(", ") : "—",
+    environmentName: bookingEnv ?? "—",
+    dependsOnLabel: deps.length ? deps.join(", ") : "—",
   };
 }
 
@@ -82,6 +139,7 @@ export function countByStatus(rows: UnifiedRelease[]) {
     inProgress: rows.filter((r) => r.status === "In Progress" || r.status === "Ready").length,
     blocked: rows.filter((r) => r.status === "Blocked").length,
     atRisk: rows.filter((r) => r.status === "At Risk").length,
+    shipped: rows.filter((r) => r.status === "Shipped" || r.status === "Complete").length,
     total: rows.length,
   };
 }
@@ -112,30 +170,6 @@ export function demoReleaseMatchesQuery(r: (typeof demoReleases)[0], q: string) 
     r.id.toLowerCase().includes(lower)
   );
 }
-
-/** Maps synthetic demo teams to Release Desk department names. */
-export const DEMO_TEAM_DEPARTMENT: Record<string, string> = {
-  Platform: "Platform",
-  Billing: "FIN",
-  Search: "CRM",
-  Payments: "Platform",
-  Core: "Platform",
-  Identity: "Security",
-  Mobile: "CRM",
-  Data: "Operations",
-};
-
-/** Primary applications touched by each demo team (for app/env filters). */
-export const DEMO_TEAM_APPLICATIONS: Record<string, string[]> = {
-  Platform: ["SAP"],
-  Billing: ["FIN"],
-  Search: ["CRM"],
-  Payments: ["SAP"],
-  Core: ["SAP"],
-  Identity: ["SAP"],
-  Mobile: ["CRM"],
-  Data: ["Oracle"],
-};
 
 export type ReleaseListFilters = {
   departmentId?: string;

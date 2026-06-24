@@ -9,7 +9,7 @@ type P1Issue = {
 };
 
 type DashboardSlice = {
-  counts: { planned: number; inProgress: number; blocked: number; atRisk: number };
+  counts: { planned: number; inProgress: number; blocked: number; atRisk: number; shipped?: number };
   connectors?: { name: string; lastSynced: string }[];
   p1Issues: P1Issue[];
 };

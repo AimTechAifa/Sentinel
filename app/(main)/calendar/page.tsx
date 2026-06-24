@@ -1,28 +1,28 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, CalendarDays, GanttChart } from "lucide-react";
-import { ProgressLink } from "@/components/layout/NavigationProgress";
 import { TopBar } from "@/components/layout/TopBar";
+import { ReleaseScheduleGrid } from "@/components/calendar/ReleaseScheduleGrid";
 import { ReleaseFiltersBar } from "@/components/releases/ReleaseFiltersBar";
-import { SourceBadgeInline } from "@/components/dashboard/UnifiedPortfolioPanel";
 import { AdvancedCard } from "@/components/ui/advanced-card";
 import { useReleaseFilters } from "@/context/ReleaseFiltersContext";
 import { releases as demoReleases } from "@/lib/dummy-data";
+import { dbReleaseMatchesFilters, filterLabel } from "@/lib/release-filters";
 import {
-  dbReleaseMatchesFilters,
-  filterLabel,
-} from "@/lib/release-filters";
+  buildScheduleColumns,
+  periodTitle,
+  shiftPeriodAnchor,
+} from "@/lib/calendar-schedule";
 import {
   dbToUnified,
   demoReleaseMatchesFilters,
   demoToUnified,
   mergeReleases,
-  type UnifiedRelease,
 } from "@/lib/unified-releases";
 import { inPeriod, periodRange, type Period } from "@/lib/period-range";
+import { periodLabel } from "@/lib/period-labels";
 import { cn, formatDate } from "@/lib/utils";
-import { capacityLevelClass, computeEnvCapacityByDay } from "@/lib/calendar-capacity";
 import { taBtnSecondary } from "@/lib/styles";
 
 type ViewMode = "calendar" | "timeline";
@@ -35,28 +35,11 @@ type DbRelease = {
   status: string;
   releaseDate: string;
   priority: string;
+  impact: string;
   owner: string;
   departmentId: string;
   department: { name: string };
   applications: { application: { id: string; name: string } }[];
-};
-
-type CalendarBooking = {
-  fromDate: string;
-  toDate: string;
-  status: string;
-  application: { name: string };
-  environment: { name: string } | null;
-};
-
-const STATUS_COLORS: Record<string, string> = {
-  Planned: "bg-blue-100 text-blue-800",
-  "In Progress": "bg-brand-100 text-brand-800",
-  Blocked: "bg-error-100 text-error-800",
-  "At Risk": "bg-amber-100 text-amber-800",
-  Complete: "bg-success-100 text-success-800",
-  Ready: "bg-brand-100 text-brand-800",
-  Scheduled: "bg-blue-100 text-blue-800",
 };
 
 export default function CalendarPage() {
@@ -64,13 +47,6 @@ export default function CalendarPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("calendar");
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
   const [viewDate, setViewDate] = useState(() => new Date());
-  const [envBookings, setEnvBookings] = useState<CalendarBooking[]>([]);
-
-  useEffect(() => {
-    fetch("/api/bookings")
-      .then((r) => (r.ok ? r.json() : []))
-      .then(setEnvBookings);
-  }, []);
 
   const {
     filters,
@@ -85,6 +61,11 @@ export default function CalendarPage() {
   const scopeLabel = useMemo(
     () => filterLabel(filters, departments, applications, environments),
     [filters, departments, applications, environments]
+  );
+
+  const { start: periodStart, end: periodEnd } = useMemo(
+    () => periodRange(period, viewDate),
+    [period, viewDate]
   );
 
   const unified = useMemo(() => {
@@ -104,158 +85,103 @@ export default function CalendarPage() {
     return merged;
   }, [dbRows, period, viewDate, sourceFilter, filters, bookings, environments, departments, applications]);
 
-  const year = viewDate.getFullYear();
-  const month = viewDate.getMonth();
-  const firstDay = new Date(year, month, 1).getDay();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const monthName = viewDate.toLocaleString("en-AU", { month: "long", year: "numeric" });
-  const { start: periodStart, end: periodEnd } = periodRange(period, viewDate);
+  const columns = useMemo(() => buildScheduleColumns(period, viewDate), [period, viewDate]);
+  const title = useMemo(() => periodTitle(period, viewDate), [period, viewDate]);
 
-  const releasesByDay = useMemo(() => {
-    const map: Record<number, UnifiedRelease[]> = {};
-    unified.forEach((r) => {
-      const d = new Date(r.date);
-      if (d.getMonth() === month && d.getFullYear() === year) {
-        const day = d.getDate();
-        if (!map[day]) map[day] = [];
-        map[day].push(r);
-      }
-    });
-    return map;
-  }, [unified, month, year]);
-
-  const capacityByDay = useMemo(
-    () => computeEnvCapacityByDay(envBookings, year, month, daysInMonth),
-    [envBookings, year, month, daysInMonth]
-  );
-
-  const prevMonth = () => setViewDate(new Date(year, month - 1, 1));
-  const nextMonth = () => setViewDate(new Date(year, month + 1, 1));
-  const today = new Date();
-  const timelineSorted = useMemo(
-    () => [...unified].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
-    [unified]
-  );
-  const timelineSpan = Math.max(periodEnd.getTime() - periodStart.getTime(), 1);
-
-  const highLoadDays = Object.values(capacityByDay).filter((c) => c.level === "high").length;
+  const prevPeriod = () => setViewDate((d) => shiftPeriodAnchor(period, d, -1));
+  const nextPeriod = () => setViewDate((d) => shiftPeriodAnchor(period, d, 1));
+  const goToday = () => setViewDate(new Date());
 
   return (
     <div className="space-y-6">
       <TopBar
         title="Release Calendar"
-        subtitle={hasRefinement ? `Filtered · ${scopeLabel}` : "Database and demo releases in one calendar"}
+        subtitle={hasRefinement ? `Filtered · ${scopeLabel}` : "Releases plotted by date across the selected period"}
         highlight
       />
 
-      <ReleaseFiltersBar />
+      <ReleaseFiltersBar variant="large" period={period} onPeriodChange={setPeriod} />
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex gap-1 rounded-xl border border-gray-200 bg-white/80 p-1">
-          {(["month", "quarter", "year"] as Period[]).map((p) => (
-            <button key={p} type="button" onClick={() => setPeriod(p)} className={cn("rounded-lg px-3 py-1.5 text-xs font-medium capitalize transition-colors", period === p ? "bg-brand-500 text-white" : "text-gray-600 hover:bg-gray-50")}>
-              {p}
-            </button>
-          ))}
-        </div>
-        <div className="flex gap-1 rounded-xl border border-gray-200 bg-white/80 p-1">
-          {(["all", "database", "demo"] as SourceFilter[]).map((s) => (
-            <button key={s} type="button" onClick={() => setSourceFilter(s)} className={cn("rounded-lg px-3 py-1.5 text-xs font-medium capitalize transition-colors", sourceFilter === s ? "bg-violet-500 text-white" : "text-gray-600 hover:bg-gray-50")}>
-              {s === "all" ? "All sources" : s}
-            </button>
-          ))}
-        </div>
-        <div className="flex gap-1 rounded-xl border border-gray-200 bg-white/80 p-1">
-          <button type="button" onClick={() => setViewMode("calendar")} className={cn("rounded-lg px-3 py-1.5 text-xs font-medium flex items-center gap-1.5", viewMode === "calendar" ? "bg-brand-500 text-white" : "text-gray-600 hover:bg-gray-50")}>
-            <CalendarDays className="h-3.5 w-3.5" /> Calendar
-          </button>
-          <button type="button" onClick={() => setViewMode("timeline")} className={cn("rounded-lg px-3 py-1.5 text-xs font-medium flex items-center gap-1.5", viewMode === "timeline" ? "bg-brand-500 text-white" : "text-gray-600 hover:bg-gray-50")}>
-            <GanttChart className="h-3.5 w-3.5" /> Timeline
-          </button>
-        </div>
-      </div>
-
-      <p className="text-xs text-gray-500">
-        Showing {unified.length} release(s) · {formatDate(periodStart.toISOString())} – {formatDate(periodEnd.toISOString())}
-        {highLoadDays > 0 && (
-          <span className="text-warning-600"> · {highLoadDays} day(s) with high env load</span>
-        )}
-      </p>
-
-      {viewMode === "calendar" ? (
-        <AdvancedCard variant="glass" noPadding innerClassName="p-4 md:p-5">
-          <div className="flex items-center justify-between mb-4">
-            <button type="button" onClick={prevMonth} className={taBtnSecondary + " !p-2"}><ChevronLeft className="w-5 h-5 text-gray-600" /></button>
-            <h2 className="font-semibold text-gray-800 flex items-center gap-2"><CalendarDays className="w-5 h-5 text-brand-500" />{monthName}</h2>
-            <button type="button" onClick={nextMonth} className={taBtnSecondary + " !p-2"}><ChevronRight className="w-5 h-5 text-gray-600" /></button>
+      <AdvancedCard variant="glass" innerClassName="p-4 md:p-5">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">Viewing options</p>
+            <div className="flex gap-1 rounded-xl border border-gray-200 bg-white p-1">
+              <button
+                type="button"
+                onClick={() => setViewMode("calendar")}
+                className={cn(
+                  "rounded-lg px-4 py-2 text-sm font-medium flex items-center gap-2 transition-colors",
+                  viewMode === "calendar" ? "bg-brand-500 text-white shadow-theme-sm" : "text-gray-600 hover:bg-gray-50"
+                )}
+              >
+                <CalendarDays className="h-4 w-4" /> Calendar
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("timeline")}
+                className={cn(
+                  "rounded-lg px-4 py-2 text-sm font-medium flex items-center gap-2 transition-colors",
+                  viewMode === "timeline" ? "bg-brand-500 text-white shadow-theme-sm" : "text-gray-600 hover:bg-gray-50"
+                )}
+              >
+                <GanttChart className="h-4 w-4" /> Timeline
+              </button>
+            </div>
           </div>
-          <div className="flex flex-wrap gap-3 mb-3 text-[10px] text-gray-500">
-            <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded ring-1 ring-brand-200" /> Env booked</span>
-            <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded ring-2 ring-warning-300 bg-warning-50/30" /> Medium load</span>
-            <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded ring-2 ring-error-400 bg-error-50/40" /> High load</span>
-          </div>
-          <div className="grid grid-cols-7 gap-2">
-            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
-              <div key={d} className="text-center text-xs font-medium text-gray-500 py-2">{d}</div>
-            ))}
-            {Array.from({ length: firstDay }).map((_, i) => <div key={`e${i}`} />)}
-            {Array.from({ length: daysInMonth }).map((_, idx) => {
-              const day = idx + 1;
-              const dayReleases = releasesByDay[day] ?? [];
-              const capacity = capacityByDay[day];
-              const cellDate = new Date(year, month, day);
-              const isToday = cellDate.getDate() === today.getDate() && cellDate.getMonth() === today.getMonth() && cellDate.getFullYear() === today.getFullYear();
-              return (
-                <div
-                  key={day}
+
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex gap-1 rounded-xl border border-gray-200 bg-white p-1">
+              {(["all", "database", "demo"] as SourceFilter[]).map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setSourceFilter(s)}
                   className={cn(
-                    "min-h-[96px] border p-2 rounded-xl bg-white/80 border-gray-100",
-                    isToday && "ring-2 ring-brand-500/40",
-                    capacity && capacityLevelClass[capacity.level]
+                    "rounded-lg px-3 py-1.5 text-xs font-medium capitalize transition-colors",
+                    sourceFilter === s ? "bg-violet-500 text-white" : "text-gray-600 hover:bg-gray-50"
                   )}
                 >
-                  <div className="flex items-center justify-between">
-                    <span className={cn("text-xs font-medium", isToday ? "text-brand-600" : "text-gray-500")}>{day}</span>
-                    {capacity && capacity.bookingCount > 0 && (
-                      <span className="text-[9px] text-gray-400">{capacity.bookingCount} env</span>
-                    )}
-                  </div>
-                  <div className="space-y-1 mt-1">
-                    {dayReleases.map((r) => (
-                      <ProgressLink key={`${r.source}-${r.id}`} href={r.href} className="block text-xs truncate hover:bg-brand-50 rounded px-1 py-0.5 -mx-1">
-                        <span className={cn("text-[10px] px-1 rounded", STATUS_COLORS[r.status] ?? "bg-gray-100")}>{r.code}</span>
-                        <span className="ml-1 text-gray-600">{r.source === "demo" ? "· demo" : ""}</span>
-                      </ProgressLink>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
+                  {s === "all" ? "All" : s}
+                </button>
+              ))}
+            </div>
           </div>
-        </AdvancedCard>
-      ) : (
-        <AdvancedCard title="Timeline view" subtitle="Database + demo releases" icon={GanttChart} variant="glass">
-          <div className="space-y-3">
-            {timelineSorted.length === 0 && <p className="text-sm text-gray-500">No releases in this period.</p>}
-            {timelineSorted.map((r) => {
-              const offset = ((new Date(r.date).getTime() - periodStart.getTime()) / timelineSpan) * 100;
-              return (
-                <div key={`${r.source}-${r.id}`}>
-                  <div className="flex items-center gap-3 text-xs text-gray-500 mb-1 flex-wrap">
-                    <span className="w-24 shrink-0">{formatDate(r.date)}</span>
-                    <SourceBadgeInline source={r.source} />
-                    <ProgressLink href={r.href} className="font-medium text-gray-800 hover:text-brand-600">{r.code} · {r.name}</ProgressLink>
-                    <span className={cn("px-2 py-0.5 rounded-full text-[10px]", STATUS_COLORS[r.status] ?? "bg-gray-100")}>{r.status}</span>
-                  </div>
-                  <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
-                    <div className="h-full rounded-full bg-brand-500/80" style={{ width: "8%", marginLeft: `${Math.min(Math.max(offset, 0), 92)}%` }} />
-                  </div>
-                </div>
-              );
-            })}
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 pt-4">
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={prevPeriod} className={cn(taBtnSecondary, "!p-2")} aria-label="Previous period">
+              <ChevronLeft className="h-5 w-5 text-gray-600" />
+            </button>
+            <div className="text-center min-w-[140px]">
+              <h2 className="font-semibold text-gray-800">{title}</h2>
+              <p className="text-xs text-gray-500">{periodLabel(period)} view</p>
+            </div>
+            <button type="button" onClick={nextPeriod} className={cn(taBtnSecondary, "!p-2")} aria-label="Next period">
+              <ChevronRight className="h-5 w-5 text-gray-600" />
+            </button>
+            <button type="button" onClick={goToday} className={cn(taBtnSecondary, "text-xs ml-1")}>
+              Today
+            </button>
           </div>
-        </AdvancedCard>
-      )}
+          <p className="text-xs text-gray-500">
+            {unified.length} release{unified.length === 1 ? "" : "s"} · {formatDate(periodStart.toISOString())} – {formatDate(periodEnd.toISOString())}
+          </p>
+        </div>
+      </AdvancedCard>
+
+      <div>
+        <p className="text-xs text-gray-500 mb-2 flex flex-wrap gap-3">
+          <span>Dates run horizontally along the top; each release is a row on the vertical axis.</span>
+          {viewMode === "calendar" ? (
+            <span className="inline-flex items-center gap-1"><span className="inline-block h-3 w-3 rounded bg-brand-500" /> Calendar — marker on release date</span>
+          ) : (
+            <span className="inline-flex items-center gap-1"><span className="inline-block h-1.5 w-6 rounded-full bg-brand-500" /> Timeline — bar on release date</span>
+          )}
+        </p>
+        <ReleaseScheduleGrid releases={unified} columns={columns} mode={viewMode} />
+      </div>
     </div>
   );
 }

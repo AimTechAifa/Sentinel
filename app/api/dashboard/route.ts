@@ -24,6 +24,7 @@ export async function GET(req: Request) {
     inProgress: releases.filter((r) => r.status === "In Progress" || r.status === "Ready").length,
     blocked: releases.filter((r) => r.status === "Blocked").length,
     atRisk: releases.filter((r) => r.status === "At Risk").length,
+    shipped: releases.filter((r) => r.status === "Shipped" || r.status === "Complete").length,
   };
 
   const p1Where: { priority: string; application?: string } = { priority: "P1" };
