@@ -13,12 +13,20 @@ type Props = {
   releases: { releaseDate?: string | Date | null; date?: string; status?: string }[];
   scheduleItems?: ScheduleItem[];
   activityItems?: ActivityItem[];
+  upgradeTitle?: string;
+  upgradeDescription?: string;
+  upgradeCtaLabel?: string;
+  upgradeCtaHref?: string;
 };
 
 export function DashboardChartsSection({
   releases,
   scheduleItems = [],
   activityItems = [],
+  upgradeTitle,
+  upgradeDescription,
+  upgradeCtaLabel,
+  upgradeCtaHref,
 }: Props) {
   const weekly = useMemo(() => buildWeeklyOverview(releases), [releases]);
   const growth = useMemo(() => buildGrowthSeries(releases), [releases]);
@@ -30,7 +38,12 @@ export function DashboardChartsSection({
           <WeeklyOverviewChart data={weekly} />
         </Grid>
         <Grid size={{ xs: 12, lg: 4 }}>
-          <UpgradePlanCard />
+          <UpgradePlanCard
+            title={upgradeTitle}
+            description={upgradeDescription}
+            ctaLabel={upgradeCtaLabel}
+            ctaHref={upgradeCtaHref}
+          />
         </Grid>
       </Grid>
 

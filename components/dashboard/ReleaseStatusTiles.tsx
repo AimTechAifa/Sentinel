@@ -34,9 +34,11 @@ const TILES: TileConfig[] = [
 export function ReleaseStatusTiles({
   counts,
   heading,
+  onTileClick,
 }: {
   counts: ReleaseStatusCounts;
   heading: string;
+  onTileClick?: (key: keyof ReleaseStatusCounts) => void;
 }) {
   const theme = useTheme();
 
@@ -49,13 +51,26 @@ export function ReleaseStatusTiles({
         {TILES.map(({ key, label, icon: Icon, color, bg }) => (
           <Grid key={key} size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
             <Box
+              component={onTileClick ? "button" : "div"}
+              type={onTileClick ? "button" : undefined}
+              onClick={onTileClick ? () => onTileClick(key) : undefined}
               sx={{
                 p: 2.5,
+                width: "100%",
                 height: "100%",
+                textAlign: "left",
                 borderRadius: 2,
                 border: `1px solid ${alpha(color, 0.28)}`,
                 bgcolor: theme.palette.mode === "dark" ? alpha(color, 0.08) : bg,
                 boxShadow: theme.palette.mode === "dark" ? "0 2px 10px rgba(19,17,32,0.35)" : "0 2px 10px rgba(46,38,61,0.06)",
+                transition: "transform 0.15s ease, box-shadow 0.15s ease",
+                cursor: onTileClick ? "pointer" : "default",
+                "&:hover": onTileClick
+                  ? {
+                      transform: "translateY(-2px)",
+                      boxShadow: theme.palette.mode === "dark" ? "0 6px 16px rgba(19,17,32,0.45)" : "0 6px 16px rgba(46,38,61,0.1)",
+                    }
+                  : undefined,
               }}
             >
               <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1.5 }}>
