@@ -1,10 +1,11 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { readinessColor } from "@/lib/palette";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 
 export function ReadinessGauge({ value, size = 160 }: { value: number; size?: number }) {
-  const color = value >= 80 ? "#12B76A" : value >= 50 ? "#F79009" : "#F04438";
+  const color = readinessColor(value);
   const data = [{ value }, { value: 100 - value }];
 
   return (

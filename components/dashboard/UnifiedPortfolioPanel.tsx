@@ -6,6 +6,7 @@ import { StatusBadge } from "@/components/badges/StatusBadge";
 import { DataTable, tableCell, tableHeadRow, tableRow } from "@/components/ui/data-table";
 import { formatDate, cn } from "@/lib/utils";
 import type { UnifiedRelease } from "@/lib/unified-releases";
+import { sourceTokens } from "@/lib/palette";
 import { Database, Layers, Package, Sparkles } from "lucide-react";
 
 type Overview = {
@@ -87,11 +88,13 @@ export function UnifiedPortfolioPanel({ data }: { data: Overview }) {
 }
 
 function SourceBadge({ source }: { source: "database" | "demo" }) {
+  const token = sourceTokens[source];
   return (
     <span
       className={cn(
         "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
-        source === "database" ? "bg-brand-100 text-brand-700" : "bg-violet-100 text-violet-700"
+        token.bg,
+        token.text
       )}
     >
       {source === "database" ? <Database className="h-3 w-3" /> : <Sparkles className="h-3 w-3" />}

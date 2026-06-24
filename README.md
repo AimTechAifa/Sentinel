@@ -46,7 +46,9 @@ Flagship demo prototype for stakeholder screen recordings. Static dummy data wit
    - `/releases` — Release list from database
    - `/dashboard` — Month/Quarter/Year counts + P1 issues
 
-4. Open [http://localhost:3000](http://localhost:3000) — sign in (Admin recommended for setup).
+4. Open [http://localhost:3000](http://localhost:3000) — sign in (Admin recommended for setup). Default landing is **Morning Inbox** (`/inbox`).
+
+Design tokens live in `lib/palette.ts` (brand, accent, semantic, readiness tiers) and are wired into Tailwind and CSS variables.
 
 See **[WORKFLOW.md](./WORKFLOW.md)** for step-by-step Release Desk workflow (reference data → releases → booking → mapping → dashboard). A Word copy is available as **[WORKFLOW.docx](./WORKFLOW.docx)**.
 
@@ -66,12 +68,13 @@ The build seeds `prisma/dev.db` automatically and bundles it for serverless API 
 
 | Route | Description |
 |---|---|
-| `/login` | Fake login → dashboard |
+| `/login` | Fake login → Morning Inbox |
+| `/inbox` | Daily action queue — blocked, P1s, mapping conflicts, approvals |
 | `/dashboard` | Executive overview + AI daily summary + live activity feed |
 | `/templates` | Quick Start — 22 guided demo scenarios with seeded state |
 | `/executive` | C-level portfolio dashboard, risk heatmap, ML forecasts |
-| `/releases` | Full release list |
-| `/releases/[id]` | Release command center (core screen) |
+| `/releases` | Full release list with readiness % and blocker counts |
+| `/releases/[id]` | Release command center — DB readiness/lifecycle or demo panels |
 | `/releases/[id]/dependencies` | React Flow dependency map |
 | `/compare` | Side-by-side release comparison |
 | `/knowledge-graph` | Org-wide knowledge graph (releases, services, people, CRs) |

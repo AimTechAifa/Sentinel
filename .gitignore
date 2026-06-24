@@ -41,4 +41,14 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# debug / local test artifacts
+cookies.txt
+.test-cookies
+.test-cookies.txt
+agent-*.json
+ctx.json
+dash.json
+login.json
+overview.json
+
 /lib/generated/prisma

@@ -2,7 +2,7 @@
 export const taCard = "ta-card";
 export const taTableWrap = "ta-table-wrap";
 export const taMetricIcon =
-  "flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-brand-50 to-violet-50 ring-1 ring-white/80 shadow-theme-sm";
+  "flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-brand-50 to-accent-50 ring-1 ring-white/80 shadow-theme-sm";
 export const taBtnPrimary =
   "inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-brand-500 to-brand-600 px-4 py-2.5 text-sm font-medium text-white shadow-theme-sm transition hover:from-brand-600 hover:to-brand-700 hover:shadow-theme-md";
 export const taBtnSecondary =

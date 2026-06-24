@@ -5,7 +5,19 @@
 :root {
   --background: #f9fafb;
   --foreground: #101828;
+  --surface: #f9fafb;
+  --border: #e4e7ec;
+  --brand-500: #465fff;
+  --brand-600: #3641f5;
+  --accent-500: #7a5af8;
   --ai: #7a5af8;
+  --success-500: #12b76a;
+  --warning-500: #f79009;
+  --error-500: #f04438;
+  --readiness-high: #12b76a;
+  --readiness-medium: #f79009;
+  --readiness-low: #f04438;
+  --sidebar: #0b0e14;
 }
 
 body {
@@ -18,7 +30,7 @@ body {
     @apply relative flex items-center w-full gap-3 px-3 py-2 font-medium rounded-xl text-theme-sm transition-all duration-200;
   }
   .menu-item-active {
-    @apply bg-gradient-to-r from-brand-50 via-violet-50/80 to-brand-50 text-brand-600 shadow-theme-sm ring-1 ring-brand-100/80;
+    @apply bg-gradient-to-r from-brand-50 via-accent-50/80 to-brand-50 text-brand-600 shadow-theme-sm ring-1 ring-brand-100/80;
   }
   .menu-item-inactive {
     @apply text-gray-700 hover:bg-gray-50 hover:text-gray-900 hover:shadow-theme-sm;
@@ -63,7 +75,7 @@ body {
 
 @layer utilities {
   .ai-card {
-    @apply border border-violet-100/80 border-l-4 border-l-ai bg-gradient-to-br from-violet-50/80 via-white to-brand-50/40 rounded-2xl shadow-theme-sm backdrop-blur-sm;
+    @apply border border-accent-100/80 border-l-4 border-l-accent-500 bg-gradient-to-br from-accent-50/80 via-white to-brand-50/40 rounded-2xl shadow-theme-sm backdrop-blur-sm;
   }
   .shimmer {
     background: linear-gradient(90deg, #f2f4f7 25%, #e4e7ec 50%, #f2f4f7 75%);

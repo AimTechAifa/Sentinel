@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { resolveSessionName } from "@/lib/user-match";
 import { encodeSession } from "@/lib/auth/cookie";
 import { SESSION_COOKIE, type SessionUser, type UserRole } from "@/lib/auth/roles";
 
@@ -7,7 +8,7 @@ export async function POST(req: Request) {
   const role = body.role ?? "readonly";
   const user: SessionUser = {
     email: body.email ?? "user@company.com",
-    name: body.name ?? "Demo User",
+    name: resolveSessionName(body.email ?? "user@company.com", body.name),
     role,
   };
 

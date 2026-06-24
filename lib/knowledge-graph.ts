@@ -1,4 +1,5 @@
 import type { KgEdge, KgNode, Release, Service, TeamMember } from "./types";
+import { chartColors } from "./palette";
 
 const COL = { person: 0, release: 280, service: 560, ticket: 840, change: 840, incident: 560 };
 const ROW_H = 72;
@@ -130,10 +131,10 @@ export function layoutKgNodes(nodes: KgNode[]): Map<string, { x: number; y: numb
 }
 
 export const KG_LEGEND: { type: KgNode["type"]; label: string; color: string }[] = [
-  { type: "person", label: "People", color: "#10B981" },
-  { type: "release", label: "Releases", color: "#465fff" },
-  { type: "service", label: "Services", color: "#2563EB" },
-  { type: "ticket", label: "Tickets", color: "#F59E0B" },
-  { type: "change", label: "Change records", color: "#8B5CF6" },
-  { type: "incident", label: "Incidents", color: "#EF4444" },
+  { type: "person", label: "People", color: chartColors.person },
+  { type: "release", label: "Releases", color: chartColors.release },
+  { type: "service", label: "Services", color: chartColors.service },
+  { type: "ticket", label: "Tickets", color: chartColors.ticket },
+  { type: "change", label: "Change records", color: chartColors.change },
+  { type: "incident", label: "Incidents", color: chartColors.incident },
 ];

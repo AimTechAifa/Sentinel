@@ -15,17 +15,7 @@ import { getLiveState } from "./release-state-repo";
 import { periodRange, type Period } from "./unified-releases";
 import type { ReleaseDecision } from "./types";
 import { isApprovalOverdue } from "./utils";
-
-function overlaps(aStart: Date, aEnd: Date, bStart: Date, bEnd: Date) {
-  return aStart <= bEnd && bStart <= aEnd;
-}
-
-function ownerMatches(sessionName: string, owner: string): boolean {
-  const norm = sessionName.trim().toLowerCase();
-  if (!norm) return false;
-  const o = owner.toLowerCase();
-  return o.includes(norm) || norm.includes(o.split(" ")[0] ?? "");
-}
+import { ownerMatches } from "./user-match";
 
 export function attentionToInboxItem(item: NeedsAttentionItem): InboxItem {
   return {

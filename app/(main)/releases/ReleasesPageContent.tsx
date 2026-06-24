@@ -10,6 +10,7 @@ import { SourceBadgeInline } from "@/components/dashboard/UnifiedPortfolioPanel"
 import { NeedsAttentionPanel } from "@/components/dashboard/NeedsAttentionPanel";
 import { ReleaseFormModal } from "@/components/releases/ReleaseFormModal";
 import { ReleaseFiltersBar } from "@/components/releases/ReleaseFiltersBar";
+import { ReadinessBadge } from "@/components/releases/ReadinessBadge";
 import { DataTable, tableCell, tableHeadRow, tableRow } from "@/components/ui/data-table";
 import { useReleaseFilters } from "@/context/ReleaseFiltersContext";
 import { releases as demoReleases } from "@/lib/dummy-data";
@@ -26,6 +27,7 @@ import {
   type UnifiedRelease,
 } from "@/lib/unified-releases";
 import { formatDate, cn } from "@/lib/utils";
+import { readinessKey } from "@/lib/release-readiness-batch";
 import { taBtnPrimary } from "@/lib/styles";
 import type { SessionUser } from "@/lib/auth/roles";
 
@@ -46,6 +48,8 @@ type ReleaseRow = {
   applications: { application: { id: string; name: string } }[];
   dependsOn: { dependsOnRelease: { id: string; releaseCode: string; name: string } }[];
 };
+
+type SortMode = "date" | "readiness" | "blockers";
 
 export default function ReleasesPageContent() {
   const searchParams = useSearchParams();
@@ -71,6 +75,16 @@ export default function ReleasesPageContent() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editRow, setEditRow] = useState<ReleaseRow | null>(null);
   const [attentionItems, setAttentionItems] = useState<NeedsAttentionItem[]>([]);
+  const [readinessByKey, setReadinessByKey] = useState<
+    Record<string, { readiness: number; blockerCount: number }>
+  >({});
+  const [sortMode, setSortMode] = useState<SortMode>("date");
+
+  useEffect(() => {
+    fetch("/api/releases/readiness")
+      .then((r) => (r.ok ? r.json() : { byKey: {} }))
+      .then((d) => setReadinessByKey(d.byKey ?? {}));
+  }, []);
 
   useEffect(() => {
     setView((searchParams.get("view") as ViewFilter) || "all");
@@ -116,6 +130,25 @@ export default function ReleasesPageContent() {
     if (attentionMode) return merged.filter((r) => isNeedsAttentionStatus(r.status));
     return merged;
   }, [dbRows, view, filters, bookings, environments, departments, applications, attentionMode]);
+
+  const sorted = useMemo(() => {
+    const list = [...unified];
+    if (sortMode === "readiness") {
+      return list.sort((a, b) => {
+        const ra = readinessByKey[readinessKey(a.source, a.id)]?.readiness ?? 999;
+        const rb = readinessByKey[readinessKey(b.source, b.id)]?.readiness ?? 999;
+        return ra - rb;
+      });
+    }
+    if (sortMode === "blockers") {
+      return list.sort((a, b) => {
+        const ba = readinessByKey[readinessKey(a.source, a.id)]?.blockerCount ?? 0;
+        const bb = readinessByKey[readinessKey(b.source, b.id)]?.blockerCount ?? 0;
+        return bb - ba;
+      });
+    }
+    return list;
+  }, [unified, sortMode, readinessByKey]);
 
   const canEdit = user?.role === "editor" || user?.role === "admin";
 
@@ -205,6 +238,33 @@ export default function ReleasesPageContent() {
 
       <ReleaseFiltersBar className="mb-4" />
 
+      {!attentionMode && (
+        <div className="flex flex-wrap gap-2 mb-4">
+          <span className="text-xs text-gray-500 self-center mr-1">Sort by</span>
+          {(
+            [
+              { id: "date", label: "Target date" },
+              { id: "readiness", label: "Readiness ↑" },
+              { id: "blockers", label: "Blockers" },
+            ] as { id: SortMode; label: string }[]
+          ).map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => setSortMode(s.id)}
+              className={cn(
+                "rounded-lg px-3 py-1.5 text-xs font-medium border transition-colors",
+                sortMode === s.id
+                  ? "bg-brand-500 text-white border-brand-500"
+                  : "border-gray-200 text-gray-600 hover:border-brand-300"
+              )}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
+      )}
+
       {attentionMode && (
         <NeedsAttentionPanel items={attentionItems} showViewAll={false} />
       )}
@@ -230,6 +290,7 @@ export default function ReleasesPageContent() {
               <th className={`${tableCell} text-left font-medium`}>Name</th>
               <th className={`${tableCell} text-left font-medium`}>Owner</th>
               <th className={`${tableCell} text-left font-medium`}>Status</th>
+              <th className={`${tableCell} text-left font-medium`}>Readiness</th>
               <th className={`${tableCell} text-left font-medium`}>Release date</th>
               <th className={`${tableCell} text-left font-medium`}>Group</th>
               {hasRefinement && (
@@ -239,18 +300,19 @@ export default function ReleasesPageContent() {
             </tr>
           </thead>
           <tbody>
-            {unified.length === 0 ? (
+            {sorted.length === 0 ? (
               <tr>
-                <td colSpan={hasRefinement ? (canEdit ? 9 : 8) : canEdit ? 8 : 7} className={`${tableCell} text-center text-gray-400 py-8`}>
+                <td colSpan={hasRefinement ? (canEdit ? 10 : 9) : canEdit ? 9 : 8} className={`${tableCell} text-center text-gray-400 py-8`}>
                   No releases match the current filters.
                 </td>
               </tr>
             ) : (
-              unified.map((r) => (
+              sorted.map((r) => (
                 <UnifiedRow
                   key={`${r.source}-${r.id}`}
                   row={r}
                   dbRow={dbRowById(r.id)}
+                  readiness={readinessByKey[readinessKey(r.source, r.id)]}
                   showApps={hasRefinement}
                   canEdit={canEdit}
                   onEdit={() => {
@@ -296,6 +358,7 @@ export default function ReleasesPageContent() {
 function UnifiedRow({
   row,
   dbRow,
+  readiness,
   showApps,
   canEdit,
   onEdit,
@@ -303,6 +366,7 @@ function UnifiedRow({
 }: {
   row: UnifiedRelease;
   dbRow?: ReleaseRow;
+  readiness?: { readiness: number; blockerCount: number };
   showApps: boolean;
   canEdit: boolean;
   onEdit: () => void;
@@ -326,6 +390,13 @@ function UnifiedRow({
       </td>
       <td className={`${tableCell} text-gray-600`}>{row.owner}</td>
       <td className={tableCell}><StatusBadge status={row.status as "Ready"} /></td>
+      <td className={tableCell}>
+        {readiness ? (
+          <ReadinessBadge value={readiness.readiness} blockerCount={readiness.blockerCount} compact />
+        ) : (
+          <span className="text-xs text-gray-400">—</span>
+        )}
+      </td>
       <td className={`${tableCell} text-gray-500`}>{formatDate(row.date)}</td>
       <td className={tableCell}>{row.group}</td>
       {showApps && (

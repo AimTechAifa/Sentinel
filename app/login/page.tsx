@@ -55,7 +55,9 @@ function LoginForm() {
             </div>
           </div>
           <h1 className="mb-2 text-title-sm font-semibold text-gray-800">Sign in with Microsoft</h1>
-          <p className="mb-8 text-sm text-gray-500">Demo SSO — select IAM role group for this session</p>
+          <p className="mb-8 text-sm text-gray-500">
+            Demo SSO — select IAM role group. Use <strong>priya@company.com</strong> for Morning Inbox “My releases”.
+          </p>
           <MagicCard gradient="from-brand-200/50 via-white to-violet-200/50" innerClassName="p-6">
             <form onSubmit={signIn} className="space-y-5">
               <div>

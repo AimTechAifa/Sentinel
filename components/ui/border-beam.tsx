@@ -1,5 +1,6 @@
 "use client";
 
+import { palette } from "@/lib/palette";
 import { cn } from "@/lib/utils";
 
 interface BorderBeamProps {
@@ -15,8 +16,8 @@ export function BorderBeam({
   className,
   size = 200,
   duration = 8,
-  colorFrom = "#7a5af8",
-  colorTo = "#465fff",
+  colorFrom = palette.accent[500],
+  colorTo = palette.brand[500],
 }: BorderBeamProps) {
   return (
     <div
