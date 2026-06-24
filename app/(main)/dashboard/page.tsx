@@ -234,7 +234,7 @@ export default function DashboardPage() {
 
       <NeedsAttentionPanel
         items={attention.slice(0, 8)}
-        viewAllHref={`/releases?attention=1${filterQuery}`}
+        viewAllHref={`/inbox${filterQuery.replace(/^&/, "?")}`}
       />
 
       {overview && <UnifiedPortfolioPanel data={overview} />}

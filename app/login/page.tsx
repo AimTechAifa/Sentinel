@@ -37,7 +37,7 @@ function LoginForm() {
       body: JSON.stringify({ email, name: email.split("@")[0], role }),
     });
     start();
-    router.push(searchParams.get("next") ?? "/dashboard");
+    router.push(searchParams.get("next") ?? "/inbox");
   };
 
   return (

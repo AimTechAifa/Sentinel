@@ -15,6 +15,7 @@ import {
   CalendarCheck,
   GitBranch,
   Database,
+  Inbox,
 } from "lucide-react";
 
 export type NavItem = {
@@ -31,7 +32,10 @@ export type NavSection = {
 
 export const NAV_SECTIONS: NavSection[] = [
   {
-    items: [{ href: "/dashboard", label: "Dashboard", icon: LayoutDashboard }],
+    items: [
+      { href: "/inbox", label: "Morning Inbox", icon: Inbox, pulse: true },
+      { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    ],
   },
   {
     title: "Release Desk",

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ProgressLink } from "@/components/layout/NavigationProgress";
 import { TopBar } from "@/components/layout/TopBar";
 import { StatusBadge } from "@/components/badges/StatusBadge";
+import { DbReleaseCommandCenter } from "@/components/releases/DbReleaseCommandCenter";
 import { ReleaseFormModal } from "@/components/releases/ReleaseFormModal";
 import { AdvancedCard } from "@/components/ui/advanced-card";
 import { taBtnPrimary, taBtnSecondary, taInput } from "@/lib/styles";
@@ -132,6 +133,8 @@ export function DbReleaseDetail({ id }: { id: string }) {
         </div>
       </div>
 
+      <DbReleaseCommandCenter releaseId={id} />
+
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
         <AdvancedCard title="Release details">
@@ -163,16 +166,18 @@ export function DbReleaseDetail({ id }: { id: string }) {
         </AdvancedCard>
         </div>
 
-        <AdvancedCard title="Go / No-Go" subtitle="Recorded to audit trail">
-          {canEdit ? (
-            <div className="flex gap-2">
-              <button type="button" className={taBtnPrimary + " flex-1 !bg-success-600"} onClick={() => recordDecision("Go — approved for deployment")}>Go</button>
-              <button type="button" className={taBtnPrimary + " flex-1 !bg-error-600"} onClick={() => recordDecision("No-Go — blocked")}>No-Go</button>
-            </div>
-          ) : (
-            <p className="text-sm text-gray-500">{release.decision ?? "No decision recorded"}</p>
-          )}
-        </AdvancedCard>
+        <div id="go-nogo">
+          <AdvancedCard title="Go / No-Go" subtitle="Recorded to audit trail">
+            {canEdit ? (
+              <div className="flex gap-2">
+                <button type="button" className={taBtnPrimary + " flex-1 !bg-success-600"} onClick={() => recordDecision("Go — approved for deployment")}>Go</button>
+                <button type="button" className={taBtnPrimary + " flex-1 !bg-error-600"} onClick={() => recordDecision("No-Go — blocked")}>No-Go</button>
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500">{release.decision ?? "No decision recorded"}</p>
+            )}
+          </AdvancedCard>
+        </div>
       </div>
 
       {release.bookings.length > 0 && (
