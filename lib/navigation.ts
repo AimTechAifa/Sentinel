@@ -11,8 +11,10 @@ import {
   Briefcase,
   Share2,
   Columns2,
-  Sparkles,
   Server,
+  CalendarCheck,
+  GitBranch,
+  Database,
 } from "lucide-react";
 
 export type NavItem = {
@@ -29,19 +31,23 @@ export type NavSection = {
 
 export const NAV_SECTIONS: NavSection[] = [
   {
+    items: [{ href: "/dashboard", label: "Dashboard", icon: LayoutDashboard }],
+  },
+  {
+    title: "Release Desk",
     items: [
-      { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-      { href: "/templates", label: "Templates", icon: Sparkles, pulse: true },
+      { href: "/releases", label: "Releases", icon: Package },
+      { href: "/calendar", label: "Calendar", icon: Calendar },
+      { href: "/booking", label: "Env Booking", icon: CalendarCheck },
+      { href: "/system-mapping", label: "System Mapping", icon: GitBranch },
+      { href: "/environments", label: "Versions & Config", icon: Server },
     ],
   },
   {
     title: "Portfolio",
     items: [
       { href: "/executive", label: "Executive", icon: Briefcase },
-      { href: "/releases", label: "Releases", icon: Package },
       { href: "/compare", label: "Compare", icon: Columns2 },
-      { href: "/calendar", label: "Calendar", icon: Calendar },
-      { href: "/environments", label: "Environment Desk", icon: Server },
       { href: "/insights", label: "Insights", icon: LineChart },
     ],
   },
@@ -52,6 +58,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { href: "/agents", label: "Agents", icon: Bot, pulse: true },
       { href: "/history", label: "History Log", icon: History },
       { href: "/connectors", label: "Connectors", icon: Plug },
+      { href: "/admin/reference-data", label: "Reference Data", icon: Database },
       { href: "/settings", label: "Settings", icon: Settings },
     ],
   },

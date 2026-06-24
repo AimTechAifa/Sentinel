@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { TopBar } from "@/components/layout/TopBar";
 import { StatusBadge } from "@/components/badges/StatusBadge";
@@ -10,7 +10,9 @@ import { connectors } from "@/lib/dummy-data";
 import { connectorSlug } from "@/lib/connectors";
 import type { ConnectorCategory } from "@/lib/types";
 import { formatDateTime } from "@/lib/utils";
-import { Plug, Link2, Unlink, AlertCircle } from "lucide-react";
+import { taBtnSecondary } from "@/lib/styles";
+import { Plug, Link2, Unlink, AlertCircle, RefreshCw } from "lucide-react";
+import type { SessionUser } from "@/lib/auth/roles";
 
 const CATEGORY_ORDER: ConnectorCategory[] = [
   "Issue Tracking",
@@ -37,6 +39,30 @@ const statusDot: Record<string, string> = {
 export default function ConnectorsPage() {
   const searchParams = useSearchParams();
   const filter = searchParams.get("filter");
+  const [liveSync, setLiveSync] = useState<{ name: string; lastSynced: string }[]>([]);
+  const [user, setUser] = useState<SessionUser | null>(null);
+  const [syncing, setSyncing] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/connectors").then((r) => r.json()).then(setLiveSync);
+    fetch("/api/auth/me").then((r) => r.json()).then((d) => setUser(d.user));
+  }, []);
+
+  const syncNow = async (name: string) => {
+    setSyncing(name);
+    const res = await fetch("/api/connectors", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    });
+    if (res.ok) {
+      const row = await res.json();
+      setLiveSync((prev) => prev.map((c) => (c.name === name ? row : c)));
+    }
+    setSyncing(null);
+  };
+
+  const canSync = user?.role === "editor" || user?.role === "admin";
 
   const filteredConnectors = useMemo(() => {
     if (filter === "issues") {
@@ -80,6 +106,28 @@ export default function ConnectorsPage() {
           </div>
         ))}
       </div>
+
+      {liveSync.length > 0 && (
+        <AdvancedCard title="Release Desk integrations" subtitle="Live sync status — same sources shown on Dashboard" variant="glass" className="mb-8">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {liveSync.map((c) => (
+              <div key={c.name} className="rounded-xl border border-gray-100 bg-white/80 p-4 flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-gray-800">{c.name}</span>
+                  <StatusBadge status="Connected" />
+                </div>
+                <p className="text-xs text-gray-500">Last synced: {formatDateTime(c.lastSynced)}</p>
+                {canSync && (
+                  <button type="button" className={taBtnSecondary + " text-xs !py-1.5"} onClick={() => syncNow(c.name)} disabled={syncing === c.name}>
+                    <RefreshCw className={`h-3.5 w-3.5 inline mr-1 ${syncing === c.name ? "animate-spin" : ""}`} />
+                    {syncing === c.name ? "Syncing…" : "Sync now"}
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </AdvancedCard>
+      )}
 
       <div className="space-y-8">
         {byCategory.map(({ category, items }) => (

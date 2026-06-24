@@ -11,10 +11,14 @@ export function VersionMatrix({
   rows,
   selectedApp,
   onSelectApp,
+  onPromote,
+  canPromote,
 }: {
   rows: ApplicationVersionRow[];
   selectedApp?: string | null;
   onSelectApp?: (app: string | null) => void;
+  onPromote?: (application: string, fromStage: "dev" | "test" | "prod", toStage: "dev" | "test" | "prod") => void;
+  canPromote?: boolean;
 }) {
   const driftCount = rows.filter((r) => r.drift).length;
 
@@ -39,6 +43,7 @@ export function VersionMatrix({
             <th className={cn(tableCell, "text-left font-medium")}>TEST</th>
             <th className={cn(tableCell, "text-left font-medium")}>PROD</th>
             <th className={cn(tableCell, "text-left font-medium")}>Promotion</th>
+            <th className={cn(tableCell, "text-left font-medium")}>Recommendation</th>
             <th className={cn(tableCell, "text-left font-medium")} />
           </tr>
         </thead>
@@ -72,16 +77,39 @@ export function VersionMatrix({
               <td className={tableCell}>
                 <PromotionBar pct={row.promotionPct} drift={row.drift} />
               </td>
-              <td className={tableCell}>
-                {row.releaseId && (
-                  <ProgressLink
-                    href={`/releases/${row.releaseId}`}
-                    onClick={(e) => e.stopPropagation()}
-                    className="inline-flex items-center gap-1 text-xs text-brand-600 hover:text-brand-700"
-                  >
-                    View <ExternalLink className="h-3 w-3" />
-                  </ProgressLink>
+              <td className={cn(tableCell, "text-xs text-gray-600 max-w-[140px]")}>
+                {row.promotionPct === 100 ? (
+                  <span className="text-success-600 font-medium">In sync</span>
+                ) : row.promotionPct >= 66 ? (
+                  <span>Promote TEST → PROD</span>
+                ) : (
+                  <span>Promote DEV → TEST first</span>
                 )}
+              </td>
+              <td className={tableCell}>
+                <div className="flex flex-col gap-1">
+                  {row.releaseId && (
+                    <ProgressLink
+                      href={`/releases/${row.releaseId}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="inline-flex items-center gap-1 text-xs text-brand-600 hover:text-brand-700"
+                    >
+                      View <ExternalLink className="h-3 w-3" />
+                    </ProgressLink>
+                  )}
+                  {canPromote && onPromote && row.drift && row.promotionPct < 100 && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onPromote(row.application, row.promotionPct <= 33 ? "dev" : "test", row.promotionPct <= 33 ? "test" : "prod");
+                      }}
+                      className="text-left text-xs font-medium text-violet-600 hover:text-violet-800"
+                    >
+                      Promote →
+                    </button>
+                  )}
+                </div>
               </td>
             </motion.tr>
           ))}

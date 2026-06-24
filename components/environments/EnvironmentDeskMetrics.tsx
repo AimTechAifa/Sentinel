@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { AlertTriangle, CalendarCheck, GitBranch, Layers, Server } from "lucide-react";
+import { AlertTriangle, CalendarCheck, GitBranch, Layers, Server, Snowflake } from "lucide-react";
 import { MetricCard } from "@/components/ui/metric-card";
 import type { EnvironmentDeskStats } from "@/lib/types";
 
@@ -9,10 +9,10 @@ export function EnvironmentDeskMetrics({ stats }: { stats: EnvironmentDeskStats 
   const metrics = [
     { label: "Timeline windows", value: stats.timelineCount, icon: CalendarCheck, trend: "neutral" as const },
     { label: "Env slots booked", value: stats.bookedEnvs, icon: Server, trend: stats.bookedEnvs > 4 ? ("up" as const) : ("neutral" as const) },
+    { label: "Booking conflicts", value: stats.bookingConflicts, icon: GitBranch, trend: stats.bookingConflicts > 0 ? ("down" as const) : ("up" as const) },
     { label: "Version drift", value: stats.versionDrift, icon: Layers, trend: stats.versionDrift > 0 ? ("down" as const) : ("up" as const) },
-    { label: "Promotion gaps", value: stats.promotionGap, icon: GitBranch, trend: stats.promotionGap > 0 ? ("down" as const) : ("up" as const) },
-    { label: "Active impacts", value: stats.activeImpacts, icon: AlertTriangle, trend: stats.activeImpacts > 0 ? ("down" as const) : ("up" as const) },
-    { label: "Mapped services", value: stats.mappedServices, icon: GitBranch, trend: "neutral" as const },
+    { label: "In freeze window", value: stats.releasesInFreeze, icon: Snowflake, trend: stats.releasesInFreeze > 0 ? ("down" as const) : ("up" as const) },
+    { label: "Unhealthy nodes", value: stats.unhealthyServices, icon: AlertTriangle, trend: stats.unhealthyServices > 0 ? ("down" as const) : ("up" as const) },
   ];
 
   return (

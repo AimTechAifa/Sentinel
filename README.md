@@ -29,6 +29,26 @@ Flagship demo prototype for stakeholder screen recordings. Static dummy data wit
 
 4. Open [http://localhost:3000](http://localhost:3000) — sign in with any credentials to reach the dashboard.
 
+### Release Desk MVP (database-backed)
+
+1. Initialize the SQLite database and seed reference data:
+   ```bash
+   npm run db:setup
+   ```
+
+2. Sign in at `/login` — select **Admin**, **Editor**, or **Read only** (Microsoft SSO demo).
+
+3. Key MVP routes:
+   - `/admin/reference-data` — Departments, Applications, Environments (Admin)
+   - `/booking` — Multi-app env booking with availability check
+   - `/system-mapping` — Mapping vs booking risk analysis
+   - `/releases` — Release list from database
+   - `/dashboard` — Month/Quarter/Year counts + P1 issues
+
+4. Open [http://localhost:3000](http://localhost:3000) — sign in (Admin recommended for setup).
+
+See **[WORKFLOW.md](./WORKFLOW.md)** for step-by-step Release Desk workflow (reference data → releases → booking → mapping → dashboard). A Word copy is available as **[WORKFLOW.docx](./WORKFLOW.docx)**.
+
 ## Pages
 
 | Route | Description |

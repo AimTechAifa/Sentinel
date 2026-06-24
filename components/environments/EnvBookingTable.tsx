@@ -67,7 +67,8 @@ export function EnvBookingTable({
               className={cn(
                 "rounded-xl border p-4 transition-all hover:shadow-theme-sm",
                 styles.chip,
-                isCurrent && "ring-2 ring-brand-300"
+                isCurrent && "ring-2 ring-brand-300",
+                row.conflict && "ring-2 ring-error-300"
               )}
             >
               <div className="flex items-center justify-between gap-2 mb-2">
@@ -76,6 +77,11 @@ export function EnvBookingTable({
                   <span className="font-bold text-sm">{row.month}</span>
                   {isCurrent && (
                     <span className="text-[9px] font-bold uppercase tracking-wide text-brand-600">Current</span>
+                  )}
+                  {row.conflict && (
+                    <span className="text-[9px] font-bold uppercase tracking-wide text-error-600 animate-pulse">
+                      Conflict ×{row.conflictCount}
+                    </span>
                   )}
                 </div>
                 <span className="text-xs font-semibold uppercase">{row.status}</span>

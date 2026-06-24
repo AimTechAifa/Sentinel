@@ -1,120 +1,142 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import ReactFlow, { Background, Controls, MiniMap, Node, Edge, MarkerType, type NodeMouseHandler } from "reactflow";
+import ReactFlow, { Background, Controls, MarkerType, type Edge, type Node } from "reactflow";
 import "reactflow/dist/style.css";
 import { ProgressLink } from "@/components/layout/NavigationProgress";
-import { ArrowLeft, Network } from "lucide-react";
-import { ServiceNode } from "@/components/dependencies/ServiceNode";
-import { AgentBadge } from "@/components/badges/AgentBadge";
-import { AICardSkeleton } from "@/components/ui/AISkeleton";
-import { AdvancedCard } from "@/components/ui/advanced-card";
-import { MagicCard } from "@/components/ui/magic-card";
 import { TopBar } from "@/components/layout/TopBar";
-import { ServiceDetailPanel } from "@/components/services/ServiceDetailPanel";
-import { callAgent } from "@/lib/agent-client";
-import { releases, services } from "@/lib/dummy-data";
-import type { DependencyWarning } from "@/lib/types";
+import { AdvancedCard } from "@/components/ui/advanced-card";
+import { ArrowLeft, Network } from "lucide-react";
 
-const nodeTypes = { service: ServiceNode };
+type ReleaseDetail = {
+  id: string;
+  releaseCode: string;
+  name: string;
+  applications: { application: { id: string; name: string } }[];
+  dependsOn: { dependsOnRelease: { id: string; releaseCode: string; name: string } }[];
+};
+
+type MappingEdge = {
+  id: string;
+  sourceApp: { name: string };
+  sourceEnv: { name: string };
+  targetApp: { name: string };
+  targetEnv: { name: string };
+  notes: string | null;
+};
 
 export default function DependenciesPage({ params }: { params: { id: string } }) {
-  const release = releases.find((r) => r.id === params.id);
-  const [warnings, setWarnings] = useState<DependencyWarning[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
+  const [release, setRelease] = useState<ReleaseDetail | null>(null);
+  const [edges, setEdges] = useState<MappingEdge[]>([]);
 
   useEffect(() => {
-    if (!release) return;
-    callAgent({
-      agentRole: "Dependency Agent",
-      context: { release, services, touchedServices: services.filter((s) => release.dependsOnServices.includes(s.id)) },
-      mode: "structured",
-    }).then((res) => {
-      if (res.warnings) setWarnings(res.warnings as DependencyWarning[]);
-      setLoading(false);
+    fetch(`/api/releases/${params.id}`).then((r) => r.json()).then(setRelease);
+    fetch("/api/system-mapping").then((r) => r.json()).then((d) => setEdges(d.edges ?? []));
+  }, [params.id]);
+
+  const { nodes, flowEdges } = useMemo(() => {
+    if (!release) return { nodes: [], flowEdges: [] };
+
+    const ns: Node[] = [];
+    const es: Edge[] = [];
+    let y = 0;
+
+    ns.push({
+      id: release.id,
+      position: { x: 250, y: 0 },
+      data: { label: `${release.releaseCode}\n${release.name}` },
+      style: { background: "#eef4ff", border: "1px solid #6366f1", borderRadius: 12, padding: 10, fontSize: 12, fontWeight: 600 },
     });
-  }, [release]);
 
-  const { nodes, edges } = useMemo(() => {
-    if (!release) return { nodes: [], edges: [] };
-    const touched = new Set(release.dependsOnServices);
-    const ns: Node[] = services.map((s, i) => ({
-      id: s.id,
-      type: "service",
-      data: {
-        label: s.name,
-        touched: touched.has(s.id),
-        unstable: s.unstable,
-        selected: selectedServiceId === s.id,
-      },
-      position: { x: (i % 4) * 220, y: Math.floor(i / 4) * 120 },
-    }));
-    const es: Edge[] = services.flatMap((s) =>
-      s.dependsOn.map((dep) => ({
-        id: `${dep}-${s.id}`,
-        source: dep,
-        target: s.id,
-        markerEnd: { type: MarkerType.ArrowClosed },
-        style: { stroke: "#94A3B8" },
-      }))
-    );
-    return { nodes: ns, edges: es };
-  }, [release, selectedServiceId]);
+    release.applications.forEach((a, i) => {
+      const id = `app-${a.application.id}`;
+      y = 120 + i * 90;
+      ns.push({
+        id,
+        position: { x: 80, y },
+        data: { label: a.application.name },
+        style: { background: "#f0fdf4", border: "1px solid #22c55e", borderRadius: 10, padding: 8, fontSize: 11 },
+      });
+      es.push({ id: `e-${id}`, source: release.id, target: id, markerEnd: { type: MarkerType.ArrowClosed }, animated: true });
+    });
 
-  const onNodeClick: NodeMouseHandler = (_, node) => {
-    if (services.some((s) => s.id === node.id)) {
-      setSelectedServiceId((prev) => (prev === node.id ? null : node.id));
-    }
-  };
+    release.dependsOn.forEach((d, i) => {
+      const id = `dep-${d.dependsOnRelease.id}`;
+      ns.push({
+        id,
+        position: { x: 480, y: 80 + i * 80 },
+        data: { label: `${d.dependsOnRelease.releaseCode}\n${d.dependsOnRelease.name}` },
+        style: { background: "#fff7ed", border: "1px solid #f97316", borderRadius: 10, padding: 8, fontSize: 11 },
+      });
+      es.push({ id: `e-${id}`, source: id, target: release.id, markerEnd: { type: MarkerType.ArrowClosed }, style: { stroke: "#f97316" } });
+    });
 
-  if (!release) return <p className="text-slate-500">Release not found.</p>;
+    const appNames = new Set(release.applications.map((a) => a.application.name));
+    edges
+      .filter((e) => appNames.has(e.sourceApp.name) || appNames.has(e.targetApp.name))
+      .forEach((e, i) => {
+        const sid = `map-s-${e.sourceApp.name}`;
+        const tid = `map-t-${e.targetApp.name}`;
+        if (!ns.find((n) => n.id === sid)) {
+          ns.push({
+            id: sid,
+            position: { x: 40, y: 320 + i * 60 },
+            data: { label: `${e.sourceApp.name}\n${e.sourceEnv.name}` },
+            style: { background: "#fafafa", border: "1px solid #d1d5db", borderRadius: 8, padding: 6, fontSize: 10 },
+          });
+        }
+        if (!ns.find((n) => n.id === tid)) {
+          ns.push({
+            id: tid,
+            position: { x: 320, y: 320 + i * 60 },
+            data: { label: `${e.targetApp.name}\n${e.targetEnv.name}` },
+            style: { background: "#fafafa", border: "1px solid #d1d5db", borderRadius: 8, padding: 6, fontSize: 10 },
+          });
+        }
+        es.push({
+          id: `map-${e.id}`,
+          source: sid,
+          target: tid,
+          label: "maps to",
+          labelStyle: { fontSize: 9 },
+          markerEnd: { type: MarkerType.ArrowClosed },
+          style: { stroke: "#94a3b8", strokeDasharray: "4 2" },
+        });
+      });
+
+    return { nodes: ns, flowEdges: es };
+  }, [release, edges]);
+
+  if (!release) return <p className="text-gray-500">Loading…</p>;
 
   return (
-    <div className="h-[calc(100vh-4rem)] flex flex-col">
-      <div className="flex items-center gap-4 mb-4">
-        <ProgressLink href={`/releases/${release.id}`} className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200/80 bg-white/80 text-gray-500 hover:bg-brand-50 hover:text-brand-600 transition-colors">
-          <ArrowLeft className="w-5 h-5" />
-        </ProgressLink>
-        <TopBar
-          title={`Dependency Map — ${release.version}`}
-          subtitle="Click a service node for incident history, releases, and risk status"
-          className="mb-0 flex-1"
-        />
-      </div>
-      <div className="flex flex-1 gap-4 min-h-0">
-        <MagicCard gradient="from-brand-200/40 via-white to-violet-200/40" className="flex-1" innerClassName="h-full overflow-hidden">
-          <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} fitView onNodeClick={onNodeClick}>
-            <Background gap={16} color="#E2E8F0" />
-            <Controls className="!rounded-xl" />
-            <MiniMap className="!rounded-xl" />
-          </ReactFlow>
-        </MagicCard>
-        <div className="w-80 shrink-0 flex flex-col gap-4 min-h-0 overflow-y-auto">
-          {selectedServiceId && (
-            <ServiceDetailPanel
-              serviceId={selectedServiceId}
-              onClose={() => setSelectedServiceId(null)}
-            />
-          )}
-          <AdvancedCard
-            title="Dependency Warnings"
-            icon={Network}
-            variant="ai"
-            action={<AgentBadge agent="Dependency Agent" />}
-            innerClassName="overflow-y-auto"
-          >
-            {loading && <AICardSkeleton />}
-            {!loading && warnings.map((w, i) => (
-              <div key={i} className="rounded-xl border border-violet-100 bg-white/80 p-3 mb-3 text-sm backdrop-blur-sm">
-                <p className="text-gray-700">{w.warning}</p>
-                {w.citations?.length > 0 && <p className="text-xs text-gray-400 mt-2">{w.citations.join(" · ")}</p>}
-              </div>
-            ))}
-            {!loading && warnings.length === 0 && <p className="text-sm text-gray-500">No dependency warnings.</p>}
-          </AdvancedCard>
-        </div>
-      </div>
+    <div className="space-y-6">
+      <ProgressLink href={`/releases/${params.id}`} className="inline-flex items-center gap-1 text-sm text-brand-600">
+        <ArrowLeft className="h-4 w-4" /> Back to release
+      </ProgressLink>
+      <TopBar title="Dependency map" subtitle={`${release.releaseCode} — applications, release dependencies, and system mapping`} highlight />
+
+      <AdvancedCard title="Release dependency graph" icon={Network} variant="glass" noPadding innerClassName="h-[520px]">
+        <ReactFlow nodes={nodes} edges={flowEdges} fitView>
+          <Background />
+          <Controls />
+        </ReactFlow>
+      </AdvancedCard>
+
+      {edges.length > 0 && (
+        <AdvancedCard title="Related system mapping">
+          <ul className="text-sm space-y-2">
+            {edges
+              .filter((e) => release.applications.some((a) => a.application.name === e.sourceApp.name || a.application.name === e.targetApp.name))
+              .map((e) => (
+                <li key={e.id} className="text-gray-700">
+                  {e.sourceApp.name}/{e.sourceEnv.name} → {e.targetApp.name}/{e.targetEnv.name}
+                  {e.notes && <span className="text-gray-500 text-xs block">{e.notes}</span>}
+                </li>
+              ))}
+          </ul>
+        </AdvancedCard>
+      )}
     </div>
   );
 }

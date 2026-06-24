@@ -1,72 +1,177 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { TopBar } from "@/components/layout/TopBar";
 import { AIPanel } from "@/components/ui/ai-panel";
 import { EnvironmentDeskMetrics } from "@/components/environments/EnvironmentDeskMetrics";
+import { EnvironmentDeskAlerts } from "@/components/environments/EnvironmentDeskAlerts";
 import { ReleaseTimeline } from "@/components/environments/ReleaseTimeline";
 import { SystemMappingView } from "@/components/environments/SystemMappingView";
 import { EnvBookingTable } from "@/components/environments/EnvBookingTable";
 import { VersionMatrix } from "@/components/environments/VersionMatrix";
 import { AppEnvConfigTable } from "@/components/environments/AppEnvConfigTable";
 import { AppConfigTable } from "@/components/environments/AppConfigTable";
-import { EnterpriseReleaseImpactPanel } from "@/components/environments/EnterpriseReleaseImpactPanel";
-import { buildEnvironmentDesk } from "@/lib/enterprise-env-data";
-import { releases, services } from "@/lib/dummy-data";
-import type { ReleaseTimelineEntry } from "@/lib/types";
+import { callAgent } from "@/lib/agent-client";
+import { useOrgContext } from "@/lib/use-org-context";
+import type {
+  ApplicationConfig,
+  ApplicationEnvConfig,
+  ApplicationVersionRow,
+  EnterpriseSystemNode,
+  EnvBooking,
+  EnvironmentDeskAlert,
+  EnvironmentDeskStats,
+  ReleaseTimelineEntry,
+} from "@/lib/types";
+import type { SessionUser } from "@/lib/auth/roles";
 
-function buildBriefing(stats: ReturnType<typeof buildEnvironmentDesk>["stats"], driftApps: string[]) {
-  const parts = [
-    `${stats.timelineCount} release windows on the portfolio timeline.`,
-    `${stats.bookedEnvs} environment months are booked across SAP, FIN, Oracle, and CRM.`,
-  ];
-  if (driftApps.length > 0) {
-    parts.push(`Version drift detected in ${driftApps.join(", ")} — PROD lags DEV/TEST.`);
-  }
-  if (stats.activeImpacts > 0) {
-    parts.push(`${stats.activeImpacts} enterprise impact window${stats.activeImpacts === 1 ? " is" : "s are"} active now.`);
-  } else {
-    parts.push("No enterprise impact windows are active in the next 48 hours.");
-  }
-  return parts.join(" ");
-}
+type DeskPayload = {
+  versionMatrix: ApplicationVersionRow[];
+  timeline: ReleaseTimelineEntry[];
+  bookings: EnvBooking[];
+  edges: { id: string; sourceApp: { name: string }; sourceEnv: { name: string }; targetApp: { name: string }; targetEnv: { name: string } }[];
+  environments: { id: string; name: string; type: string; status: string; application: { name: string } }[];
+  applications: { id: string; name: string; type: string; department: { name: string } }[];
+  stats: { activeReleases: number; bookedEnvs: number; driftApps: number; mappingEdges: number };
+  alerts: EnvironmentDeskAlert[];
+};
 
 export default function EnvironmentsPage() {
-  const desk = useMemo(() => buildEnvironmentDesk(releases, services), []);
-  const driftApps = useMemo(() => desk.versions.filter((v) => v.drift).map((v) => v.application), [desk.versions]);
-  const briefing = useMemo(() => buildBriefing(desk.stats, driftApps), [desk.stats, driftApps]);
-
+  const orgContext = useOrgContext();
+  const [desk, setDesk] = useState<DeskPayload | null>(null);
+  const [user, setUser] = useState<SessionUser | null>(null);
+  const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(true);
   const [selectedTimelineId, setSelectedTimelineId] = useState<string | null>(null);
   const [selectedApp, setSelectedApp] = useState<string | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
 
-  const handleTimelineSelect = (entry: ReleaseTimelineEntry | null) => {
-    setSelectedTimelineId(entry?.id ?? null);
-    if (entry?.department === "FIN") setSelectedApp("FIN");
-    else if (entry?.department === "CRM") setSelectedApp("CRM");
-    else if (entry?.department === "Platform") setSelectedApp("SAP");
+  const loadDesk = useCallback(() => {
+    fetch("/api/environment-desk").then((r) => r.json()).then(setDesk);
+  }, []);
+
+  useEffect(() => {
+    loadDesk();
+    fetch("/api/auth/me").then((r) => r.json()).then((d) => setUser(d.user));
+  }, [loadDesk]);
+
+  useEffect(() => {
+    if (!desk) return;
+    callAgent({
+      agentRole: "Summary Agent",
+      context: { ...orgContext, environmentDesk: desk },
+    }).then((res) => {
+      setAiSummary(res.text ?? null);
+      setAiLoading(false);
+    });
+  }, [orgContext, desk]);
+
+  const stats: EnvironmentDeskStats = useMemo(
+    () =>
+      desk
+        ? {
+            timelineCount: desk.timeline.length,
+            bookedEnvs: desk.stats.bookedEnvs,
+            bookingConflicts: 0,
+            versionDrift: desk.stats.driftApps,
+            releasesInFreeze: 0,
+            unhealthyServices: desk.environments.filter((e) => e.status !== "Available").length,
+            activeImpacts: desk.stats.activeReleases,
+            mappedServices: desk.stats.mappingEdges,
+            promotionGap: desk.stats.driftApps,
+          }
+        : {
+            timelineCount: 0,
+            bookedEnvs: 0,
+            bookingConflicts: 0,
+            versionDrift: 0,
+            releasesInFreeze: 0,
+            unhealthyServices: 0,
+            activeImpacts: 0,
+            mappedServices: 0,
+            promotionGap: 0,
+          },
+    [desk]
+  );
+
+  const systemNodes: EnterpriseSystemNode[] = useMemo(() => {
+    if (!desk) return [];
+    const nodes: EnterpriseSystemNode[] = desk.applications.map((a) => ({
+      id: `app-${a.id}`,
+      label: a.name,
+      type: "application",
+    }));
+    desk.environments.forEach((e) => {
+      nodes.push({
+        id: e.id,
+        label: `${e.application.name} · ${e.name}`,
+        type: "environment",
+        parentId: `app-${desk.applications.find((a) => a.name === e.application.name)?.id}`,
+        status: e.status === "Available" ? "healthy" : "warning",
+      });
+    });
+    return nodes;
+  }, [desk]);
+
+  const envConfigs: ApplicationEnvConfig[] = useMemo(
+    () =>
+      desk?.environments.map((e) => ({
+        application: e.application.name,
+        environment: e.type.includes("Prod") ? "PROD" : e.type.includes("Test") || e.type.includes("UAT") ? "TEST" : "DEV",
+        infra: "Azure AKS",
+        firewall: "Standard",
+        networkZone: e.status === "Restricted" ? "DMZ" : "Internal",
+        lastUpdated: new Date().toISOString(),
+      })) ?? [],
+    [desk]
+  );
+
+  const appConfigs: ApplicationConfig[] = useMemo(
+    () =>
+      desk?.applications.map((a) => ({
+        application: a.name,
+        baseUrl: `https://${a.name.toLowerCase()}.internal.example.com`,
+        apiUrl: `https://api.${a.name.toLowerCase()}.internal.example.com`,
+        featureFlags: [],
+        lastUpdated: new Date().toISOString(),
+      })) ?? [],
+    [desk]
+  );
+
+  const canPromote = user?.role === "editor" || user?.role === "admin";
+
+  const promote = async (application: string, fromStage: "dev" | "test" | "prod", toStage: "dev" | "test" | "prod") => {
+    await fetch("/api/environment-versions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ applicationName: application, fromStage, toStage }),
+    });
+    loadDesk();
   };
 
-  const handleAppSelect = (app: string | null) => {
-    setSelectedApp(app);
-    if (app === "FIN") setSelectedNodeId("app-fin");
-    else if (app === "CRM") setSelectedNodeId("app-crm");
-    else if (app === "SAP") setSelectedNodeId("env-test-sap");
-    else if (app === "Oracle") setSelectedNodeId("env-dev-oracle");
+  const handleTimelineSelect = (entry: ReleaseTimelineEntry | null) => {
+    setSelectedTimelineId(entry?.id ?? null);
+    if (entry?.releaseId) setSelectedTimelineId(entry.releaseId);
+    if (entry?.department) setSelectedApp(entry.department === "Platform" ? "SAP" : entry.department);
   };
+
+  if (!desk) {
+    return <p className="text-gray-500 p-6">Loading environment desk…</p>;
+  }
 
   return (
     <div className="space-y-6">
       <TopBar
-        title="Environment Desk"
-        subtitle="Enterprise release calendar, booking, topology, and config — wired to synthetic release train"
+        title="Versions & Config"
+        subtitle="Live release train, bookings, version promotion, and environment topology from Release Desk database"
         highlight
       />
 
-      <EnvironmentDeskMetrics stats={desk.stats} />
+      <EnvironmentDeskMetrics stats={stats} />
+      <EnvironmentDeskAlerts alerts={desk.alerts} />
 
-      <AIPanel title="Environment Desk Briefing" agent="Summary Agent">
-        <p>{briefing}</p>
+      <AIPanel title="Environment Desk Briefing" agent="Summary Agent" loading={aiLoading}>
+        {aiSummary && <p>{aiSummary}</p>}
       </AIPanel>
 
       <ReleaseTimeline
@@ -77,27 +182,32 @@ export default function EnvironmentsPage() {
 
       <div className="grid gap-6 xl:grid-cols-2">
         <SystemMappingView
-          nodes={desk.systemNodes}
+          nodes={systemNodes}
           selectedNodeId={selectedNodeId}
           onSelectNode={(node) => {
             setSelectedNodeId(node?.id ?? null);
-            if (node?.label.includes("FIN")) setSelectedApp("FIN");
-            else if (node?.label.includes("CRM") || node?.label.includes("Mobile")) setSelectedApp("CRM");
-            else if (node?.label.includes("Oracle")) setSelectedApp("Oracle");
-            else if (node?.label.includes("SAP")) setSelectedApp("SAP");
+            const label = node?.label ?? "";
+            if (label.includes("FIN")) setSelectedApp("FIN");
+            else if (label.includes("CRM")) setSelectedApp("CRM");
+            else if (label.includes("Oracle")) setSelectedApp("Oracle");
+            else if (label.includes("SAP")) setSelectedApp("SAP");
           }}
         />
         <EnvBookingTable bookings={desk.bookings} highlightSystem={selectedApp ?? undefined} />
       </div>
 
-      <VersionMatrix rows={desk.versions} selectedApp={selectedApp} onSelectApp={handleAppSelect} />
+      <VersionMatrix
+        rows={desk.versionMatrix}
+        selectedApp={selectedApp}
+        onSelectApp={setSelectedApp}
+        onPromote={promote}
+        canPromote={canPromote}
+      />
 
       <div className="grid gap-6 xl:grid-cols-2">
-        <AppEnvConfigTable configs={desk.envConfigs} selectedApp={selectedApp} onSelectApp={handleAppSelect} />
-        <AppConfigTable configs={desk.appConfigs} selectedApp={selectedApp} onSelectApp={handleAppSelect} />
+        <AppEnvConfigTable configs={envConfigs} selectedApp={selectedApp} onSelectApp={setSelectedApp} />
+        <AppConfigTable configs={appConfigs} selectedApp={selectedApp} onSelectApp={setSelectedApp} />
       </div>
-
-      <EnterpriseReleaseImpactPanel impacts={desk.impacts} />
     </div>
   );
 }

@@ -372,6 +372,17 @@ export interface ReleaseTimelineEntry {
   releaseId?: string;
   version?: string;
   owner?: string;
+  inFreezeWindow?: boolean;
+  freezeWindowName?: string;
+}
+
+export interface EnvironmentDeskAlert {
+  id: string;
+  severity: "high" | "medium" | "low";
+  title: string;
+  detail: string;
+  href?: string;
+  actionLabel?: string;
 }
 
 export interface EnvBooking {
@@ -385,6 +396,24 @@ export interface EnvBooking {
   contact?: string;
   releaseId?: string;
   version?: string;
+  conflict?: boolean;
+  conflictCount?: number;
+}
+
+export interface EnvBookingConflict {
+  id: string;
+  system: string;
+  month: string;
+  releaseIds: string[];
+  teams: string[];
+}
+
+export interface TimelineFreezeOverlay {
+  id: string;
+  name: string;
+  startDate: string;
+  endDate: string;
+  reason: string;
 }
 
 export interface EnterpriseSystemNode {
@@ -450,11 +479,17 @@ export interface EnvironmentDeskStats {
   activeImpacts: number;
   mappedServices: number;
   promotionGap: number;
+  bookingConflicts: number;
+  unhealthyServices: number;
+  releasesInFreeze: number;
 }
 
 export interface EnvironmentDeskSnapshot {
   timeline: ReleaseTimelineEntry[];
   bookings: EnvBooking[];
+  bookingConflicts: EnvBookingConflict[];
+  freezeOverlays: TimelineFreezeOverlay[];
+  alerts: EnvironmentDeskAlert[];
   systemNodes: EnterpriseSystemNode[];
   versions: ApplicationVersionRow[];
   envConfigs: ApplicationEnvConfig[];

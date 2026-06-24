@@ -12,6 +12,7 @@ const styles: Record<string, string> = {
   Running: "bg-warning-50 text-warning-600",
   "At Risk": "bg-warning-50 text-warning-600",
   Scheduled: "bg-brand-50 text-brand-500",
+  Planned: "bg-brand-50 text-brand-500",
   Deferred: "bg-gray-100 text-gray-600",
   Rejected: "bg-error-50 text-error-600",
   Failed: "bg-error-50 text-error-600",

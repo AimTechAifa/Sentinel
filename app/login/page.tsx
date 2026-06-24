@@ -1,6 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Shield } from "lucide-react";
 import { useNavigationProgress } from "@/components/layout/NavigationProgress";
@@ -9,76 +10,89 @@ import { ShimmerText } from "@/components/ui/shimmer-text";
 import { MagicCard } from "@/components/ui/magic-card";
 import { taBtnPrimary, taInput } from "@/lib/styles";
 import { PRODUCT_TAGLINE } from "@/lib/brand";
+import { ROLE_LABELS, type UserRole } from "@/lib/auth/roles";
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-gray-500">Loading…</div>}>
+      <LoginForm />
+    </Suspense>
+  );
+}
+
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { start } = useNavigationProgress();
+  const [role, setRole] = useState<UserRole>("editor");
+  const [email, setEmail] = useState("priya@company.com");
+  const [loading, setLoading] = useState(false);
+
+  const signIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, name: email.split("@")[0], role }),
+    });
+    start();
+    router.push(searchParams.get("next") ?? "/dashboard");
+  };
 
   return (
     <div className="relative flex min-h-screen flex-col bg-gradient-to-br from-white via-brand-50/30 to-violet-50/40 lg:flex-row overflow-hidden">
       <DotPattern className="opacity-20" />
       <div className="relative flex flex-1 flex-col justify-center px-6 py-12 lg:w-1/2 lg:px-16">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="mx-auto w-full max-w-md"
-        >
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mx-auto w-full max-w-md">
           <div className="mb-8 flex items-center gap-3">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-violet-600 shadow-theme-md">
               <Shield className="h-6 w-6 text-white" />
             </div>
             <div>
-              <ShimmerText className="text-2xl font-bold">Sentinel</ShimmerText>
+              <ShimmerText className="text-2xl font-bold">Release Desk</ShimmerText>
               <p className="mt-0.5 text-xs text-gray-500">{PRODUCT_TAGLINE}</p>
             </div>
           </div>
-          <h1 className="mb-2 text-title-sm font-semibold text-gray-800">Sign In</h1>
-          <p className="mb-8 text-sm text-gray-500">
-            AI-powered release command center for engineering teams
-          </p>
+          <h1 className="mb-2 text-title-sm font-semibold text-gray-800">Sign in with Microsoft</h1>
+          <p className="mb-8 text-sm text-gray-500">Demo SSO — select IAM role group for this session</p>
           <MagicCard gradient="from-brand-200/50 via-white to-violet-200/50" innerClassName="p-6">
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                start();
-                router.push("/dashboard");
-              }}
-              className="space-y-5"
-            >
+            <form onSubmit={signIn} className="space-y-5">
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700">Email</label>
-                <input defaultValue="priya@company.com" className={taInput} />
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">Work email</label>
+                <input value={email} onChange={(e) => setEmail(e.target.value)} className={taInput} />
               </div>
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700">Password</label>
-                <input type="password" defaultValue="demo" className={taInput} />
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">IAM role group</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {(["readonly", "editor", "admin"] as UserRole[]).map((r) => (
+                    <button
+                      key={r}
+                      type="button"
+                      onClick={() => setRole(r)}
+                      className={`rounded-xl border px-2 py-2 text-xs font-medium transition-colors ${
+                        role === r ? "border-brand-500 bg-brand-50 text-brand-700" : "border-gray-200 text-gray-600"
+                      }`}
+                    >
+                      {ROLE_LABELS[r]}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <button type="submit" className={`${taBtnPrimary} w-full`}>
-                Sign in
+              <button type="submit" disabled={loading} className={`${taBtnPrimary} w-full`}>
+                {loading ? "Signing in…" : "Sign in (Microsoft SSO demo)"}
               </button>
             </form>
           </MagicCard>
         </motion.div>
       </div>
-
-      <div className="relative hidden flex-1 items-center justify-center bg-gradient-to-br from-brand-950 via-brand-900 to-violet-950 lg:flex overflow-hidden">
-        <DotPattern className="opacity-10" opacity={0.15} />
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          className="relative max-w-md px-12 text-center"
-        >
-          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-500/20 ring-1 ring-brand-400/30 backdrop-blur-sm">
-            <Shield className="h-8 w-8 text-brand-300" />
-          </div>
-          <h2 className="text-2xl font-bold text-white">Release with confidence</h2>
-          <p className="mt-3 text-sm leading-relaxed text-gray-400">
-            Sentinel brings together approvals, builds, dependencies, and AI agents in one
-            command center — so you always know if it&apos;s safe to ship.
+      <div className="relative hidden flex-1 items-center justify-center bg-gradient-to-br from-brand-950 via-brand-900 to-violet-950 lg:flex">
+        <div className="max-w-md px-12 text-center text-white">
+          <h2 className="text-2xl font-bold">Release Desk MVP</h2>
+          <p className="mt-3 text-sm text-gray-400">
+            Reference data, env booking, system mapping, and role-based access — backed by SQLite for this build.
           </p>
-        </motion.div>
+        </div>
       </div>
     </div>
   );

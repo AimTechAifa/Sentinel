@@ -2,11 +2,11 @@
 
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { CalendarRange, ExternalLink } from "lucide-react";
+import { CalendarRange, ExternalLink, Snowflake } from "lucide-react";
 import { ProgressLink } from "@/components/layout/NavigationProgress";
 import { StatusBadge } from "@/components/badges/StatusBadge";
 import { AdvancedCard } from "@/components/ui/advanced-card";
-import type { EnterpriseDepartment, ReleaseImpact, ReleaseSize, ReleaseTimelineEntry } from "@/lib/types";
+import type { EnterpriseDepartment, ReleaseImpact, ReleaseSize, ReleaseTimelineEntry, TimelineFreezeOverlay } from "@/lib/types";
 import { cn, formatDate } from "@/lib/utils";
 
 const DEPARTMENTS: EnterpriseDepartment[] = ["FIN", "HR", "Security", "Platform", "CRM", "Operations"];
@@ -27,10 +27,12 @@ const impactStyles: Record<ReleaseImpact, string> = {
 
 export function ReleaseTimeline({
   entries,
+  freezeOverlays = [],
   selectedId,
   onSelect,
 }: {
   entries: ReleaseTimelineEntry[];
+  freezeOverlays?: TimelineFreezeOverlay[];
   selectedId?: string | null;
   onSelect?: (entry: ReleaseTimelineEntry | null) => void;
 }) {
@@ -90,6 +92,23 @@ export function ReleaseTimeline({
 
       <div className="relative pt-2 pb-10">
         <div className="absolute left-0 right-0 top-[52px] h-0.5 bg-gray-200 rounded-full" />
+        {freezeOverlays.map((fw) => {
+          const left = pos(fw.startDate);
+          const width = Math.max(2, pos(fw.endDate) - left);
+          if (width <= 0) return null;
+          return (
+            <div
+              key={fw.id}
+              className="absolute top-[36px] bottom-2 rounded-lg bg-violet-100/60 border border-violet-200/80 z-0"
+              style={{ left: `${left}%`, width: `${width}%` }}
+              title={`${fw.name}: ${fw.reason}`}
+            >
+              <span className="absolute top-1 left-2 text-[9px] font-semibold text-violet-600 truncate max-w-full pr-2 flex items-center gap-0.5">
+                <Snowflake className="h-2.5 w-2.5 shrink-0" /> {fw.name}
+              </span>
+            </div>
+          );
+        })}
         {showToday && (
           <div
             className="absolute top-[44px] bottom-4 w-0.5 bg-brand-400 z-10"
@@ -121,8 +140,9 @@ export function ReleaseTimeline({
                   transition={{ delay: row * 0.04, duration: 0.35 }}
                   onClick={() => onSelect?.(selected ? null : entry)}
                   className={cn(
-                    "absolute top-1 h-8 rounded-lg border flex items-center px-2 gap-1.5 text-xs font-medium shadow-sm transition-all hover:shadow-md hover:scale-[1.02] text-left overflow-hidden",
+                    "absolute top-1 h-8 rounded-lg border flex items-center px-2 gap-1.5 text-xs font-medium shadow-sm transition-all hover:shadow-md hover:scale-[1.02] text-left overflow-hidden z-10",
                     impactStyles[entry.impact],
+                    entry.inFreezeWindow && "ring-2 ring-violet-300 ring-offset-1",
                     selected && "ring-2 ring-brand-400 shadow-theme-md z-20"
                   )}
                   style={{
@@ -133,6 +153,7 @@ export function ReleaseTimeline({
                   title={`${entry.name} · ${formatDate(entry.startDate)} → ${formatDate(entry.endDate)}`}
                 >
                   <span className={cn("h-2 w-2 rounded-full shrink-0", sizeColors[entry.size])} />
+                  {entry.inFreezeWindow && <Snowflake className="h-3 w-3 shrink-0 text-violet-500" />}
                   <span className="truncate font-semibold">{entry.name}</span>
                   {entry.version && (
                     <span className="text-[10px] opacity-70 shrink-0 tabular-nums">{entry.version}</span>
@@ -164,6 +185,11 @@ export function ReleaseTimeline({
                 {entry.owner} · {formatDate(entry.startDate)} → {formatDate(entry.endDate)}
               </p>
             </div>
+            {entry.inFreezeWindow && (
+              <span className="text-xs text-violet-600 flex items-center gap-1">
+                <Snowflake className="h-3 w-3" /> Overlaps {entry.freezeWindowName}
+              </span>
+            )}
             <StatusBadge status={entry.status} />
             {entry.releaseId && (
               <ProgressLink
@@ -187,7 +213,9 @@ export function ReleaseTimeline({
         <span className="flex items-center gap-1.5">
           <span className="h-2 w-2 rounded-full bg-success-500" /> Low size
         </span>
-        <span className="text-gray-400">Click a bar to inspect and jump to release detail</span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-3 w-4 rounded bg-violet-100 border border-violet-200" /> Freeze window
+        </span>
       </div>
     </AdvancedCard>
   );

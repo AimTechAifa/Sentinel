@@ -10,6 +10,8 @@ import type {
   EnterpriseReleaseImpact,
   EnterpriseSystemNode,
   EnvBooking,
+  EnvBookingConflict,
+  EnvironmentDeskAlert,
   EnvironmentDeskSnapshot,
   EnvironmentDeskStats,
   Release,
@@ -17,6 +19,7 @@ import type {
   ReleaseSize,
   ReleaseTimelineEntry,
   Service,
+  TimelineFreezeOverlay,
 } from "./types";
 
 const TEAM_DEPARTMENT: Record<string, EnterpriseDepartment> = {
@@ -106,6 +109,11 @@ function impactConditions(r: Release): EnterpriseImpactCondition[] {
   return ["events paused"];
 }
 
+function freezeForDate(iso: string) {
+  const d = new Date(iso);
+  return freezeWindows.find((fw) => d >= new Date(fw.start) && d <= new Date(fw.end));
+}
+
 export function buildReleaseTimeline(source: Release[] = releases): ReleaseTimelineEntry[] {
   const horizon = Date.now() + 120 * 86400000;
   const windowStart = Date.now() - 14 * 86400000;
@@ -120,6 +128,7 @@ export function buildReleaseTimeline(source: Release[] = releases): ReleaseTimel
     .map((r) => {
       const size = sizeForRelease(r);
       const span = durationDays(size);
+      const fw = freezeForDate(r.targetDate);
       return {
         id: `tl-${r.id}`,
         name: r.name,
@@ -132,8 +141,20 @@ export function buildReleaseTimeline(source: Release[] = releases): ReleaseTimel
         releaseId: r.id,
         version: r.version,
         owner: r.owner,
+        inFreezeWindow: !!fw,
+        freezeWindowName: fw?.name,
       };
     });
+}
+
+export function buildFreezeOverlays(): TimelineFreezeOverlay[] {
+  return freezeWindows.map((fw) => ({
+    id: fw.id,
+    name: fw.name,
+    startDate: fw.start,
+    endDate: fw.end,
+    reason: fw.reason,
+  }));
 }
 
 export function buildEnvBookings(source: Release[] = releases): EnvBooking[] {
@@ -147,13 +168,13 @@ export function buildEnvBookings(source: Release[] = releases): EnvBooking[] {
     const label = monthLabel(monthDate);
 
     for (const system of systems) {
-      const match = source
-        .filter((r) => r.status !== "Shipped" && TEAM_SYSTEM[r.team] === system)
-        .find((r) => {
-          const td = new Date(r.targetDate);
-          return td.getMonth() === monthIdx && td.getFullYear() === monthDate.getFullYear();
-        });
+      const matches = source.filter((r) => {
+        if (r.status === "Shipped" || TEAM_SYSTEM[r.team] !== system) return false;
+        const td = new Date(r.targetDate);
+        return td.getMonth() === monthIdx && td.getFullYear() === monthDate.getFullYear();
+      });
 
+      const match = matches[0];
       const maint = m === 2 && system === "Oracle";
 
       rows.push({
@@ -167,11 +188,44 @@ export function buildEnvBookings(source: Release[] = releases): EnvBooking[] {
         contact: match?.owner,
         releaseId: match?.id,
         version: match?.version,
+        conflict: matches.length > 1,
+        conflictCount: matches.length > 1 ? matches.length : undefined,
       });
     }
   }
 
   return rows;
+}
+
+export function buildBookingConflicts(source: Release[] = releases): EnvBookingConflict[] {
+  const now = new Date();
+  const conflicts: EnvBookingConflict[] = [];
+  const systems = ["SAP", "FIN", "Oracle", "CRM"];
+
+  for (let m = 0; m < 5; m++) {
+    const monthDate = new Date(now.getFullYear(), now.getMonth() + m, 1);
+    const monthIdx = monthDate.getMonth();
+    const label = monthLabel(monthDate);
+
+    for (const system of systems) {
+      const matches = source.filter((r) => {
+        if (r.status === "Shipped" || TEAM_SYSTEM[r.team] !== system) return false;
+        const td = new Date(r.targetDate);
+        return td.getMonth() === monthIdx && td.getFullYear() === monthDate.getFullYear();
+      });
+      if (matches.length > 1) {
+        conflicts.push({
+          id: `conflict-${system}-${label}`,
+          system,
+          month: label,
+          releaseIds: matches.map((r) => r.id),
+          teams: matches.map((r) => r.team),
+        });
+      }
+    }
+  }
+
+  return conflicts;
 }
 
 export function buildSystemMapping(source: Service[] = services): EnterpriseSystemNode[] {
@@ -421,6 +475,93 @@ export function buildEnterpriseImpacts(source: Release[] = releases): Enterprise
     });
 }
 
+export function buildEnvironmentDeskAlerts(
+  snapshot: Omit<EnvironmentDeskSnapshot, "alerts" | "stats">
+): EnvironmentDeskAlert[] {
+  const alerts: EnvironmentDeskAlert[] = [];
+
+  snapshot.bookingConflicts.forEach((c) => {
+    alerts.push({
+      id: c.id,
+      severity: "high",
+      title: `${c.system} double-booked in ${c.month}`,
+      detail: `${c.teams.join(" vs ")} — ${c.releaseIds.length} releases competing for the same environment window.`,
+      href: "/environments",
+      actionLabel: "Review booking",
+    });
+  });
+
+  snapshot.versions
+    .filter((v) => v.drift)
+    .forEach((v) => {
+      alerts.push({
+        id: `drift-${v.application}`,
+        severity: "medium",
+        title: `${v.application} version drift`,
+        detail: `PROD ${v.prod} lags TEST ${v.test} / DEV ${v.dev} — promotion at ${v.promotionPct}%.`,
+        href: v.releaseId ? `/releases/${v.releaseId}` : "/environments",
+        actionLabel: "Promote",
+      });
+    });
+
+  snapshot.systemNodes
+    .filter((n) => n.status === "critical" || n.status === "warning")
+    .forEach((n) => {
+      alerts.push({
+        id: `health-${n.id}`,
+        severity: n.status === "critical" ? "high" : "medium",
+        title: `${n.label} ${n.status}`,
+        detail: n.serviceId
+          ? `Mapped service ${n.serviceId} has recent incidents or instability.`
+          : "Environment node reporting degraded health.",
+        href: "/environments",
+        actionLabel: "Inspect map",
+      });
+    });
+
+  snapshot.impacts
+    .filter((i) => i.active)
+    .forEach((i) => {
+      alerts.push({
+        id: `impact-${i.releaseId}`,
+        severity: "high",
+        title: `Active impact: ${i.releaseName}`,
+        detail: i.conditions.join(", "),
+        href: `/releases/${i.releaseId}`,
+        actionLabel: "View release",
+      });
+    });
+
+  snapshot.timeline
+    .filter((t) => t.inFreezeWindow)
+    .forEach((t) => {
+      alerts.push({
+        id: `freeze-${t.id}`,
+        severity: "medium",
+        title: `${t.name} overlaps freeze window`,
+        detail: t.freezeWindowName ?? "Release target date falls inside a change freeze.",
+        href: t.releaseId ? `/releases/${t.releaseId}` : "/calendar?month=freeze",
+        actionLabel: "Reschedule?",
+      });
+    });
+
+  return alerts.sort((a, b) => {
+    const rank = { high: 0, medium: 1, low: 2 };
+    return rank[a.severity] - rank[b.severity];
+  });
+}
+
+export function getEnvironmentDeskContext(snapshot: EnvironmentDeskSnapshot) {
+  return {
+    stats: snapshot.stats,
+    alerts: snapshot.alerts.slice(0, 6).map((a) => ({ title: a.title, detail: a.detail, severity: a.severity })),
+    driftApps: snapshot.versions.filter((v) => v.drift).map((v) => v.application),
+    bookingConflicts: snapshot.bookingConflicts,
+    activeImpacts: snapshot.impacts.filter((i) => i.active).map((i) => i.releaseName),
+    freezeWindows: snapshot.freezeOverlays.map((f) => f.name),
+  };
+}
+
 export function buildEnvironmentDeskStats(snapshot: Omit<EnvironmentDeskSnapshot, "stats">): EnvironmentDeskStats {
   return {
     timelineCount: snapshot.timeline.length,
@@ -429,6 +570,9 @@ export function buildEnvironmentDeskStats(snapshot: Omit<EnvironmentDeskSnapshot
     activeImpacts: snapshot.impacts.filter((i) => i.active).length,
     mappedServices: snapshot.systemNodes.filter((n) => n.serviceId).length,
     promotionGap: snapshot.versions.filter((v) => v.promotionPct < 100).length,
+    bookingConflicts: snapshot.bookingConflicts.length,
+    unhealthyServices: snapshot.systemNodes.filter((n) => n.status !== "healthy").length,
+    releasesInFreeze: snapshot.timeline.filter((t) => t.inFreezeWindow).length,
   };
 }
 
@@ -438,13 +582,27 @@ export function buildEnvironmentDesk(
 ): EnvironmentDeskSnapshot {
   const timeline = buildReleaseTimeline(sourceReleases);
   const bookings = buildEnvBookings(sourceReleases);
+  const bookingConflicts = buildBookingConflicts(sourceReleases);
+  const freezeOverlays = buildFreezeOverlays();
   const systemNodes = buildSystemMapping(sourceServices);
   const versions = buildApplicationVersions(sourceReleases);
   const envConfigs = buildApplicationEnvConfigs(sourceReleases);
   const appConfigs = buildApplicationConfigs(sourceReleases);
   const impacts = buildEnterpriseImpacts(sourceReleases);
 
-  const partial = { timeline, bookings, systemNodes, versions, envConfigs, appConfigs, impacts };
+  const partial = {
+    timeline,
+    bookings,
+    bookingConflicts,
+    freezeOverlays,
+    systemNodes,
+    versions,
+    envConfigs,
+    appConfigs,
+    impacts,
+    alerts: [] as EnvironmentDeskAlert[],
+  };
+  partial.alerts = buildEnvironmentDeskAlerts(partial);
   return { ...partial, stats: buildEnvironmentDeskStats(partial) };
 }
 

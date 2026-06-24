@@ -1,202 +1,127 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ProgressLink } from "@/components/layout/NavigationProgress";
 import { TopBar } from "@/components/layout/TopBar";
-import { AgentBadge } from "@/components/badges/AgentBadge";
-import { StatusBadge } from "@/components/badges/StatusBadge";
 import { AIPanel } from "@/components/ui/ai-panel";
-import { DataTable, tableCell, tableHeadRow, tableRow } from "@/components/ui/data-table";
 import { MetricCard } from "@/components/ui/metric-card";
-import { AdvancedCard } from "@/components/ui/advanced-card";
-import { useReleaseStore } from "@/context/ReleaseStoreContext";
+import { DataTable, tableCell, tableHeadRow, tableRow } from "@/components/ui/data-table";
 import { callAgent } from "@/lib/agent-client";
-import { releases } from "@/lib/dummy-data";
-import { getLiveDashboardStats } from "@/lib/dashboard-stats";
 import { useOrgContext } from "@/lib/use-org-context";
-import { useQuickStartLauncher } from "@/lib/use-quick-start-launcher";
-import { RiskHoverCell } from "@/components/dashboard/RiskHoverCell";
-import { ReleaseDecisionBadge } from "@/components/releases/ReleaseDecisionBadge";
-import { calcReadiness, formatDate, formatDateTime, medianFilesChanged } from "@/lib/utils";
-import { Flag, TrendingUp, AlertTriangle, Bell, Package, Sparkles, Rocket } from "lucide-react";
+import { formatDateTime, cn } from "@/lib/utils";
+import { AlertTriangle, Calendar, Clock, Flag, Package } from "lucide-react";
 import { PRODUCT_TAGLINE } from "@/lib/brand";
-import { QUICK_START_TEMPLATES } from "@/lib/quick-start-templates";
+
+type Period = "month" | "quarter" | "year";
+
+type DashboardData = {
+  counts: { planned: number; inProgress: number; blocked: number; atRisk: number };
+  connectors: { name: string; lastSynced: string }[];
+  p1Issues: { externalId: string; title: string; application: string | null; releaseCode: string | null; status: string }[];
+};
 
 export default function DashboardPage() {
   const orgContext = useOrgContext();
-  const { state, getGlobalHistory } = useReleaseStore();
-  const launchTemplate = useQuickStartLauncher();
+  const [period, setPeriod] = useState<Period>("month");
+  const [data, setData] = useState<DashboardData | null>(null);
   const [summary, setSummary] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [riskCache, setRiskCache] = useState<Record<string, { text?: string; error?: string }>>({});
-
-  const stats = useMemo(() => getLiveDashboardStats(releases, state), [state]);
-  const median = medianFilesChanged(releases);
-  const recentActivity = useMemo(() => getGlobalHistory().slice(0, 8), [getGlobalHistory]);
 
   useEffect(() => {
-    callAgent({ agentRole: "Summary Agent", context: orgContext }).then((res) => {
-      if (res.text) setSummary(res.text);
-      else setError(res.error ?? "AI unavailable");
+    fetch(`/api/dashboard?period=${period}`)
+      .then((r) => r.json())
+      .then(setData);
+  }, [period]);
+
+  useEffect(() => {
+    if (!data) return;
+    callAgent({
+      agentRole: "Summary Agent",
+      context: { ...orgContext, dashboard: data, period },
+    }).then((res) => {
+      setSummary(res.text ?? null);
       setLoading(false);
     });
-  }, [orgContext]);
+  }, [orgContext, data, period]);
 
-  const activeReleases = releases.filter((r) => r.status !== "Shipped").slice(0, 8);
-
-  const metrics = [
-    { label: "Releases this week", value: stats.thisWeek, icon: TrendingUp },
-    { label: "Org avg readiness", value: `${stats.avgReadiness}%`, icon: Flag },
-    { label: "Recorded decisions", value: stats.recordedDecisions, icon: AlertTriangle },
-    {
-      label: stats.activeDeploys > 0 ? "Active deploys" : "Unread alerts",
-      value: stats.activeDeploys > 0 ? stats.activeDeploys : stats.unreadAlerts,
-      icon: stats.activeDeploys > 0 ? Rocket : Bell,
-    },
-  ];
+  const metrics = useMemo(
+    () =>
+      data
+        ? [
+            { label: "Planned", value: data.counts.planned, icon: Calendar },
+            { label: "In progress", value: data.counts.inProgress, icon: Package },
+            { label: "Blocked", value: data.counts.blocked, icon: AlertTriangle },
+            { label: "At risk", value: data.counts.atRisk, icon: Flag },
+          ]
+        : [],
+    [data]
+  );
 
   return (
-    <div className="grid grid-cols-12 gap-4 md:gap-6">
-      <div className="col-span-12">
-        <TopBar
-          title="Dashboard"
-          subtitle="Executive release overview"
-          positioning={PRODUCT_TAGLINE}
-          highlight
-        />
-      </div>
+    <div className="space-y-6">
+      <TopBar title="Dashboard" subtitle="Portfolio summary" positioning={PRODUCT_TAGLINE} highlight />
 
-      <div className="col-span-12">
-        <AdvancedCard
-          variant="ai"
-          beam
-          icon={Sparkles}
-          title="Quick Start Templates"
-          subtitle={`${QUICK_START_TEMPLATES.length} guided demo scenarios`}
-          action={
-            <ProgressLink href="/templates" className="text-sm font-medium text-brand-600 hover:text-brand-700">
-              Browse all →
-            </ProgressLink>
-          }
-        >
-          <p className="text-sm text-gray-600 mb-3">
-            Jump into at-risk triage, auto-rollback, CAB review, compare views, and more — each template
-            opens the right screen with pre-seeded demo state.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <ProgressLink
-              href="/templates"
-              className="inline-flex items-center gap-1.5 rounded-full border border-brand-200 bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-100 transition-colors"
-            >
-              <Sparkles className="w-3 h-3" /> All templates
-            </ProgressLink>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex gap-1 rounded-xl border border-gray-200 bg-white/80 p-1">
+          {(["month", "quarter", "year"] as Period[]).map((p) => (
             <button
+              key={p}
               type="button"
-              onClick={() => launchTemplate("/releases/rel-v2140", "reset")}
-              className="inline-flex items-center rounded-full border border-gray-200 bg-white/80 px-3 py-1.5 text-xs text-gray-600 hover:bg-brand-50 hover:border-brand-200 transition-colors"
+              onClick={() => setPeriod(p)}
+              className={cn(
+                "rounded-lg px-3 py-1.5 text-xs font-medium capitalize transition-colors",
+                period === p ? "bg-brand-500 text-white" : "text-gray-600 hover:bg-gray-50"
+              )}
             >
-              At-risk release
+              {p}
             </button>
-            <button
-              type="button"
-              onClick={() => launchTemplate("/compare?left=rel-v2140&right=rel-v2141", "reset")}
-              className="inline-flex items-center rounded-full border border-gray-200 bg-white/80 px-3 py-1.5 text-xs text-gray-600 hover:bg-brand-50 hover:border-brand-200 transition-colors"
-            >
-              Compare releases
-            </button>
-          </div>
-        </AdvancedCard>
-      </div>
-
-      {metrics.map(({ label, value, icon: Icon }, i) => (
-        <div key={label} className="col-span-12 sm:col-span-6 xl:col-span-3">
-          <MetricCard label={label} value={value} icon={Icon} delay={i * 0.08} />
+          ))}
         </div>
-      ))}
-
-      <div className="col-span-12">
-        <AIPanel title="AI Daily Summary" agent="Summary Agent" loading={loading} error={error}>
-          {summary && <p>{summary}</p>}
-        </AIPanel>
-      </div>
-
-      <div className="col-span-12 xl:col-span-8">
-        <DataTable title="Active Releases" icon={Package}>
-          <table className="w-full text-theme-sm">
-            <thead className={tableHeadRow}>
-              <tr>
-                <th className={`${tableCell} text-left font-medium`}>Version</th>
-                <th className={`${tableCell} text-left font-medium`}>Team</th>
-                <th className={`${tableCell} text-left font-medium`}>Readiness</th>
-                <th className={`${tableCell} text-left font-medium`}>Status</th>
-                <th className={`${tableCell} text-left font-medium`}>Decision</th>
-                <th className={`${tableCell} text-left font-medium`}>Target</th>
-                <th className={`${tableCell} text-left font-medium`}>Risk</th>
-              </tr>
-            </thead>
-            <tbody>
-              {activeReleases.map((r) => (
-                <tr key={r.id} className={tableRow}>
-                  <td className={tableCell}>
-                    <ProgressLink href={`/releases/${r.id}`} className="font-medium text-brand-500 hover:text-brand-600">
-                      {r.version}
-                    </ProgressLink>
-                  </td>
-                  <td className={`${tableCell} text-gray-600`}>{r.team}</td>
-                  <td className={`${tableCell} text-gray-800`}>{calcReadiness(r)}%</td>
-                  <td className={tableCell}><StatusBadge status={r.status} /></td>
-                  <td className={tableCell}><ReleaseDecisionBadge releaseId={r.id} fallback={r.decision} /></td>
-                  <td className={`${tableCell} text-gray-500`}>{formatDate(r.targetDate)}</td>
-                  <td className={tableCell}>
-                    <RiskHoverCell
-                      release={r}
-                      median={median}
-                      cache={riskCache}
-                      onCacheUpdate={(id, entry) => setRiskCache((c) => ({ ...c, [id]: entry }))}
-                    />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </DataTable>
-      </div>
-
-      <div className="col-span-12 xl:col-span-4">
-        <AdvancedCard
-          title="Recent Activity"
-          subtitle={
-            stats.activeDeploys > 0
-              ? `${stats.activeDeploys} deploy(s) in progress · live audit events`
-              : "Live audit events from your session"
-          }
-          variant="glass"
-          className="h-full"
-          action={
-            <ProgressLink href="/history" className="text-xs text-brand-500 hover:underline">
-              Full trail →
-            </ProgressLink>
-          }
-        >
-          <div className="space-y-3">
-            {recentActivity.map((h) => (
-              <div key={h.id} className="border-b border-gray-100 pb-3 text-sm last:border-0">
-                <ProgressLink
-                  href={`/history?release=${h.releaseId}`}
-                  className="block hover:bg-brand-50/50 -mx-2 px-2 py-1 rounded-lg transition-colors"
-                >
-                  {h.type === "agent" && h.agent && <AgentBadge agent={h.agent} className="mb-1" />}
-                  <p className="text-gray-700">{h.action}</p>
-                  <p className="mt-1 text-theme-xs text-gray-400">
-                    {h.actor} · {h.releaseName} · {formatDateTime(h.timestamp)}
-                  </p>
-                </ProgressLink>
-              </div>
+        {data?.connectors && (
+          <div className="flex flex-wrap gap-3 text-[10px] text-gray-500">
+            {data.connectors.map((c) => (
+              <span key={c.name} className="flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                {c.name}: {formatDateTime(c.lastSynced)}
+              </span>
             ))}
           </div>
-        </AdvancedCard>
+        )}
       </div>
+
+      <AIPanel title="AI Daily Summary" agent="Summary Agent" loading={loading}>
+        {summary && <p>{summary}</p>}
+      </AIPanel>
+
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        {metrics.map(({ label, value, icon }, i) => (
+          <MetricCard key={label} label={label} value={value} icon={icon} delay={i * 0.05} />
+        ))}
+      </div>
+
+      <DataTable title="P1 Issues" subtitle="May require hotfix — release manager attention" icon={AlertTriangle}>
+        <table className="w-full text-sm">
+          <thead>
+            <tr className={tableHeadRow}>
+              <th className={cn(tableCell, "text-left")}>ID</th>
+              <th className={cn(tableCell, "text-left")}>Title</th>
+              <th className={cn(tableCell, "text-left")}>Application</th>
+              <th className={cn(tableCell, "text-left")}>Release</th>
+              <th className={cn(tableCell, "text-left")}>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(data?.p1Issues ?? []).map((issue) => (
+              <tr key={issue.externalId} className={tableRow}>
+                <td className={cn(tableCell, "font-mono text-xs")}>{issue.externalId}</td>
+                <td className={tableCell}>{issue.title}</td>
+                <td className={tableCell}>{issue.application ?? "—"}</td>
+                <td className={tableCell}>{issue.releaseCode ?? "—"}</td>
+                <td className={tableCell}>{issue.status}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </DataTable>
     </div>
   );
 }

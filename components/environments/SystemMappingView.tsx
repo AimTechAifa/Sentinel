@@ -4,7 +4,9 @@ import { useMemo } from "react";
 import ReactFlow, { Background, Controls, MarkerType, type Edge, type Node, type NodeMouseHandler } from "reactflow";
 import "reactflow/dist/style.css";
 import { GitBranch } from "lucide-react";
+import { ProgressLink } from "@/components/layout/NavigationProgress";
 import { AdvancedCard } from "@/components/ui/advanced-card";
+import { releases } from "@/lib/dummy-data";
 import type { EnterpriseSystemNode } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -119,7 +121,7 @@ export function SystemMappingView({
         </ReactFlow>
       </div>
       {selected && (
-        <div className="px-5 py-3 border-t border-gray-100 bg-brand-50/30 text-xs text-gray-600 flex flex-wrap gap-3">
+        <div className="px-5 py-3 border-t border-gray-100 bg-brand-50/30 text-xs text-gray-600 flex flex-wrap items-center gap-3">
           <span>
             <strong className="text-gray-800">{selected.label}</strong>
             {selected.criticality && ` · ${selected.criticality} criticality`}
@@ -128,6 +130,18 @@ export function SystemMappingView({
             <span className="font-mono text-[10px] bg-white/80 px-2 py-0.5 rounded border">{selected.serviceId}</span>
           )}
           {selected.version && <span className="tabular-nums">Release target {selected.version}</span>}
+          {selected.serviceId && (() => {
+            const rel = releases.find((r) => r.dependsOnServices.includes(selected.serviceId!));
+            if (!rel) return null;
+            return (
+              <ProgressLink
+                href={`/releases/${rel.id}/dependencies`}
+                className="ml-auto text-brand-600 hover:text-brand-700 font-medium"
+              >
+                View dependency map →
+              </ProgressLink>
+            );
+          })()}
         </div>
       )}
       <div className="flex gap-4 px-5 py-3 text-[10px] text-gray-500 border-t border-gray-100">

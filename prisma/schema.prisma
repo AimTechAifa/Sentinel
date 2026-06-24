@@ -1,0 +1,180 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Department {
+  id           String        @id @default(cuid())
+  name         String        @unique
+  head         String
+  applications Application[]
+  releases     Release[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model Application {
+  id            String               @id @default(cuid())
+  name          String
+  departmentId  String
+  department    Department           @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  type          String
+  productOwner  String
+  techLead      String
+  support       String
+  criticality   String
+  environments  Environment[]
+  releaseLinks  ReleaseApplication[]
+  bookings      EnvBooking[]
+  mappingFrom   SystemMappingEdge[]  @relation("MappingSourceApp")
+  mappingTo     SystemMappingEdge[]  @relation("MappingTargetApp")
+  envVersions   EnvironmentVersion[]
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+
+  @@unique([name, departmentId])
+}
+
+model Environment {
+  id            String              @id @default(cuid())
+  applicationId String
+  application   Application         @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  name          String
+  type          String
+  owner         String
+  lastDbRefresh DateTime?
+  status        String
+  bookings      EnvBooking[]
+  mappingFrom   SystemMappingEdge[] @relation("MappingSourceEnv")
+  mappingTo     SystemMappingEdge[] @relation("MappingTargetEnv")
+  versions      EnvironmentVersion[]
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  @@unique([applicationId, name])
+}
+
+model EnvironmentVersion {
+  id            String      @id @default(cuid())
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  environmentId String
+  environment   Environment @relation(fields: [environmentId], references: [id], onDelete: Cascade)
+  version       String
+  updatedBy     String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@unique([applicationId, environmentId])
+}
+
+model ReleaseAuditEvent {
+  id        String   @id @default(cuid())
+  releaseId String
+  release   Release  @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+  action    String
+  actor     String
+  detail    String?
+  createdAt DateTime @default(now())
+}
+
+model Release {
+  id             String               @id @default(cuid())
+  releaseCode    String               @unique
+  name           String
+  programProject String?
+  owner          String
+  status         String
+  releaseDate    DateTime
+  priority       String
+  impact         String
+  departmentId   String
+  department     Department           @relation(fields: [departmentId], references: [id])
+  notes          String?
+  decision       String?
+  applications   ReleaseApplication[]
+  dependsOn      ReleaseDependency[]  @relation("ReleaseDependsOn")
+  dependedBy     ReleaseDependency[]  @relation("ReleaseDependedBy")
+  bookings       EnvBooking[]
+  auditEvents    ReleaseAuditEvent[]
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+}
+
+model ReleaseApplication {
+  releaseId     String
+  applicationId String
+  release       Release     @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@id([releaseId, applicationId])
+}
+
+model ReleaseDependency {
+  id                 String  @id @default(cuid())
+  releaseId          String
+  dependsOnReleaseId String
+  release            Release @relation("ReleaseDependsOn", fields: [releaseId], references: [id], onDelete: Cascade)
+  dependsOnRelease   Release @relation("ReleaseDependedBy", fields: [dependsOnReleaseId], references: [id], onDelete: Cascade)
+
+  @@unique([releaseId, dependsOnReleaseId])
+}
+
+model EnvBooking {
+  id            String       @id @default(cuid())
+  applicationId String
+  application   Application  @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  environmentId String?
+  environment   Environment? @relation(fields: [environmentId], references: [id], onDelete: SetNull)
+  bookedBy      String
+  team          String
+  departmentName String?
+  fromDate      DateTime
+  toDate        DateTime
+  purpose       String?
+  releaseId     String?
+  release       Release?     @relation(fields: [releaseId], references: [id], onDelete: SetNull)
+  status        String       @default("BOOKED")
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+}
+
+model SystemMappingEdge {
+  id           String      @id @default(cuid())
+  sourceAppId  String
+  sourceApp    Application @relation("MappingSourceApp", fields: [sourceAppId], references: [id], onDelete: Cascade)
+  sourceEnvId  String
+  sourceEnv    Environment @relation("MappingSourceEnv", fields: [sourceEnvId], references: [id], onDelete: Cascade)
+  targetAppId  String
+  targetApp    Application @relation("MappingTargetApp", fields: [targetAppId], references: [id], onDelete: Cascade)
+  targetEnvId  String
+  targetEnv    Environment @relation("MappingTargetEnv", fields: [targetEnvId], references: [id], onDelete: Cascade)
+  direction    String
+  notes        String?
+  isDefault    Boolean     @default(true)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+}
+
+model ConnectorSync {
+  id         String   @id @default(cuid())
+  name       String   @unique
+  lastSynced DateTime
+}
+
+model P1Issue {
+  id          String   @id @default(cuid())
+  externalId  String   @unique
+  title       String
+  application String?
+  releaseCode String?
+  priority    String   @default("P1")
+  status      String
+  source      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

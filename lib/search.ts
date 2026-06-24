@@ -1,6 +1,13 @@
 import { agents, connectors, releases, type SearchResult } from "./dummy-data";
+import { buildEnvironmentDesk } from "./enterprise-env-data";
 import { QUICK_START_TEMPLATES } from "./quick-start-templates";
 import { connectorSlug } from "./connectors";
+
+const deskSearchIndex = buildEnvironmentDesk(releases).versions.map((v) => ({
+  application: v.application,
+  team: v.team,
+  prod: v.prod,
+}));
 
 export function searchAll(query: string): SearchResult[] {
   const q = query.trim().toLowerCase();
@@ -85,6 +92,39 @@ export function searchAll(query: string): SearchResult[] {
         label: c.name,
         sublabel: `${c.category} · ${c.status}`,
         href: `/connectors?filter=issues#${connectorSlug(c.name)}`,
+      });
+    }
+  });
+
+  if (
+    q.includes("environment") ||
+    q.includes("booking") ||
+    q.includes("desk") ||
+    q.includes("sap") ||
+    q.includes("topology") ||
+    q.includes("version matrix")
+  ) {
+    results.push({
+      id: "env-desk",
+      type: "change",
+      label: "Environment Desk",
+      sublabel: "Timeline · booking · versions · topology",
+      href: "/environments",
+    });
+  }
+
+  deskSearchIndex.forEach((v) => {
+    if (
+      v.application.toLowerCase().includes(q) ||
+      (v.team && v.team.toLowerCase().includes(q)) ||
+      v.prod.toLowerCase().includes(q)
+    ) {
+      results.push({
+        id: `env-app-${v.application}`,
+        type: "release",
+        label: `${v.application} — ${v.prod} in PROD`,
+        sublabel: "Environment Desk · version matrix",
+        href: "/environments",
       });
     }
   });

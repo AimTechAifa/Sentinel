@@ -1,52 +1,60 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
-import { ChevronLeft, ChevronRight, Snowflake, AlertTriangle, CalendarDays } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarDays, GanttChart } from "lucide-react";
 import { ProgressLink } from "@/components/layout/NavigationProgress";
 import { TopBar } from "@/components/layout/TopBar";
-import { StatusBadge } from "@/components/badges/StatusBadge";
 import { AdvancedCard } from "@/components/ui/advanced-card";
-import { freezeWindows, releases, services } from "@/lib/dummy-data";
-import { cn, formatDate, getDayConflicts, isFriday, isInFreezeWindow } from "@/lib/utils";
+import { inPeriod, periodRange, type Period } from "@/lib/period-range";
+import { cn, formatDate } from "@/lib/utils";
 import { taBtnSecondary } from "@/lib/styles";
 
-export default function CalendarPage() {
-  const searchParams = useSearchParams();
-  const monthParam = searchParams.get("month");
+type ViewMode = "calendar" | "timeline";
 
-  const [viewDate, setViewDate] = useState(() => {
-    if (monthParam === "freeze" && freezeWindows[0]) {
-      return new Date(freezeWindows[0].start);
-    }
-    if (monthParam) {
-      const parsed = new Date(`${monthParam}-01T12:00:00`);
-      if (!Number.isNaN(parsed.getTime())) return parsed;
-    }
-    return new Date();
-  });
+type DbRelease = {
+  id: string;
+  releaseCode: string;
+  name: string;
+  status: string;
+  releaseDate: string;
+  priority: string;
+  department: { name: string };
+};
+
+const STATUS_COLORS: Record<string, string> = {
+  Planned: "bg-blue-100 text-blue-800",
+  "In Progress": "bg-brand-100 text-brand-800",
+  Blocked: "bg-error-100 text-error-800",
+  "At Risk": "bg-amber-100 text-amber-800",
+  Complete: "bg-success-100 text-success-800",
+};
+
+export default function CalendarPage() {
+  const [period, setPeriod] = useState<Period>("month");
+  const [viewMode, setViewMode] = useState<ViewMode>("calendar");
+  const [viewDate, setViewDate] = useState(() => new Date());
+  const [releases, setReleases] = useState<DbRelease[]>([]);
 
   useEffect(() => {
-    if (monthParam === "freeze" && freezeWindows[0]) {
-      setViewDate(new Date(freezeWindows[0].start));
-      return;
-    }
-    if (monthParam) {
-      const parsed = new Date(`${monthParam}-01T12:00:00`);
-      if (!Number.isNaN(parsed.getTime())) setViewDate(parsed);
-    }
-  }, [monthParam]);
+    fetch("/api/releases").then((r) => r.json()).then(setReleases);
+  }, []);
+
+  const filtered = useMemo(
+    () => releases.filter((r) => inPeriod(r.releaseDate, period, viewDate)),
+    [releases, period, viewDate]
+  );
 
   const year = viewDate.getFullYear();
   const month = viewDate.getMonth();
   const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const monthName = viewDate.toLocaleString("en-AU", { month: "long", year: "numeric" });
+  const { start: periodStart, end: periodEnd } = periodRange(period, viewDate);
 
   const releasesByDay = useMemo(() => {
-    const map: Record<number, typeof releases> = {};
-    releases.forEach((r) => {
-      const d = new Date(r.targetDate);
+    const map: Record<number, DbRelease[]> = {};
+    filtered.forEach((r) => {
+      const d = new Date(r.releaseDate);
       if (d.getMonth() === month && d.getFullYear() === year) {
         const day = d.getDate();
         if (!map[day]) map[day] = [];
@@ -54,116 +62,157 @@ export default function CalendarPage() {
       }
     });
     return map;
-  }, [month, year]);
+  }, [filtered, month, year]);
 
   const prevMonth = () => setViewDate(new Date(year, month - 1, 1));
   const nextMonth = () => setViewDate(new Date(year, month + 1, 1));
   const today = new Date();
 
-  const cells = [];
-  for (let i = 0; i < firstDay; i++) cells.push(<div key={`e${i}`} />);
-  for (let day = 1; day <= daysInMonth; day++) {
-    const dayReleases = releasesByDay[day] ?? [];
-    const cellDate = new Date(year, month, day);
-    const frozen = isInFreezeWindow(cellDate, freezeWindows);
-    const fridayRisk = isFriday(cellDate) && dayReleases.length > 0;
-    const conflicts = getDayConflicts(dayReleases, services);
-    const isToday =
-      cellDate.getDate() === today.getDate() &&
-      cellDate.getMonth() === today.getMonth() &&
-      cellDate.getFullYear() === today.getFullYear();
+  const timelineSorted = useMemo(
+    () => [...filtered].sort((a, b) => new Date(a.releaseDate).getTime() - new Date(b.releaseDate).getTime()),
+    [filtered]
+  );
 
-    cells.push(
-      <div
-        key={day}
-        className={cn(
-          "min-h-[96px] border p-2 rounded-xl transition-all",
-          frozen ? "bg-slate-100/80 border-slate-200" : "bg-white/80 border-gray-100 hover:border-brand-100 hover:shadow-theme-sm",
-          isToday && "ring-2 ring-brand-500/40 shadow-theme-sm"
-        )}
-      >
-        <div className="flex items-center justify-between mb-1">
-          <span className={cn("text-xs font-medium", isToday ? "text-brand-600" : "text-gray-500")}>{day}</span>
-          <div className="flex gap-1">
-            {frozen && (
-              <span title="Freeze window">
-                <Snowflake className="w-3 h-3 text-slate-400" />
-              </span>
-            )}
-            {fridayRisk && !frozen && <span className="text-[10px] text-amber-600 bg-amber-50 px-1 rounded">Fri</span>}
-            {conflicts.length > 0 && (
-              <span title={conflicts.join(", ")}>
-                <AlertTriangle className="w-3 h-3 text-orange-500" />
-              </span>
-            )}
-          </div>
-        </div>
-        <div className="space-y-1">
-          {dayReleases.map((r) => (
-            <ProgressLink
-              key={r.id}
-              href={`/releases/${r.id}`}
-              className="block text-xs truncate hover:bg-brand-50 rounded px-1 py-0.5 -mx-1 transition-colors"
-            >
-              <StatusBadge status={r.status} className="text-[10px] px-1.5 py-0" />
-              <span className="ml-1 text-gray-600">{r.version}</span>
-            </ProgressLink>
-          ))}
-        </div>
-        {conflicts.length > 0 && dayReleases.length >= 2 && (
-          <p className="text-[10px] text-orange-600 mt-1 leading-tight">{conflicts[0]}</p>
-        )}
-      </div>
-    );
-  }
-
-  const monthFreeze = freezeWindows.filter((w) => {
-    const start = new Date(w.start);
-    const end = new Date(w.end);
-    return start.getMonth() <= month && end.getMonth() >= month && start.getFullYear() <= year && end.getFullYear() >= year;
-  });
+  const timelineSpan = Math.max(periodEnd.getTime() - periodStart.getTime(), 1);
 
   return (
-    <div>
-      <TopBar title="Release Calendar" subtitle="Deploy windows, freeze periods, and conflicts" highlight />
+    <div className="space-y-6">
+      <TopBar title="Release Calendar" subtitle="Period filter with calendar and timeline views" highlight />
 
-      <AdvancedCard variant="glass" noPadding innerClassName="p-4 md:p-5">
-        <div className="flex items-center justify-between mb-4">
-          <button type="button" onClick={prevMonth} className={taBtnSecondary + " !p-2"}>
-            <ChevronLeft className="w-5 h-5 text-gray-600" />
-          </button>
-          <h2 className="font-semibold text-gray-800 flex items-center gap-2">
-            <CalendarDays className="w-5 h-5 text-brand-500" />
-            {monthName}
-          </h2>
-          <button type="button" onClick={nextMonth} className={taBtnSecondary + " !p-2"}>
-            <ChevronRight className="w-5 h-5 text-gray-600" />
-          </button>
-        </div>
-
-        {monthFreeze.length > 0 && (
-          <div className="mb-4 flex flex-wrap gap-2">
-            {monthFreeze.map((w) => (
-              <span key={w.id} className="inline-flex items-center gap-1.5 text-xs bg-slate-100/80 text-slate-600 px-3 py-1.5 rounded-full border border-slate-200/80">
-                <Snowflake className="w-3 h-3" /> {w.name}: {formatDate(w.start)} – {formatDate(w.end)}
-              </span>
-            ))}
-          </div>
-        )}
-
-        <div className="grid grid-cols-7 gap-2">
-          {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
-            <div key={d} className="text-center text-xs font-medium text-gray-500 py-2">{d}</div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex gap-1 rounded-xl border border-gray-200 bg-white/80 p-1">
+          {(["month", "quarter", "year"] as Period[]).map((p) => (
+            <button
+              key={p}
+              type="button"
+              onClick={() => setPeriod(p)}
+              className={cn(
+                "rounded-lg px-3 py-1.5 text-xs font-medium capitalize transition-colors",
+                period === p ? "bg-brand-500 text-white" : "text-gray-600 hover:bg-gray-50"
+              )}
+            >
+              {p}
+            </button>
           ))}
-          {cells}
         </div>
+        <div className="flex gap-1 rounded-xl border border-gray-200 bg-white/80 p-1">
+          <button
+            type="button"
+            onClick={() => setViewMode("calendar")}
+            className={cn(
+              "rounded-lg px-3 py-1.5 text-xs font-medium flex items-center gap-1.5 transition-colors",
+              viewMode === "calendar" ? "bg-brand-500 text-white" : "text-gray-600 hover:bg-gray-50"
+            )}
+          >
+            <CalendarDays className="h-3.5 w-3.5" /> Calendar
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode("timeline")}
+            className={cn(
+              "rounded-lg px-3 py-1.5 text-xs font-medium flex items-center gap-1.5 transition-colors",
+              viewMode === "timeline" ? "bg-brand-500 text-white" : "text-gray-600 hover:bg-gray-50"
+            )}
+          >
+            <GanttChart className="h-3.5 w-3.5" /> Timeline
+          </button>
+        </div>
+      </div>
 
-        <div className="mt-4 flex flex-wrap gap-4 text-xs text-gray-500">
-          <span className="flex items-center gap-1"><Snowflake className="w-3 h-3" /> Freeze window</span>
-          <span className="flex items-center gap-1"><span className="text-amber-600 bg-amber-50 px-1 rounded">Fri</span> Elevated rollback risk</span>
-          <span className="flex items-center gap-1"><AlertTriangle className="w-3 h-3 text-orange-500" /> Schedule conflict</span>
-        </div>
-      </AdvancedCard>
+      <p className="text-xs text-gray-500">
+        Showing {filtered.length} release(s) for {period} · {formatDate(periodStart.toISOString())} – {formatDate(periodEnd.toISOString())}
+      </p>
+
+      {viewMode === "calendar" ? (
+        <AdvancedCard variant="glass" noPadding innerClassName="p-4 md:p-5">
+          <div className="flex items-center justify-between mb-4">
+            <button type="button" onClick={prevMonth} className={taBtnSecondary + " !p-2"}>
+              <ChevronLeft className="w-5 h-5 text-gray-600" />
+            </button>
+            <h2 className="font-semibold text-gray-800 flex items-center gap-2">
+              <CalendarDays className="w-5 h-5 text-brand-500" />
+              {monthName}
+            </h2>
+            <button type="button" onClick={nextMonth} className={taBtnSecondary + " !p-2"}>
+              <ChevronRight className="w-5 h-5 text-gray-600" />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-7 gap-2">
+            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
+              <div key={d} className="text-center text-xs font-medium text-gray-500 py-2">{d}</div>
+            ))}
+            {Array.from({ length: firstDay }).map((_, i) => (
+              <div key={`e${i}`} />
+            ))}
+            {Array.from({ length: daysInMonth }).map((_, idx) => {
+              const day = idx + 1;
+              const dayReleases = releasesByDay[day] ?? [];
+              const cellDate = new Date(year, month, day);
+              const isToday =
+                cellDate.getDate() === today.getDate() &&
+                cellDate.getMonth() === today.getMonth() &&
+                cellDate.getFullYear() === today.getFullYear();
+
+              return (
+                <div
+                  key={day}
+                  className={cn(
+                    "min-h-[96px] border p-2 rounded-xl transition-all bg-white/80 border-gray-100 hover:border-brand-100",
+                    isToday && "ring-2 ring-brand-500/40"
+                  )}
+                >
+                  <span className={cn("text-xs font-medium", isToday ? "text-brand-600" : "text-gray-500")}>{day}</span>
+                  <div className="space-y-1 mt-1">
+                    {dayReleases.map((r) => (
+                      <ProgressLink
+                        key={r.id}
+                        href={`/releases/${r.id}`}
+                        className="block text-xs truncate hover:bg-brand-50 rounded px-1 py-0.5 -mx-1"
+                      >
+                        <span className={cn("text-[10px] px-1.5 py-0 rounded", STATUS_COLORS[r.status] ?? "bg-gray-100 text-gray-700")}>
+                          {r.releaseCode}
+                        </span>
+                        <span className="ml-1 text-gray-600">{r.name}</span>
+                      </ProgressLink>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </AdvancedCard>
+      ) : (
+        <AdvancedCard title="Timeline view" subtitle="Releases in selected period" icon={GanttChart} variant="glass">
+          <div className="space-y-3">
+            {timelineSorted.length === 0 && (
+              <p className="text-sm text-gray-500">No releases in this period.</p>
+            )}
+            {timelineSorted.map((r) => {
+              const d = new Date(r.releaseDate);
+              const offset = ((d.getTime() - periodStart.getTime()) / timelineSpan) * 100;
+              return (
+                <div key={r.id} className="relative">
+                  <div className="flex items-center gap-3 text-xs text-gray-500 mb-1">
+                    <span className="w-24 shrink-0">{formatDate(r.releaseDate)}</span>
+                    <ProgressLink href={`/releases/${r.id}`} className="font-medium text-gray-800 hover:text-brand-600">
+                      {r.releaseCode} · {r.name}
+                    </ProgressLink>
+                    <span className={cn("px-2 py-0.5 rounded-full text-[10px]", STATUS_COLORS[r.status] ?? "bg-gray-100")}>{r.status}</span>
+                    <span className="text-gray-400">{r.department.name}</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-brand-500/80"
+                      style={{ width: "8%", marginLeft: `${Math.min(Math.max(offset, 0), 92)}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </AdvancedCard>
+      )}
     </div>
   );
 }
