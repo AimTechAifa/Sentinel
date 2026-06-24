@@ -14,7 +14,6 @@ export function Sidebar() {
   const {
     isExpanded,
     isMobileOpen,
-    isHovered,
     isWide,
     toggleSidebar,
     toggleMobileSidebar,

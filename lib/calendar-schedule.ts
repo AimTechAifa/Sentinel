@@ -76,7 +76,7 @@ export function columnIndexForDate(date: string | Date, columns: ScheduleColumn[
 }
 
 export function periodTitle(period: Period, anchor: Date): string {
-  const { start, end } = periodRange(period, anchor);
+  const { start } = periodRange(period, anchor);
   if (period === "month") {
     return start.toLocaleString("en-AU", { month: "long", year: "numeric" });
   }
