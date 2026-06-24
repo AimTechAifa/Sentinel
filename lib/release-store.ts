@@ -17,8 +17,6 @@ import {
 import { getAllHistory, getOrgContext, releases } from "./dummy-data";
 import { getConnectorIssues } from "./connectors";
 
-const STORAGE_KEY = "sentinel-release-state";
-
 export interface ReleaseStoreState {
   decisions: Record<string, ReleaseDecisionRecord>;
   extraHistory: Record<string, HistoryEntry[]>;
@@ -57,7 +55,7 @@ const defaultNotifications: AppNotification[] = [
   },
 ];
 
-function emptyStore(): ReleaseStoreState {
+export function emptyReleaseStore(): ReleaseStoreState {
   return {
     decisions: {},
     extraHistory: {},
@@ -67,27 +65,14 @@ function emptyStore(): ReleaseStoreState {
   };
 }
 
+/** @deprecated Live state is loaded from `/api/live-state`. Returns empty store for SSR. */
 export function loadReleaseStore(): ReleaseStoreState {
-  if (typeof window === "undefined") return emptyStore();
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return emptyStore();
-    const parsed = JSON.parse(raw) as ReleaseStoreState;
-    return {
-      decisions: parsed.decisions ?? {},
-      extraHistory: parsed.extraHistory ?? {},
-      notifications: parsed.notifications?.length ? parsed.notifications : [...defaultNotifications],
-      deployments: parsed.deployments ?? {},
-      pausedAgents: parsed.pausedAgents ?? {},
-    };
-  } catch {
-    return emptyStore();
-  }
+  return emptyReleaseStore();
 }
 
-export function saveReleaseStore(state: ReleaseStoreState) {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+/** @deprecated Live state persists in SQLite via API routes. */
+export function saveReleaseStore(_state: ReleaseStoreState) {
+  // no-op — operational state is server-backed
 }
 
 export function getDecision(state: ReleaseStoreState, releaseId: string): ReleaseDecisionRecord | null {
@@ -428,11 +413,11 @@ export type QuickStartSeedId =
   | "deploy-verified-v2141";
 
 export function clearReleaseStore(): ReleaseStoreState {
-  return emptyStore();
+  return emptyReleaseStore();
 }
 
 export function applyQuickStartSeed(seedId: QuickStartSeedId): ReleaseStoreState {
-  const base = emptyStore();
+  const base = emptyReleaseStore();
   const rel2140 = releases.find((r) => r.id === "rel-v2140");
   const rel2141 = releases.find((r) => r.id === "rel-v2141");
 

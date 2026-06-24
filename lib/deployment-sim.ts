@@ -269,3 +269,87 @@ export function autoRollbackDeploymentState(
 export function getDeploymentPhaseLabel(phase: DeploymentPhase): string {
   return phase;
 }
+
+/** Interval used by DeploymentMonitor polling — keeps server/client rollout in sync. */
+export const DEPLOYMENT_TICK_MS = 2500;
+
+/** Elapsed-time deployment state — server-authoritative, no stored rolloutPct. */
+export function computeLiveDeploymentState(
+  release: Release,
+  stored: {
+    phase: DeploymentPhase;
+    startedAt: Date | null;
+    rollbackReason?: string | null;
+    rollbackNarrative?: string | null;
+    rolledBackAt?: Date | null;
+  } | null,
+  now: Date = new Date()
+): DeploymentLiveState {
+  if (!stored) {
+    if (release.status === "Shipped") return createInitialDeploymentState(release, "Verified");
+    return createInitialDeploymentState(release, "Not Started");
+  }
+
+  if (stored.phase === "Rolled Back") {
+    const base = rollbackDeploymentState(
+      {
+        phase: "Rolled Back",
+        rolloutPct: 0,
+        smokeTests: defaultSmokeTests(release),
+        metrics: defaultMetrics(release, 0),
+        startedAt: stored.startedAt?.toISOString(),
+        completedAt: stored.rolledBackAt?.toISOString(),
+        autoRollback: !!stored.rollbackReason,
+        rollbackReason: stored.rollbackReason ?? undefined,
+      },
+      release,
+      { auto: !!stored.rollbackReason, reason: stored.rollbackReason ?? undefined }
+    );
+    return { ...base, rollbackNarrative: stored.rollbackNarrative ?? undefined };
+  }
+
+  if (stored.phase === "Verified") {
+    return createInitialDeploymentState(release, "Verified");
+  }
+
+  if (stored.phase === "Not Started") {
+    return createInitialDeploymentState(release, "Not Started");
+  }
+
+  const startedAt = stored.startedAt ?? now;
+  const tickCount = Math.max(0, Math.floor((now.getTime() - startedAt.getTime()) / DEPLOYMENT_TICK_MS));
+
+  let state: DeploymentLiveState = {
+    ...startDeploymentState(release),
+    startedAt: startedAt.toISOString(),
+  };
+
+  for (let i = 0; i < tickCount; i++) {
+    const prev = state;
+    state = tickDeployment(state, release);
+    if (state.phase === "Rolled Back" || state === prev) break;
+  }
+
+  if (state.autoRollback) {
+    return {
+      ...state,
+      rollbackReason: state.rollbackReason ?? stored.rollbackReason ?? undefined,
+      rollbackNarrative: stored.rollbackNarrative ?? undefined,
+    };
+  }
+
+  return { ...state, rollbackNarrative: stored.rollbackNarrative ?? undefined };
+}
+
+/** Backdate startedAt so elapsed ticks reach a target rollout (for demo seeds). */
+export function startedAtForRollout(release: Release, targetRolloutPct: number, now: Date = new Date()): Date {
+  let state = startDeploymentState(release);
+  let ticks = 0;
+  while (state.rolloutPct < targetRolloutPct && state.phase === "In Progress" && ticks < 200) {
+    const next = tickDeployment(state, release);
+    if (next === state) break;
+    state = next;
+    ticks++;
+  }
+  return new Date(now.getTime() - ticks * DEPLOYMENT_TICK_MS);
+}

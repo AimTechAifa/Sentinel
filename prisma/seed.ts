@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { seedLiveState } from "./seed-live-state";
 
 const prisma = new PrismaClient();
 
@@ -6,6 +7,11 @@ const daysFromNow = (d: number) => new Date(Date.now() + d * 86400000);
 const daysAgo = (d: number) => new Date(Date.now() - d * 86400000);
 
 async function main() {
+  await prisma.releaseHistoryEvent.deleteMany();
+  await prisma.releaseDecisionState.deleteMany();
+  await prisma.deploymentState.deleteMany();
+  await prisma.appNotificationRow.deleteMany();
+  await prisma.agentPauseState.deleteMany();
   await prisma.releaseAuditEvent.deleteMany();
   await prisma.releaseDependency.deleteMany();
   await prisma.releaseApplication.deleteMany();
@@ -166,14 +172,82 @@ async function main() {
     },
   });
 
-  await prisma.releaseDependency.create({
-    data: { releaseId: rel2150.id, dependsOnReleaseId: rel2140.id },
+  const rel2141 = await prisma.release.create({
+    data: {
+      releaseCode: "RD-2026-0141",
+      name: "Mobile App Release",
+      programProject: "Digital CRM",
+      owner: "Nina Okonkwo",
+      status: "Ready",
+      releaseDate: daysFromNow(2),
+      priority: "Low",
+      impact: "Low",
+      departmentId: crm.id,
+      decision: "Go",
+      notes: "Low-risk mobile patch — all gates green.",
+      applications: { create: [{ applicationId: crmApp.id }] },
+    },
+  });
+
+  const rel2138 = await prisma.release.create({
+    data: {
+      releaseCode: "RD-2026-0138",
+      name: "Identity Patch",
+      programProject: "Security Hardening",
+      owner: "Sarah Chen",
+      status: "Scheduled",
+      releaseDate: daysFromNow(5),
+      priority: "Medium",
+      impact: "Medium",
+      departmentId: security.id,
+      applications: { create: [{ applicationId: sap.id }] },
+    },
+  });
+
+  const rel2120 = await prisma.release.create({
+    data: {
+      releaseCode: "RD-2026-0120",
+      name: "Core Platform Patch",
+      programProject: "Core Banking Transformation",
+      owner: "Jordan Lee",
+      status: "Shipped",
+      releaseDate: daysAgo(8),
+      priority: "Medium",
+      impact: "Medium",
+      departmentId: platform.id,
+      decision: "Go",
+      applications: { create: [{ applicationId: sap.id }, { applicationId: oracle.id }] },
+    },
+  });
+
+  const rel2160 = await prisma.release.create({
+    data: {
+      releaseCode: "RD-2026-0160",
+      name: "Payments API Hardening",
+      programProject: "Core Banking Transformation",
+      owner: "Emma Walsh",
+      status: "Planned",
+      releaseDate: daysFromNow(14),
+      priority: "High",
+      impact: "High",
+      departmentId: platform.id,
+      applications: { create: [{ applicationId: sap.id }] },
+    },
+  });
+
+  await prisma.releaseDependency.createMany({
+    data: [
+      { releaseId: rel2150.id, dependsOnReleaseId: rel2140.id },
+      { releaseId: rel2160.id, dependsOnReleaseId: rel2140.id },
+    ],
   });
 
   await prisma.releaseAuditEvent.createMany({
     data: [
       { releaseId: rel2140.id, action: "status_change", actor: "Priya Sharma", detail: "Marked At Risk — SAP TEST booking conflict" },
-      { releaseId: rel2135.id, action: "decision", actor: "Alex Kim", detail: "No-Go — awaiting CAB approval" },
+      { releaseId: rel2135.id, action: "decision", actor: "Alex Kim", detail: "No-Go — build #4468 failing integration tests" },
+      { releaseId: rel2141.id, action: "decision", actor: "Nina Okonkwo", detail: "Go — all gates green for mobile patch" },
+      { releaseId: rel2120.id, action: "status_change", actor: "Jordan Lee", detail: "Shipped to production — smoke tests passed" },
     ],
   });
 
@@ -202,6 +276,36 @@ async function main() {
       fromDate: daysFromNow(14),
       toDate: daysFromNow(28),
       purpose: "FIN SIT 1 — coupled testing",
+      status: "BOOKED",
+    },
+  });
+
+  await prisma.envBooking.create({
+    data: {
+      applicationId: sap.id,
+      environmentId: sapTest.id,
+      bookedBy: "Alex Kim",
+      team: "Platform",
+      departmentName: "Platform",
+      fromDate: daysFromNow(12),
+      toDate: daysFromNow(26),
+      purpose: "Platform regression — overlaps FIN SIT window",
+      releaseId: rel2140.id,
+      status: "BOOKED",
+    },
+  });
+
+  await prisma.envBooking.create({
+    data: {
+      applicationId: crmApp.id,
+      environmentId: crmDev.id,
+      bookedBy: "David Frost",
+      team: "CRM",
+      departmentName: "CRM",
+      fromDate: daysFromNow(5),
+      toDate: daysFromNow(12),
+      purpose: "Search enhancement integration",
+      releaseId: rel2150.id,
       status: "BOOKED",
     },
   });
@@ -246,10 +350,21 @@ async function main() {
         status: "In Progress",
         source: "Jira",
       },
+      {
+        externalId: "JIRA-8860",
+        title: "Canary rollout error rate spike on payments-api",
+        application: "SAP",
+        releaseCode: "RD-2026-0140",
+        priority: "P1",
+        status: "Open",
+        source: "Datadog",
+      },
     ],
   });
 
-  console.log("Release Desk seed complete.");
+  await seedLiveState(prisma);
+
+  console.log("Release Desk seed complete (MVP + AI Command Center demo state).");
 }
 
 main()

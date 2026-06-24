@@ -178,3 +178,53 @@ model P1Issue {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
+
+model ReleaseDecisionState {
+  id         String    @id @default(cuid())
+  releaseId  String    @unique
+  decision   String?
+  rationale  String?
+  decidedAt  DateTime?
+  decidedBy  String?
+  overridden Boolean   @default(false)
+  updatedAt  DateTime  @updatedAt
+}
+
+model DeploymentState {
+  id                String    @id @default(cuid())
+  releaseId         String    @unique
+  phase             String
+  startedAt         DateTime?
+  rollbackNarrative String?
+  rollbackReason    String?
+  rolledBackAt      DateTime?
+  updatedAt         DateTime  @updatedAt
+}
+
+model ReleaseHistoryEvent {
+  id        String   @id @default(cuid())
+  releaseId String
+  timestamp DateTime @default(now())
+  actor     String
+  action    String
+  type      String
+  agent     String?
+
+  @@index([releaseId])
+}
+
+model AppNotificationRow {
+  id        String   @id @default(cuid())
+  timestamp DateTime @default(now())
+  title     String
+  message   String
+  releaseId String?
+  read      Boolean  @default(false)
+  type      String
+}
+
+model AgentPauseState {
+  agentId   String   @id
+  paused    Boolean  @default(false)
+  updatedAt DateTime @updatedAt
+}

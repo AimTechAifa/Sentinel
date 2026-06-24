@@ -275,10 +275,32 @@ flowchart TB
 
 ## Demo vs production data
 
+Release Desk uses **two intentional data layers**. Both are required:
+
+| Layer | Purpose | Source |
+|-------|---------|--------|
+| **Release Desk MVP** | Operational workflow — reference data, releases, booking, mapping, versions | SQLite database (seed via `npm run db:setup`) |
+| **Synthetic demo** | Rich stakeholder demos — command center, Quick Start scenarios, portfolio views | `lib/dummy-data.ts` + `localStorage` |
+
+### Synthetic demo (keep this)
+
+Used for screen recordings and guided walkthroughs:
+
+| Area | File / feature |
+|------|----------------|
+| Quick Start / Templates | `lib/quick-start-templates.ts` → links like `/releases/rel-v2141` |
+| Release command center | Go/No-Go, deployment monitor, CAB, tickets, commits |
+| Executive, Insights, Compare | `lib/dummy-data.ts` |
+| Agents, Knowledge Graph | `lib/dummy-data.ts` |
+| Connectors catalog (59 items) | `lib/dummy-data.ts` |
+| History Log (live decisions) | `localStorage` via release store |
+
+Release detail pages auto-detect the layer: IDs like `rel-v2140` open the **synthetic command center**; database IDs open the **MVP release detail**.
+
 | Area | Source |
 |------|--------|
-| Reference data, releases, booking, mapping, versions, dashboard counts, P1s, connector sync (top 4) | **Database (MVP)** |
-| Executive, Insights, Compare, Agents, Knowledge Graph, full connector catalog | **Demo / static data** |
+| Reference data, releases list/detail (DB IDs), booking, mapping, versions, dashboard counts, P1s, connector sync (top 4) | **Database (MVP)** |
+| Demo release command center (`rel-*` IDs), Executive, Insights, Compare, Agents, Knowledge Graph, full connector catalog | **Synthetic demo** |
 | Authentication | **Demo role picker** (real Microsoft SSO not wired) |
 
 ---

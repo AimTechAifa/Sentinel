@@ -45,6 +45,7 @@ export default function SystemMappingPage() {
   const [risks, setRisks] = useState<Risk[]>([]);
   const [mappingNotes, setMappingNotes] = useState("");
   const [generating, setGenerating] = useState(false);
+  const [generateMessage, setGenerateMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [user, setUser] = useState<SessionUser | null>(null);
   const [apps, setApps] = useState<App[]>([]);
   const [envs, setEnvs] = useState<Env[]>([]);
@@ -82,13 +83,28 @@ export default function SystemMappingPage() {
 
   const generateFromNotes = async () => {
     setGenerating(true);
+    setGenerateMessage(null);
     try {
-      await fetch("/api/system-mapping/generate", {
+      const res = await fetch("/api/system-mapping/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ notes: mappingNotes }),
       });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setGenerateMessage({
+          type: "error",
+          text: data.error ?? "Could not generate mapping — check your notes or try again.",
+        });
+        return;
+      }
+      setGenerateMessage({
+        type: "success",
+        text: data.message ?? `Added ${data.created?.length ?? 0} mapping edge(s).`,
+      });
       loadMapping();
+    } catch {
+      setGenerateMessage({ type: "error", text: "Request failed — please try again." });
     } finally {
       setGenerating(false);
     }
@@ -113,18 +129,29 @@ export default function SystemMappingPage() {
     <div className="space-y-6">
       <TopBar
         title="System Mapping"
-        subtitle="Enter mapping notes, maintain env-to-env links, and compare against booking availability"
+        subtitle="Document which environments depend on each other, then check booking conflicts for your test window"
         highlight
       />
+
+      <AdvancedCard title="What is this?" variant="glass">
+        <p className="text-sm text-gray-600 leading-relaxed">
+          System mapping records <strong>upstream → downstream</strong> links between application environments
+          (e.g. FIN UAT consumes SAP TEST). When you set an analysis period, Release Desk flags{" "}
+          <strong>mapping risks</strong> — cases where a required environment is already booked by another team.
+        </p>
+      </AdvancedCard>
 
       <AdvancedCard title="Mapping notes" subtitle="Describe upstream/downstream setup — Release Desk generates mapping from your notes" icon={Sparkles} variant="ai" beam>
         <textarea
           className={`${taInput} min-h-[100px] resize-y`}
-          placeholder="e.g. FIN Core Dev feeds SAP Integration Test; CRM UAT depends on Oracle Dev refresh..."
+          placeholder="e.g. FIN Dev feeds SAP Test; CRM UAT depends on Oracle Dev..."
           value={mappingNotes}
           onChange={(e) => setMappingNotes(e.target.value)}
           disabled={!canEdit}
         />
+        {!canEdit && (
+          <p className="mt-2 text-xs text-gray-500">Sign in as Editor or Admin to generate or edit mappings.</p>
+        )}
         {canEdit && (
           <button
             type="button"
@@ -134,6 +161,11 @@ export default function SystemMappingPage() {
           >
             {generating ? "Generating…" : "Generate mapping from notes"}
           </button>
+        )}
+        {generateMessage && (
+          <p className={`mt-3 text-sm ${generateMessage.type === "success" ? "text-success-700" : "text-error-600"}`}>
+            {generateMessage.text}
+          </p>
         )}
       </AdvancedCard>
 
@@ -205,6 +237,12 @@ export default function SystemMappingPage() {
 
       <AdvancedCard title="Current system mapping" subtitle="Default setup from reference data and mapping notes">
         <div className="space-y-3">
+          {edges.length === 0 && (
+            <p className="text-sm text-gray-500">
+              No mapping edges yet. Use the notes above, add an edge manually, or run{" "}
+              <code className="text-xs bg-gray-100 px-1 rounded">npm run db:setup</code> to load demo defaults.
+            </p>
+          )}
           {edges.map((e) => (
             <div key={e.id} className="rounded-xl border border-gray-100 p-4 bg-white/70 flex justify-between gap-4">
               <div>

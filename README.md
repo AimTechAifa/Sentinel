@@ -2,7 +2,7 @@
 
 Built by release managers for release management.
 
-Flagship demo prototype for stakeholder screen recordings. Static dummy data with real LLM-powered agent responses. **Live demo state** (Go decisions, deployments, notifications) persists in `localStorage` via the release store.
+Flagship demo prototype for stakeholder screen recordings. Static dummy data with real LLM-powered agent responses. **Live demo state** (Go/No-Go decisions, deployments, notifications, agent pause) persists in **SQLite** via `/api/live-state` — shared across sessions and roles.
 
 ## Setup
 
@@ -31,10 +31,11 @@ Flagship demo prototype for stakeholder screen recordings. Static dummy data wit
 
 ### Release Desk MVP (database-backed)
 
-1. Initialize the SQLite database and seed reference data:
+1. Initialize the SQLite database and seed reference data **plus demo-ready live state**:
    ```bash
    npm run db:setup
    ```
+   This loads departments/apps/environments, **8 MVP releases** (At Risk, Blocked, Ready, Shipped, etc.), env bookings, P1 issues, and **AI Command Center state** (Go/No-Go decisions, mid-canary deploy on v2.14.0, notifications, history).
 
 2. Sign in at `/login` — select **Admin**, **Editor**, or **Read only** (Microsoft SSO demo).
 
@@ -75,7 +76,7 @@ See **[WORKFLOW.md](./WORKFLOW.md)** for step-by-step Release Desk workflow (ref
 1. Open **Quick Start** (`/templates`) and launch a scenario (e.g. auto-rollback, healthy green-path).
 2. Record a **Go** decision on a release — it appears in **History**, **Notifications**, and **AI chat** context.
 3. Use the bell icon for unread alerts; click **Audit trail** on a notification to jump to filtered history.
-4. **Reset demo state** from the Templates page to clear `localStorage` and start fresh.
+4. **Reset demo state** from the Templates page to clear live operational state and start fresh.
 
 ## Environment Desk
 

@@ -19,14 +19,27 @@ interface AgentResponse {
 }
 
 export async function callAgent(req: AgentRequest): Promise<AgentResponse> {
-  const res = await fetch("/api/agent", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(req),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: "Request failed" }));
-    return { error: err.error ?? "AI unavailable" };
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 45_000);
+
+  try {
+    const res = await fetch("/api/agent", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(req),
+      signal: controller.signal,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: "Request failed" }));
+      return { error: err.error ?? "AI unavailable" };
+    }
+    return res.json();
+  } catch (e) {
+    if (e instanceof Error && e.name === "AbortError") {
+      return { error: "AI request timed out — try again" };
+    }
+    return { error: "AI request failed" };
+  } finally {
+    clearTimeout(timeout);
   }
-  return res.json();
 }

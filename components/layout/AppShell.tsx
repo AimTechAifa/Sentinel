@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { Sidebar } from "./Sidebar";
 import { AppHeader } from "./AppHeader";
 import { Backdrop } from "./Backdrop";
@@ -7,6 +8,7 @@ import { ChatProvider } from "@/components/chat/ChatProvider";
 import { ChatPanel } from "@/components/chat/ChatPanel";
 import { SidebarProvider, useSidebar } from "@/context/SidebarContext";
 import { ReleaseStoreProvider } from "@/context/ReleaseStoreContext";
+import { ReleaseFiltersProvider } from "@/context/ReleaseFiltersContext";
 import { cn } from "@/lib/utils";
 
 function ShellInner({ children }: { children: React.ReactNode }) {
@@ -33,7 +35,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <SidebarProvider>
       <ReleaseStoreProvider>
-        <ShellInner>{children}</ShellInner>
+        <Suspense fallback={null}>
+          <ReleaseFiltersProvider>
+            <ShellInner>{children}</ShellInner>
+          </ReleaseFiltersProvider>
+        </Suspense>
       </ReleaseStoreProvider>
     </SidebarProvider>
   );

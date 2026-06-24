@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FileText, Package, Search, Sparkles, Ticket } from "lucide-react";
 import { searchAll } from "@/lib/search";
+import type { SearchResult } from "@/lib/dummy-data";
 
 interface GlobalSearchProps {
   open: boolean;
@@ -19,13 +20,17 @@ const icons = {
 
 export function GlobalSearch({ open, onClose }: GlobalSearchProps) {
   const [query, setQuery] = useState("");
+  const [apiResults, setApiResults] = useState<SearchResult[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
-  const results = searchAll(query);
+
+  const localResults = searchAll(query);
+  const merged = mergeResults(localResults, apiResults);
 
   useEffect(() => {
     if (open) {
       setQuery("");
+      setApiResults([]);
       setTimeout(() => inputRef.current?.focus(), 50);
     }
   }, [open]);
@@ -39,6 +44,20 @@ export function GlobalSearch({ open, onClose }: GlobalSearchProps) {
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
+  useEffect(() => {
+    const q = query.trim();
+    if (q.length < 2) {
+      setApiResults([]);
+      return;
+    }
+    const t = setTimeout(() => {
+      fetch(`/api/search?q=${encodeURIComponent(q)}`)
+        .then((r) => r.json())
+        .then((d) => setApiResults(d.results ?? []));
+    }, 200);
+    return () => clearTimeout(t);
+  }, [query]);
+
   if (!open) return null;
 
   const navigate = (href: string) => {
@@ -48,31 +67,26 @@ export function GlobalSearch({ open, onClose }: GlobalSearchProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-4 pt-[15vh]" onClick={onClose}>
-      <div
-        className="bg-white rounded-xl shadow-2xl w-full max-w-xl overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-3 border-b border-slate-100 px-4 py-3">
           <Search className="w-5 h-5 text-slate-400" />
           <input
             ref={inputRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search releases, templates, agents, connectors..."
+            placeholder="Search DB releases, demo releases, apps, templates..."
             className="flex-1 text-sm outline-none placeholder:text-slate-400"
           />
-          <kbd className="hidden sm:inline text-xs text-slate-400 border border-slate-200 rounded px-1.5 py-0.5">
-            ESC
-          </kbd>
+          <kbd className="hidden sm:inline text-xs text-slate-400 border border-slate-200 rounded px-1.5 py-0.5">ESC</kbd>
         </div>
 
         <div className="max-h-80 overflow-y-auto">
           {query.trim() === "" ? (
-            <p className="p-4 text-sm text-slate-400">Try v2.14.0, auto-rollback, Checkmarx, Risk Agent...</p>
-          ) : results.length === 0 ? (
+            <p className="p-4 text-sm text-slate-400">Search across database and demo data — try RD-2026, v2.14.0, SAP, booking...</p>
+          ) : merged.length === 0 ? (
             <p className="p-4 text-sm text-slate-500">No results for &ldquo;{query}&rdquo;</p>
           ) : (
-            results.map((r) => {
+            merged.map((r) => {
               const Icon = r.id.startsWith("tpl-") ? icons.template : icons[r.type];
               return (
                 <button
@@ -94,4 +108,14 @@ export function GlobalSearch({ open, onClose }: GlobalSearchProps) {
       </div>
     </div>
   );
+}
+
+function mergeResults(a: SearchResult[], b: SearchResult[]): SearchResult[] {
+  const seen = new Set<string>();
+  return [...a, ...b].filter((r) => {
+    const key = `${r.href}|${r.label}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }).slice(0, 14);
 }

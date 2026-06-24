@@ -1,16 +1,12 @@
 import { NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth/api";
 import { completeChat } from "@/lib/llm";
+import {
+  parseNotesToMappingEdges,
+  resolveMappingEdge,
+  type SuggestedMappingEdge,
+} from "@/lib/mapping-from-notes";
 import { prisma } from "@/lib/prisma";
-
-type SuggestedEdge = {
-  sourceApp: string;
-  sourceEnv: string;
-  targetApp: string;
-  targetEnv: string;
-  direction?: string;
-  notes?: string;
-};
 
 export async function POST(req: Request) {
   const { error } = await requireRole("editor");
@@ -29,45 +25,67 @@ export async function POST(req: Request) {
     appId: a.id,
   }));
 
-  let suggestions: SuggestedEdge[] = [];
+  let suggestions: SuggestedMappingEdge[] = parseNotesToMappingEdges(notes, apps);
+  let usedAi = false;
 
-  try {
-    const { text: raw } = await completeChat({
-      system: "You are a release desk system mapping assistant. Output ONLY a valid JSON array, no markdown.",
-      messages: [
-        {
-          role: "user",
-          content: `Given user notes, output a JSON array of mapping edges.
+  const hasLlm = !!(process.env.OPENAI_API_KEY || process.env.ANTHROPIC_API_KEY);
+  if (!suggestions.length && hasLlm) {
+    try {
+      const { text: raw } = await completeChat({
+        system: "You are a release desk system mapping assistant. Output ONLY a valid JSON array, no markdown.",
+        messages: [
+          {
+            role: "user",
+            content: `Given user notes, output a JSON array of mapping edges.
 Each edge: { "sourceApp", "sourceEnv", "targetApp", "targetEnv", "direction": "downstream"|"upstream", "notes" }
 Use only application and environment names from this catalog:
 ${JSON.stringify(catalog, null, 2)}
 
 User notes:
 ${notes}`,
-        },
-      ],
-    });
-    const parsed = JSON.parse(raw.replace(/```json\n?|\n?```/g, "").trim()) as SuggestedEdge[];
-    if (Array.isArray(parsed)) suggestions = parsed;
-  } catch {
-    suggestions = heuristicFromNotes(notes, apps);
+          },
+        ],
+        timeoutMs: 12_000,
+      });
+      const parsed = JSON.parse(raw.replace(/```json\n?|\n?```/g, "").trim()) as SuggestedMappingEdge[];
+      if (Array.isArray(parsed) && parsed.length) {
+        suggestions = parsed;
+        usedAi = true;
+      }
+    } catch {
+      // keep empty suggestions
+    }
   }
 
   const created = [];
+  const skipped: string[] = [];
+
   for (const s of suggestions) {
-    const sourceApp = apps.find((a) => a.name.toLowerCase() === s.sourceApp.toLowerCase());
-    const targetApp = apps.find((a) => a.name.toLowerCase() === s.targetApp.toLowerCase());
-    if (!sourceApp || !targetApp) continue;
-    const sourceEnv = sourceApp.environments.find((e) => e.name.toLowerCase().includes(s.sourceEnv.toLowerCase()) || e.type.toLowerCase() === s.sourceEnv.toLowerCase());
-    const targetEnv = targetApp.environments.find((e) => e.name.toLowerCase().includes(s.targetEnv.toLowerCase()) || e.type.toLowerCase() === s.targetEnv.toLowerCase());
-    if (!sourceEnv || !targetEnv) continue;
+    const resolved = resolveMappingEdge(s, apps);
+    if (!resolved) {
+      skipped.push(`${s.sourceApp}/${s.sourceEnv} → ${s.targetApp}/${s.targetEnv}`);
+      continue;
+    }
+
+    const duplicate = await prisma.systemMappingEdge.findFirst({
+      where: {
+        sourceAppId: resolved.sourceAppId,
+        sourceEnvId: resolved.sourceEnvId,
+        targetAppId: resolved.targetAppId,
+        targetEnvId: resolved.targetEnvId,
+      },
+    });
+    if (duplicate) {
+      skipped.push(`${s.sourceApp}/${s.sourceEnv} → ${s.targetApp}/${s.targetEnv} (already exists)`);
+      continue;
+    }
 
     const row = await prisma.systemMappingEdge.create({
       data: {
-        sourceAppId: sourceApp.id,
-        sourceEnvId: sourceEnv.id,
-        targetAppId: targetApp.id,
-        targetEnvId: targetEnv.id,
+        sourceAppId: resolved.sourceAppId,
+        sourceEnvId: resolved.sourceEnvId,
+        targetAppId: resolved.targetAppId,
+        targetEnvId: resolved.targetEnvId,
         direction: s.direction ?? "downstream",
         notes: s.notes ?? notes.slice(0, 240),
         isDefault: false,
@@ -77,25 +95,27 @@ ${notes}`,
     created.push(row);
   }
 
-  return NextResponse.json({ created, suggestions });
-}
+  if (!created.length && !suggestions.length) {
+    return NextResponse.json(
+      {
+        error:
+          "Could not match applications in your notes. Use names from reference data (SAP, FIN, CRM, Oracle) and env types like Dev, Test, or UAT.",
+        created: [],
+        suggestions: [],
+        skipped,
+      },
+      { status: 422 }
+    );
+  }
 
-function heuristicFromNotes(
-  notes: string,
-  apps: { id: string; name: string; environments: { id: string; name: string; type: string }[] }[]
-) {
-  const lower = notes.toLowerCase();
-  const mentioned = apps.filter((a) => lower.includes(a.name.toLowerCase()));
-  if (mentioned.length < 2) return [];
-  const [sourceApp, targetApp] = mentioned;
-  return [
-    {
-      sourceApp: sourceApp.name,
-      sourceEnv: sourceApp.environments[0]?.name ?? "Dev",
-      targetApp: targetApp.name,
-      targetEnv: targetApp.environments[0]?.name ?? "Dev",
-      direction: "downstream",
-      notes,
-    },
-  ];
+  return NextResponse.json({
+    created,
+    suggestions,
+    skipped,
+    usedAi,
+    message:
+      created.length > 0
+        ? `Added ${created.length} mapping edge${created.length === 1 ? "" : "s"}${usedAi ? " (AI)" : " (from notes)"}.`
+        : "No new edges added — matching mappings may already exist.",
+  });
 }

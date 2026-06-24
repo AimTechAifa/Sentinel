@@ -12,7 +12,7 @@ import { VersionMatrix } from "@/components/environments/VersionMatrix";
 import { AppEnvConfigTable } from "@/components/environments/AppEnvConfigTable";
 import { AppConfigTable } from "@/components/environments/AppConfigTable";
 import { callAgent } from "@/lib/agent-client";
-import { useOrgContext } from "@/lib/use-org-context";
+import { buildEnvironmentDeskSummaryContext } from "@/lib/summary-context";
 import type {
   ApplicationConfig,
   ApplicationEnvConfig,
@@ -37,10 +37,10 @@ type DeskPayload = {
 };
 
 export default function EnvironmentsPage() {
-  const orgContext = useOrgContext();
   const [desk, setDesk] = useState<DeskPayload | null>(null);
   const [user, setUser] = useState<SessionUser | null>(null);
   const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const [aiSummaryError, setAiSummaryError] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(true);
   const [selectedTimelineId, setSelectedTimelineId] = useState<string | null>(null);
   const [selectedApp, setSelectedApp] = useState<string | null>(null);
@@ -57,14 +57,26 @@ export default function EnvironmentsPage() {
 
   useEffect(() => {
     if (!desk) return;
+
+    let cancelled = false;
+    setAiLoading(true);
+    setAiSummary(null);
+    setAiSummaryError(null);
+
     callAgent({
       agentRole: "Summary Agent",
-      context: { ...orgContext, environmentDesk: desk },
+      context: buildEnvironmentDeskSummaryContext(desk),
     }).then((res) => {
-      setAiSummary(res.text ?? null);
+      if (cancelled) return;
+      if (res.text) setAiSummary(res.text);
+      else setAiSummaryError(res.error ?? "AI summary unavailable");
       setAiLoading(false);
     });
-  }, [orgContext, desk]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [desk]);
 
   const stats: EnvironmentDeskStats = useMemo(
     () =>
@@ -170,7 +182,7 @@ export default function EnvironmentsPage() {
       <EnvironmentDeskMetrics stats={stats} />
       <EnvironmentDeskAlerts alerts={desk.alerts} />
 
-      <AIPanel title="Environment Desk Briefing" agent="Summary Agent" loading={aiLoading}>
+      <AIPanel title="Environment Desk Briefing" agent="Summary Agent" loading={aiLoading} error={aiSummaryError}>
         {aiSummary && <p>{aiSummary}</p>}
       </AIPanel>
 

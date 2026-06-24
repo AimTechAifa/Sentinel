@@ -6,6 +6,8 @@ import "reactflow/dist/style.css";
 import { ProgressLink } from "@/components/layout/NavigationProgress";
 import { TopBar } from "@/components/layout/TopBar";
 import { AdvancedCard } from "@/components/ui/advanced-card";
+import { isSyntheticReleaseId } from "@/components/releases/SyntheticReleaseDetail";
+import { SyntheticDependenciesPage } from "@/components/releases/SyntheticDependenciesPage";
 import { ArrowLeft, Network } from "lucide-react";
 
 type ReleaseDetail = {
@@ -25,18 +27,17 @@ type MappingEdge = {
   notes: string | null;
 };
 
-export default function DependenciesPage({ params }: { params: { id: string } }) {
+function DbDependenciesPage({ id }: { id: string }) {
   const [release, setRelease] = useState<ReleaseDetail | null>(null);
   const [edges, setEdges] = useState<MappingEdge[]>([]);
 
   useEffect(() => {
-    fetch(`/api/releases/${params.id}`).then((r) => r.json()).then(setRelease);
+    fetch(`/api/releases/${id}`).then((r) => r.json()).then(setRelease);
     fetch("/api/system-mapping").then((r) => r.json()).then((d) => setEdges(d.edges ?? []));
-  }, [params.id]);
+  }, [id]);
 
   const { nodes, flowEdges } = useMemo(() => {
-    if (!release) return { nodes: [], flowEdges: [] };
-
+    if (!release) return { nodes: [], flowEdges: [] as Edge[] };
     const ns: Node[] = [];
     const es: Edge[] = [];
     let y = 0;
@@ -49,26 +50,26 @@ export default function DependenciesPage({ params }: { params: { id: string } })
     });
 
     release.applications.forEach((a, i) => {
-      const id = `app-${a.application.id}`;
+      const nid = `app-${a.application.id}`;
       y = 120 + i * 90;
       ns.push({
-        id,
+        id: nid,
         position: { x: 80, y },
         data: { label: a.application.name },
         style: { background: "#f0fdf4", border: "1px solid #22c55e", borderRadius: 10, padding: 8, fontSize: 11 },
       });
-      es.push({ id: `e-${id}`, source: release.id, target: id, markerEnd: { type: MarkerType.ArrowClosed }, animated: true });
+      es.push({ id: `e-${nid}`, source: release.id, target: nid, markerEnd: { type: MarkerType.ArrowClosed }, animated: true });
     });
 
     release.dependsOn.forEach((d, i) => {
-      const id = `dep-${d.dependsOnRelease.id}`;
+      const nid = `dep-${d.dependsOnRelease.id}`;
       ns.push({
-        id,
+        id: nid,
         position: { x: 480, y: 80 + i * 80 },
         data: { label: `${d.dependsOnRelease.releaseCode}\n${d.dependsOnRelease.name}` },
         style: { background: "#fff7ed", border: "1px solid #f97316", borderRadius: 10, padding: 8, fontSize: 11 },
       });
-      es.push({ id: `e-${id}`, source: id, target: release.id, markerEnd: { type: MarkerType.ArrowClosed }, style: { stroke: "#f97316" } });
+      es.push({ id: `e-${nid}`, source: nid, target: release.id, markerEnd: { type: MarkerType.ArrowClosed }, style: { stroke: "#f97316" } });
     });
 
     const appNames = new Set(release.applications.map((a) => a.application.name));
@@ -111,32 +112,23 @@ export default function DependenciesPage({ params }: { params: { id: string } })
 
   return (
     <div className="space-y-6">
-      <ProgressLink href={`/releases/${params.id}`} className="inline-flex items-center gap-1 text-sm text-brand-600">
+      <ProgressLink href={`/releases/${id}`} className="inline-flex items-center gap-1 text-sm text-brand-600">
         <ArrowLeft className="h-4 w-4" /> Back to release
       </ProgressLink>
-      <TopBar title="Dependency map" subtitle={`${release.releaseCode} — applications, release dependencies, and system mapping`} highlight />
-
+      <TopBar title="Dependency map" subtitle={`${release.releaseCode} — database-backed apps, release deps, and system mapping`} highlight />
       <AdvancedCard title="Release dependency graph" icon={Network} variant="glass" noPadding innerClassName="h-[520px]">
         <ReactFlow nodes={nodes} edges={flowEdges} fitView>
           <Background />
           <Controls />
         </ReactFlow>
       </AdvancedCard>
-
-      {edges.length > 0 && (
-        <AdvancedCard title="Related system mapping">
-          <ul className="text-sm space-y-2">
-            {edges
-              .filter((e) => release.applications.some((a) => a.application.name === e.sourceApp.name || a.application.name === e.targetApp.name))
-              .map((e) => (
-                <li key={e.id} className="text-gray-700">
-                  {e.sourceApp.name}/{e.sourceEnv.name} → {e.targetApp.name}/{e.targetEnv.name}
-                  {e.notes && <span className="text-gray-500 text-xs block">{e.notes}</span>}
-                </li>
-              ))}
-          </ul>
-        </AdvancedCard>
-      )}
     </div>
   );
+}
+
+export default function DependenciesPage({ params }: { params: { id: string } }) {
+  if (isSyntheticReleaseId(params.id)) {
+    return <SyntheticDependenciesPage id={params.id} />;
+  }
+  return <DbDependenciesPage id={params.id} />;
 }

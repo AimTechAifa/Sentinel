@@ -1,12 +1,17 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { EnvironmentDeskDashboardCard } from "@/components/environments/EnvironmentDeskDashboardCard";
+import { UnifiedPortfolioPanel } from "@/components/dashboard/UnifiedPortfolioPanel";
 import { TopBar } from "@/components/layout/TopBar";
+import { ReleaseFiltersBar } from "@/components/releases/ReleaseFiltersBar";
 import { AIPanel } from "@/components/ui/ai-panel";
 import { MetricCard } from "@/components/ui/metric-card";
 import { DataTable, tableCell, tableHeadRow, tableRow } from "@/components/ui/data-table";
 import { callAgent } from "@/lib/agent-client";
-import { useOrgContext } from "@/lib/use-org-context";
+import { buildDashboardSummaryContext } from "@/lib/summary-context";
+import { filterLabel } from "@/lib/release-filters";
+import { useReleaseFilters } from "@/context/ReleaseFiltersContext";
 import { formatDateTime, cn } from "@/lib/utils";
 import { AlertTriangle, Calendar, Clock, Flag, Package } from "lucide-react";
 import { PRODUCT_TAGLINE } from "@/lib/brand";
@@ -19,29 +24,139 @@ type DashboardData = {
   p1Issues: { externalId: string; title: string; application: string | null; releaseCode: string | null; status: string }[];
 };
 
+type OverviewData = Parameters<typeof UnifiedPortfolioPanel>[0]["data"];
+
+function isDashboardData(v: unknown): v is DashboardData {
+  return !!v && typeof v === "object" && "counts" in v && "p1Issues" in v;
+}
+
+function buildFallbackSummary(
+  dashboard: DashboardData,
+  scopeLabel: string | null
+): string {
+  const { counts, p1Issues } = dashboard;
+  const scope = scopeLabel ?? "all departments, applications, and environments";
+  const parts = [
+    `${counts.planned} planned`,
+    `${counts.inProgress} in progress`,
+    counts.blocked ? `${counts.blocked} blocked` : null,
+    counts.atRisk ? `${counts.atRisk} at risk` : null,
+  ].filter(Boolean);
+  const p1Line =
+    p1Issues.length > 0
+      ? ` ${p1Issues.length} open P1 issue${p1Issues.length === 1 ? "" : "s"} require release manager attention.`
+      : " No open P1 issues in scope.";
+  return `Portfolio summary for ${scope}: ${parts.join(", ")}.${p1Line}`;
+}
+
 export default function DashboardPage() {
-  const orgContext = useOrgContext();
   const [period, setPeriod] = useState<Period>("month");
   const [data, setData] = useState<DashboardData | null>(null);
+  const [overview, setOverview] = useState<OverviewData | null>(null);
   const [summary, setSummary] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
+  const {
+    filters,
+    filterQuery,
+    hasRefinement,
+    departments,
+    applications,
+    environments,
+  } = useReleaseFilters();
+
+  const scopeLabel = useMemo(
+    () => filterLabel(filters, departments, applications, environments),
+    [filters, departments, applications, environments]
+  );
 
   useEffect(() => {
-    fetch(`/api/dashboard?period=${period}`)
-      .then((r) => r.json())
-      .then(setData);
-  }, [period]);
+    setFetchError(null);
+    setData(null);
+    setOverview(null);
+    setSummary(null);
+    setSummaryError(null);
+    setSummaryLoading(false);
+
+    const dashUrl = `/api/dashboard?period=${period}${filterQuery}`;
+    const overviewUrl = `/api/unified/overview?period=${period}${filterQuery}`;
+
+    let cancelled = false;
+
+    Promise.all([
+      fetch(dashUrl).then(async (r) => (r.ok ? r.json() : Promise.reject(new Error("Dashboard load failed")))),
+      fetch(overviewUrl).then(async (r) => (r.ok ? r.json() : Promise.reject(new Error("Overview load failed")))),
+    ])
+      .then(([dash, ov]) => {
+        if (cancelled) return;
+        if (!isDashboardData(dash)) {
+          setFetchError("Dashboard data was invalid");
+          return;
+        }
+        setData(dash);
+        setOverview(ov);
+      })
+      .catch((e) => {
+        if (!cancelled) {
+          setFetchError(e instanceof Error ? e.message : "Failed to load dashboard data");
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [period, filterQuery]);
 
   useEffect(() => {
-    if (!data) return;
+    if (!data || !overview) return;
+
+    let cancelled = false;
+    setSummaryLoading(true);
+    setSummary(null);
+    setSummaryError(null);
+
+    const fallback = buildFallbackSummary(data, scopeLabel);
+
     callAgent({
       agentRole: "Summary Agent",
-      context: { ...orgContext, dashboard: data, period },
-    }).then((res) => {
-      setSummary(res.text ?? null);
-      setLoading(false);
-    });
-  }, [orgContext, data, period]);
+      context: buildDashboardSummaryContext({
+        period,
+        dashboard: data,
+        overview,
+        filterScope: scopeLabel,
+      }),
+    })
+      .then((res) => {
+        if (cancelled) return;
+        const text = res.text?.trim();
+        if (text) {
+          setSummary(text);
+          return;
+        }
+        const err = res.error ?? "";
+        if (/api key|llm|unavailable|timed out/i.test(err)) {
+          setSummary(fallback);
+          setSummaryError(null);
+        } else {
+          setSummaryError(err || "AI summary unavailable");
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setSummary(fallback);
+          setSummaryError(null);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setSummaryLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [data, overview, period, scopeLabel]);
 
   const metrics = useMemo(
     () =>
@@ -58,7 +173,14 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <TopBar title="Dashboard" subtitle="Portfolio summary" positioning={PRODUCT_TAGLINE} highlight />
+      <TopBar
+        title="Dashboard"
+        subtitle={hasRefinement ? `Portfolio summary · ${scopeLabel}` : "Portfolio summary"}
+        positioning={PRODUCT_TAGLINE}
+        highlight
+      />
+
+      <ReleaseFiltersBar />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex gap-1 rounded-xl border border-gray-200 bg-white/80 p-1">
@@ -88,7 +210,12 @@ export default function DashboardPage() {
         )}
       </div>
 
-      <AIPanel title="AI Daily Summary" agent="Summary Agent" loading={loading}>
+      <AIPanel
+        title="AI Daily Summary"
+        agent="Summary Agent"
+        loading={summaryLoading && !fetchError}
+        error={fetchError ?? summaryError}
+      >
         {summary && <p>{summary}</p>}
       </AIPanel>
 
@@ -97,6 +224,10 @@ export default function DashboardPage() {
           <MetricCard key={label} label={label} value={value} icon={icon} delay={i * 0.05} />
         ))}
       </div>
+
+      {overview && <UnifiedPortfolioPanel data={overview} />}
+
+      <EnvironmentDeskDashboardCard />
 
       <DataTable title="P1 Issues" subtitle="May require hotfix — release manager attention" icon={AlertTriangle}>
         <table className="w-full text-sm">

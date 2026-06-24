@@ -10,30 +10,20 @@ import {
   type ReactNode,
 } from "react";
 import {
+  buildLiveOrgContext,
+  emptyReleaseStore,
   getDecision,
   getDeployment,
-  getMergedHistory,
-  initiateRollback,
-  loadReleaseStore,
-  markAllNotificationsRead,
-  markNotificationRead,
-  recordDecision,
-  recordReminderSent,
-  setRollbackNarrative,
-  saveReleaseStore,
-  startDeployment,
-  tickDeploymentLive,
-  unreadCount,
-  setAgentPaused,
-  isAgentPaused,
   getGlobalHistory,
-  buildLiveOrgContext,
-  applyQuickStartSeed,
-  clearReleaseStore,
+  getMergedHistory,
+  isAgentPaused,
+  unreadCount,
   type QuickStartSeedId,
   type ReleaseStoreState,
 } from "@/lib/release-store";
 import type { DeploymentLiveState, HistoryEntry, Release, ReleaseDecision } from "@/lib/types";
+
+const POLL_MS = 6000;
 
 interface ReleaseStoreContextValue {
   state: ReleaseStoreState;
@@ -64,22 +54,40 @@ interface ReleaseStoreContextValue {
 
 const ReleaseStoreContext = createContext<ReleaseStoreContextValue | null>(null);
 
+async function postJson(url: string, body?: object) {
+  const res = await fetch(url, {
+    method: "POST",
+    headers: body ? { "Content-Type": "application/json" } : undefined,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (!res.ok) throw new Error(`Request failed: ${res.status}`);
+}
+
 export function ReleaseStoreProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<ReleaseStoreState>(() => loadReleaseStore());
-  const [hydrated, setHydrated] = useState(false);
+  const [state, setState] = useState<ReleaseStoreState>(() => emptyReleaseStore());
 
-  useEffect(() => {
-    setState(loadReleaseStore());
-    setHydrated(true);
+  const refresh = useCallback(async () => {
+    try {
+      const res = await fetch("/api/live-state");
+      if (res.ok) setState(await res.json());
+    } catch {
+      // keep prior state on network errors
+    }
   }, []);
 
   useEffect(() => {
-    if (hydrated) saveReleaseStore(state);
-  }, [state, hydrated]);
+    refresh();
+    const id = setInterval(refresh, POLL_MS);
+    return () => clearInterval(id);
+  }, [refresh]);
 
-  const persist = useCallback((updater: (prev: ReleaseStoreState) => ReleaseStoreState) => {
-    setState((prev) => updater(prev));
-  }, []);
+  const afterMutation = useCallback(
+    async (fn: () => Promise<void>) => {
+      await fn();
+      await refresh();
+    },
+    [refresh]
+  );
 
   const value = useMemo<ReleaseStoreContextValue>(
     () => ({
@@ -88,34 +96,59 @@ export function ReleaseStoreProvider({ children }: { children: ReactNode }) {
       getReleaseHistory: (releaseId, base) => getMergedHistory(state, releaseId, base),
       getDeploymentState: (release) => getDeployment(state, release.id, release),
       setReleaseDecision: (releaseId, version, decision, opts) => {
-        persist((prev) => recordDecision(prev, releaseId, version, decision, opts ?? {}));
+        void afterMutation(() =>
+          postJson(`/api/releases-ai/${releaseId}/decision`, {
+            decision,
+            version,
+            rationale: opts?.rationale,
+            overridden: opts?.overridden,
+          })
+        );
       },
       sendApprovalReminder: (releaseId, version, gate, channel) => {
-        persist((prev) => recordReminderSent(prev, releaseId, version, gate, channel));
+        void afterMutation(() =>
+          postJson(`/api/releases-ai/${releaseId}/reminder`, { version, gate, channel })
+        );
       },
       startDeploy: (release) => {
-        persist((prev) => startDeployment(prev, release.id, release, release.version));
+        void afterMutation(() => postJson(`/api/releases-ai/${release.id}/deployment/start`));
       },
-      tickDeploy: (release) => {
-        persist((prev) => tickDeploymentLive(prev, release.id, release));
+      tickDeploy: () => {
+        void refresh();
       },
       rollbackDeploy: (release) => {
-        persist((prev) => initiateRollback(prev, release.id, release, release.version));
+        void afterMutation(() => postJson(`/api/releases-ai/${release.id}/deployment/rollback`));
       },
       setRollbackNarrative: (releaseId, narrative) => {
-        persist((prev) => setRollbackNarrative(prev, releaseId, narrative));
+        void afterMutation(() =>
+          postJson(`/api/releases-ai/${releaseId}/deployment/narrative`, { narrative })
+        );
       },
-      dismissNotification: (id) => persist((prev) => markNotificationRead(prev, id)),
-      dismissAllNotifications: () => persist((prev) => markAllNotificationsRead(prev)),
+      dismissNotification: (id) => {
+        void afterMutation(() => postJson(`/api/notifications/${id}/read`));
+      },
+      dismissAllNotifications: () => {
+        void afterMutation(() => postJson("/api/notifications/read-all"));
+      },
       unreadNotifications: unreadCount(state),
-      applySeed: (seedId) => persist(() => applyQuickStartSeed(seedId)),
-      resetDemoState: () => persist(() => clearReleaseStore()),
-      setAgentPaused: (agentId, paused) => persist((prev) => setAgentPaused(prev, agentId, paused)),
+      applySeed: (seedId) => {
+        void afterMutation(() =>
+          seedId === "reset"
+            ? postJson("/api/quick-start/reset")
+            : postJson(`/api/quick-start/${seedId}`)
+        );
+      },
+      resetDemoState: () => {
+        void afterMutation(() => postJson("/api/quick-start/reset"));
+      },
+      setAgentPaused: (agentId, paused) => {
+        void afterMutation(() => postJson(`/api/agents/${agentId}/pause`, { paused }));
+      },
       isAgentPaused: (agentId) => isAgentPaused(state, agentId),
       getGlobalHistory: () => getGlobalHistory(state),
       liveOrgContext: buildLiveOrgContext(state),
     }),
-    [state, persist]
+    [state, afterMutation, refresh]
   );
 
   return <ReleaseStoreContext.Provider value={value}>{children}</ReleaseStoreContext.Provider>;
