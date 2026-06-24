@@ -61,6 +61,10 @@ export function hasActiveFilters(filters: ReleaseListFilters): boolean {
 
 export type DbReleaseFilterRow = {
   id: string;
+  releaseCode: string;
+  name: string;
+  releaseDate: string;
+  status: string;
   departmentId: string;
   applications: { application: { id: string; name: string } }[];
 };

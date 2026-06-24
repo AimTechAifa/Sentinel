@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Calendar, CheckCircle2, XCircle } from "lucide-react";
 import { TopBar } from "@/components/layout/TopBar";
 import { ReleaseFiltersBar } from "@/components/releases/ReleaseFiltersBar";
+import { BookingAssistantPanel } from "@/components/booking/BookingAssistantPanel";
 import { AdvancedCard } from "@/components/ui/advanced-card";
 import { useReleaseFilters } from "@/context/ReleaseFiltersContext";
 import { filterLabel } from "@/lib/release-filters";
@@ -34,6 +36,7 @@ type BookingRow = {
 };
 
 export default function BookingPage() {
+  const searchParams = useSearchParams();
   const [existing, setExisting] = useState<BookingRow[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
   const [fromDate, setFromDate] = useState("");
@@ -42,6 +45,7 @@ export default function BookingPage() {
   const [result, setResult] = useState<{ available: boolean; conflicts: Conflict[] } | null>(null);
   const [user, setUser] = useState<SessionUser | null>(null);
   const [booked, setBooked] = useState(false);
+  const [urlApplied, setUrlApplied] = useState(false);
 
   const {
     filters,
@@ -49,6 +53,7 @@ export default function BookingPage() {
     departments,
     applications,
     environments,
+    dbRows,
     refreshLookups,
   } = useReleaseFilters();
 
@@ -82,6 +87,22 @@ export default function BookingPage() {
       .then((d) => setUser(d.user));
     loadBookings();
   }, []);
+
+  useEffect(() => {
+    if (urlApplied || !applications.length) return;
+    const from = searchParams.get("from");
+    const to = searchParams.get("to");
+    const apps = searchParams.get("apps");
+    const urlPurpose = searchParams.get("purpose");
+    if (from) setFromDate(from);
+    if (to) setToDate(to);
+    if (urlPurpose) setPurpose(decodeURIComponent(urlPurpose));
+    if (apps) {
+      const ids = apps.split(",").filter((id) => applications.some((a) => a.id === id));
+      if (ids.length) setSelected(ids);
+    }
+    setUrlApplied(true);
+  }, [searchParams, applications, urlApplied]);
 
   useEffect(() => {
     if (filters.applicationId) {
@@ -127,6 +148,18 @@ export default function BookingPage() {
 
   const canBook = user?.role === "editor" || user?.role === "admin";
 
+  const releaseRows = useMemo(
+    () =>
+      dbRows.map((r) => ({
+        releaseCode: r.releaseCode,
+        name: r.name,
+        releaseDate: r.releaseDate,
+        status: r.status,
+        applications: r.applications,
+      })),
+    [dbRows]
+  );
+
   return (
     <div className="space-y-6">
       <TopBar
@@ -140,6 +173,20 @@ export default function BookingPage() {
       />
 
       <ReleaseFiltersBar />
+
+      <BookingAssistantPanel
+        bookings={existing}
+        releases={releaseRows}
+        selectedAppIds={selected}
+        fromDate={fromDate}
+        toDate={toDate}
+        onPickWindow={(from, to) => {
+          setFromDate(from);
+          setToDate(to);
+          setResult(null);
+          setBooked(false);
+        }}
+      />
 
       <AdvancedCard title="Book environments" icon={Calendar} variant="glass">
         <div className="space-y-4">

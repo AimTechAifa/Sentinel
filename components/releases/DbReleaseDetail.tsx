@@ -5,6 +5,7 @@ import { ProgressLink } from "@/components/layout/NavigationProgress";
 import { TopBar } from "@/components/layout/TopBar";
 import { StatusBadge } from "@/components/badges/StatusBadge";
 import { DbReleaseCommandCenter } from "@/components/releases/DbReleaseCommandCenter";
+import { StakeholderCommsPanel } from "@/components/releases/StakeholderCommsPanel";
 import { ReleaseFormModal } from "@/components/releases/ReleaseFormModal";
 import { AdvancedCard } from "@/components/ui/advanced-card";
 import { taBtnPrimary, taBtnSecondary, taInput } from "@/lib/styles";
@@ -134,6 +135,8 @@ export function DbReleaseDetail({ id }: { id: string }) {
       </div>
 
       <DbReleaseCommandCenter releaseId={id} />
+
+      <StakeholderCommsPanel releaseId={id} releaseCode={release.releaseCode} />
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">

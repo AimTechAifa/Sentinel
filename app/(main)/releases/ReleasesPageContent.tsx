@@ -8,7 +8,8 @@ import { TopBar } from "@/components/layout/TopBar";
 import { StatusBadge } from "@/components/badges/StatusBadge";
 import { SourceBadgeInline } from "@/components/dashboard/UnifiedPortfolioPanel";
 import { NeedsAttentionPanel } from "@/components/dashboard/NeedsAttentionPanel";
-import { ReleaseFormModal } from "@/components/releases/ReleaseFormModal";
+import { ReleaseFormModal, type ReleaseFormData } from "@/components/releases/ReleaseFormModal";
+import { ReleasePlaybookBar } from "@/components/releases/ReleasePlaybookBar";
 import { ReleaseFiltersBar } from "@/components/releases/ReleaseFiltersBar";
 import { ReadinessBadge } from "@/components/releases/ReadinessBadge";
 import { DataTable, tableCell, tableHeadRow, tableRow } from "@/components/ui/data-table";
@@ -28,7 +29,9 @@ import {
 } from "@/lib/unified-releases";
 import { formatDate, cn } from "@/lib/utils";
 import { readinessKey } from "@/lib/release-readiness-batch";
-import { taBtnPrimary } from "@/lib/styles";
+import { taBtnPrimary, taBtnSecondary, taInput } from "@/lib/styles";
+import { cloneReleaseForm } from "@/lib/release-playbooks";
+import { resolveSessionName } from "@/lib/user-match";
 import type { SessionUser } from "@/lib/auth/roles";
 
 type ViewFilter = "all" | "database" | "demo";
@@ -74,6 +77,9 @@ export default function ReleasesPageContent() {
   const [user, setUser] = useState<SessionUser | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [editRow, setEditRow] = useState<ReleaseRow | null>(null);
+  const [formPrefill, setFormPrefill] = useState<Partial<ReleaseFormData> | null>(null);
+  const [showClonePicker, setShowClonePicker] = useState(false);
+  const [cloneSourceId, setCloneSourceId] = useState("");
   const [attentionItems, setAttentionItems] = useState<NeedsAttentionItem[]>([]);
   const [readinessByKey, setReadinessByKey] = useState<
     Record<string, { readiness: number; blockerCount: number }>
@@ -160,6 +166,43 @@ export default function ReleasesPageContent() {
 
   const dbRowById = (id: string) => (dbRows as ReleaseRow[]).find((r) => r.id === id);
 
+  const releaseCodes = useMemo(
+    () => (dbRows as ReleaseRow[]).map((r) => r.releaseCode),
+    [dbRows]
+  );
+
+  const openNewWithPrefill = (prefill: Partial<ReleaseFormData>) => {
+    setEditRow(null);
+    setFormPrefill(prefill);
+    setModalOpen(true);
+    setShowClonePicker(false);
+  };
+
+  const applyClone = () => {
+    const source = dbRowById(cloneSourceId);
+    if (!source) return;
+    openNewWithPrefill(
+      cloneReleaseForm(
+        {
+          releaseCode: source.releaseCode,
+          name: source.name,
+          programProject: source.programProject,
+          owner: source.owner,
+          status: source.status,
+          releaseDate: source.releaseDate,
+          priority: source.priority,
+          impact: source.impact,
+          departmentId: source.departmentId,
+          applicationIds: source.applications.map((a) => a.application.id),
+          dependsOnReleaseIds: source.dependsOn.map((d) => d.dependsOnRelease.id),
+        },
+        releaseCodes
+      )
+    );
+  };
+
+  const ownerName = user ? resolveSessionName(user.email, user.name) : "Release Desk";
+
   return (
     <div>
       <TopBar
@@ -238,6 +281,49 @@ export default function ReleasesPageContent() {
 
       <ReleaseFiltersBar className="mb-4" />
 
+      {!attentionMode && canEdit && (
+        <>
+          <ReleasePlaybookBar
+            canEdit={canEdit}
+            lookups={{
+              departments,
+              applications,
+              releaseCodes,
+              owner: ownerName,
+            }}
+            onApply={openNewWithPrefill}
+            onClone={() => setShowClonePicker((v) => !v)}
+          />
+          {showClonePicker && (
+            <div className="mb-4 flex flex-wrap items-end gap-2 rounded-xl border border-gray-200 bg-white/80 px-4 py-3">
+              <div className="min-w-[200px] flex-1">
+                <label className="text-xs font-medium text-gray-600">Clone from</label>
+                <select
+                  className={taInput}
+                  value={cloneSourceId}
+                  onChange={(e) => setCloneSourceId(e.target.value)}
+                >
+                  <option value="">Select a DB release…</option>
+                  {(dbRows as ReleaseRow[]).map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.releaseCode} — {r.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <button
+                type="button"
+                className={taBtnSecondary + " text-sm !py-2"}
+                disabled={!cloneSourceId}
+                onClick={applyClone}
+              >
+                Clone & edit
+              </button>
+            </div>
+          )}
+        </>
+      )}
+
       {!attentionMode && (
         <div className="flex flex-wrap gap-2 mb-4">
           <span className="text-xs text-gray-500 self-center mr-1">Sort by</span>
@@ -276,7 +362,7 @@ export default function ReleasesPageContent() {
         icon={Package}
         action={
           canEdit ? (
-            <button type="button" className={cn(taBtnPrimary, "text-xs py-1.5 px-2.5")} onClick={() => { setEditRow(null); setModalOpen(true); }}>
+            <button type="button" className={cn(taBtnPrimary, "text-xs py-1.5 px-2.5")} onClick={() => { setEditRow(null); setFormPrefill(null); setModalOpen(true); }}>
               <Plus className="h-3.5 w-3.5 inline mr-1" /> New release (DB)
             </button>
           ) : undefined
@@ -317,7 +403,7 @@ export default function ReleasesPageContent() {
                   canEdit={canEdit}
                   onEdit={() => {
                     const db = dbRowById(r.id);
-                    if (db) { setEditRow(db); setModalOpen(true); }
+                    if (db) { setFormPrefill(null); setEditRow(db); setModalOpen(true); }
                   }}
                   onDelete={() => remove(r.id)}
                 />
@@ -344,11 +430,11 @@ export default function ReleasesPageContent() {
           applicationIds: editRow.applications.map((a) => a.application.id),
           dependsOnReleaseIds: editRow.dependsOn.map((d) => d.dependsOnRelease.id),
           notes: "",
-        } : undefined}
+        } : formPrefill ?? undefined}
         departments={departments.map((d) => ({ value: d.id, label: d.name }))}
         applications={applications.map((a) => ({ value: a.id, label: a.name }))}
         releases={(dbRows as ReleaseRow[]).map((r) => ({ value: r.id, label: r.releaseCode }))}
-        onClose={() => setModalOpen(false)}
+        onClose={() => { setModalOpen(false); setFormPrefill(null); }}
         onSaved={refreshLookups}
       />
     </div>

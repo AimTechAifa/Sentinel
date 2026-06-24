@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { AlertTriangle, GitBranch, Sparkles, Trash2 } from "lucide-react";
 import { TopBar } from "@/components/layout/TopBar";
 import { AdvancedCard } from "@/components/ui/advanced-card";
@@ -35,12 +36,14 @@ type App = { id: string; name: string };
 type Env = { id: string; name: string; applicationId: string };
 
 export default function SystemMappingPage() {
+  const searchParams = useSearchParams();
   const [from, setFrom] = useState(() => new Date().toISOString().slice(0, 10));
   const [to, setTo] = useState(() => {
     const endDate = new Date();
     endDate.setDate(endDate.getDate() + 30);
     return endDate.toISOString().slice(0, 10);
   });
+  const [urlDatesApplied, setUrlDatesApplied] = useState(false);
   const [edges, setEdges] = useState<Edge[]>([]);
   const [risks, setRisks] = useState<Risk[]>([]);
   const [mappingNotes, setMappingNotes] = useState("");
@@ -75,6 +78,15 @@ export default function SystemMappingPage() {
     fetch("/api/applications").then((r) => r.json()).then(setApps);
     fetch("/api/environments").then((r) => r.json()).then(setEnvs);
   }, []);
+
+  useEffect(() => {
+    if (urlDatesApplied) return;
+    const urlFrom = searchParams.get("from");
+    const urlTo = searchParams.get("to");
+    if (urlFrom) setFrom(urlFrom);
+    if (urlTo) setTo(urlTo);
+    if (urlFrom || urlTo) setUrlDatesApplied(true);
+  }, [searchParams, urlDatesApplied]);
 
   useEffect(() => { loadMapping(); }, [loadMapping]);
 
