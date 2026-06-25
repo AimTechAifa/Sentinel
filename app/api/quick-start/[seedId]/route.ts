@@ -12,14 +12,15 @@ const VALID_SEEDS: QuickStartSeedId[] = [
   "deploy-verified-v2141",
 ];
 
-export async function POST(_req: Request, { params }: { params: { seedId: string } }) {
+export async function POST(_req: Request, { params }: { params: Promise<{ seedId: string }> }) {
+  const { seedId } = await params;
   const { user, error } = await requireRole("editor");
   if (error) return error;
 
-  if (!VALID_SEEDS.includes(params.seedId as QuickStartSeedId)) {
+  if (!VALID_SEEDS.includes(seedId as QuickStartSeedId)) {
     return NextResponse.json({ error: "Unknown seed" }, { status: 400 });
   }
 
-  await applyQuickStartSeed(params.seedId as QuickStartSeedId, user!.name);
+  await applyQuickStartSeed(seedId as QuickStartSeedId, user!.name);
   return NextResponse.json({ ok: true });
 }

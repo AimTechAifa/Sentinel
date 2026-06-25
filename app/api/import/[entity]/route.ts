@@ -9,7 +9,8 @@ function parseCsv(text: string): string[][] {
     .map((line) => line.split(",").map((c) => c.trim().replace(/^"|"$/g, "")));
 }
 
-export async function POST(req: Request, { params }: { params: { entity: string } }) {
+export async function POST(req: Request, { params }: { params: Promise<{ entity: string }> }) {
+  const { entity } = await params;
   const { error } = await requireRole("editor");
   if (error) return error;
 
@@ -26,7 +27,7 @@ export async function POST(req: Request, { params }: { params: { entity: string 
 
   let imported = 0;
 
-  if (params.entity === "departments") {
+  if (entity === "departments") {
     for (const row of data) {
       if (!row[0]) continue;
       await prisma.department.upsert({
@@ -36,7 +37,7 @@ export async function POST(req: Request, { params }: { params: { entity: string 
       });
       imported++;
     }
-  } else if (params.entity === "applications") {
+  } else if (entity === "applications") {
     for (const row of data) {
       const dept = await prisma.department.findFirst({ where: { name: row[1] } });
       if (!row[0] || !dept) continue;
@@ -61,7 +62,7 @@ export async function POST(req: Request, { params }: { params: { entity: string 
       });
       imported++;
     }
-  } else if (params.entity === "environments") {
+  } else if (entity === "environments") {
     for (const row of data) {
       const app = await prisma.application.findFirst({ where: { name: row[0] } });
       if (!app || !row[1]) continue;
