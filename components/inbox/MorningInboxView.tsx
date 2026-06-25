@@ -119,7 +119,7 @@ export function MorningInboxView() {
 
       <TopActionsToday filterQuery={filterQuery} />
 
-      <div className="flex gap-1 rounded-xl border border-gray-200 bg-white p-1.5 w-fit shadow-sm">
+      <div className="flex gap-1 rounded-xl border border-gray-200 dark:border-[var(--border)] bg-white dark:bg-[var(--card)] p-1.5 w-fit shadow-sm">
         {(["month", "quarter", "year"] as Period[]).map((p) => (
           <button
             key={p}
@@ -128,8 +128,8 @@ export function MorningInboxView() {
             className={cn(
               "rounded-lg px-4 py-1.5 text-xs font-bold capitalize transition-all duration-300",
               period === p 
-                ? "bg-gray-100 text-brand-600 shadow-sm" 
-                : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
+                ? "bg-gray-100 dark:bg-gray-800 text-brand-600 dark:text-brand-400 shadow-sm" 
+                : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800/50"
             )}
           >
             {p}
@@ -160,7 +160,7 @@ export function MorningInboxView() {
                 "rounded-full px-4 py-2 text-xs font-bold border transition-all duration-300",
                 active
                   ? "bg-brand-500 text-white border-brand-500 shadow-sm -translate-y-0.5"
-                  : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50 hover:shadow-sm"
+                  : "border-gray-200 dark:border-[var(--border)] bg-white dark:bg-[var(--card)] text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:shadow-sm"
               )}
             >
               {f.label}
@@ -173,7 +173,7 @@ export function MorningInboxView() {
       {loading ? (
         <p className="text-sm text-gray-500">Loading inbox…</p>
       ) : filtered.length === 0 ? (
-        <div className="rounded-2xl border border-gray-200 bg-white px-8 py-16 text-center shadow-sm animate-fade-in-up">
+        <div className="rounded-2xl border border-gray-200 dark:border-[var(--border)] bg-white dark:bg-[var(--card)] px-8 py-16 text-center shadow-sm animate-fade-in-up">
           <div className="mx-auto w-16 h-16 rounded-full bg-gradient-to-tr from-emerald-100 to-teal-50 flex items-center justify-center mb-4 shadow-sm border border-emerald-200/50">
             <span className="text-2xl text-emerald-500">✨</span>
           </div>
@@ -223,15 +223,15 @@ function InboxSectionTable({ section, items }: { section: InboxSection; items: I
               <td className={tableCell}>
                 <div className="flex items-center gap-2 flex-wrap">
                   <SourceBadgeInline source={item.source} />
-                  <ProgressLink href={item.href} className="font-medium text-brand-600 hover:underline">
+                  <ProgressLink href={item.href} className="font-medium text-brand-600 dark:text-brand-400 hover:underline">
                     {item.title}
                   </ProgressLink>
                 </div>
-                <p className="text-xs text-gray-500 mt-0.5">{item.subtitle}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{item.subtitle}</p>
               </td>
-              <td className={cn(tableCell, "text-xs text-gray-600 max-w-[240px]")}>{item.reason}</td>
-              <td className={cn(tableCell, "font-medium text-gray-800")}>{item.responsible}</td>
-              <td className={cn(tableCell, "text-xs text-gray-500")}>
+              <td className={cn(tableCell, "text-xs text-gray-600 dark:text-gray-300 max-w-[240px]")}>{item.reason}</td>
+              <td className={cn(tableCell, "font-medium text-gray-800 dark:text-gray-200")}>{item.responsible}</td>
+              <td className={cn(tableCell, "text-xs text-gray-500 dark:text-gray-400")}>
                 {item.date ? formatDate(item.date) : "—"}
               </td>
             </tr>

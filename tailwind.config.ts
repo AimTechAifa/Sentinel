@@ -2,6 +2,7 @@ import type { Config } from "tailwindcss";
 import { palette } from "./lib/palette";
 
 const config: Config = {
+  darkMode: ["class", ".theme-dark"],
   content: [
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",

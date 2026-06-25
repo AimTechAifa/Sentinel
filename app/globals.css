@@ -130,7 +130,7 @@ body {
 
 @layer utilities {
   .ai-card {
-    @apply border border-brand-100 border-l-4 border-l-brand-500 bg-gradient-to-br from-brand-50/80 via-white to-brand-50/40 rounded-lg shadow-level-1;
+    @apply border border-brand-100 border-l-4 border-l-brand-500 bg-gradient-to-br from-brand-50/80 via-white to-brand-50/40 rounded-lg shadow-level-1 dark:from-[#212738] dark:via-[#212738] dark:to-[#212738] dark:border-[var(--border)] dark:border-l-brand-500;
   }
   .shimmer {
     background: linear-gradient(90deg, #f1f3f5 25%, #e9ecef 50%, #f1f3f5 75%);
@@ -207,5 +207,31 @@ body {
   .theme-dark .menu-item-active {
     color: #3b5bdb;
     background-color: rgba(59, 91, 219, 0.16);
+  }
+  .theme-dark .materio-sidebar,
+  .theme-dark .materio-header {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background-color: var(--sidebar);
+  }
+
+  /* Global dark mode typography overrides to fix caching issues */
+  .theme-dark .text-gray-900,
+  .theme-dark .text-gray-800 {
+    color: rgba(235, 241, 250, 0.95) !important;
+  }
+  .theme-dark .text-gray-700,
+  .theme-dark .text-gray-600 {
+    color: rgba(235, 241, 250, 0.75) !important;
+  }
+  .theme-dark .text-gray-500 {
+    color: rgba(235, 241, 250, 0.60) !important;
+  }
+  .theme-dark .bg-gray-50,
+  .theme-dark .hover\:bg-gray-50:hover {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+  }
+  .theme-dark .bg-white {
+    background-color: var(--card) !important;
   }
 }

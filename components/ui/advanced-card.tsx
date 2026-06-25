@@ -48,8 +48,8 @@ export function AdvancedCard({
           </div>
         )}
         <div className="min-w-0">
-          {title && <h3 className="text-headline-sm text-gray-900 truncate">{title}</h3>}
-          {subtitle && <p className="text-xs text-gray-500 mt-0.5">{subtitle}</p>}
+          {title && <h3 className="text-headline-sm text-gray-900 dark:text-white truncate">{title}</h3>}
+          {subtitle && <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{subtitle}</p>}
         </div>
       </div>
       {action}

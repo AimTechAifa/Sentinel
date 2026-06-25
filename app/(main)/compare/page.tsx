@@ -49,66 +49,87 @@ export default function ComparePage() {
   const activeReleases = releases.filter((r) => r.status !== "Shipped");
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 max-w-[1400px] mx-auto pb-24">
       <TopBar
         title="Release Comparison"
         subtitle="Side-by-side readiness, blockers, and ML forecasts — good vs bad"
         highlight
       />
 
-      <div className="flex flex-wrap gap-2">
-        {COMPARE_PRESETS.map((p) => (
-          <button
-            key={p.label}
-            type="button"
-            onClick={() => {
-              setLeftId(p.leftId);
-              setRightId(p.rightId);
-            }}
-            className="text-xs rounded-full border border-gray-200 bg-white/80 px-3 py-1.5 hover:bg-brand-50 hover:border-brand-200 transition-colors"
-          >
-            {p.label}
-          </button>
-        ))}
+      <div className="flex flex-wrap gap-3 items-center">
+        <span className="text-sm font-semibold text-gray-500 mr-2 flex items-center gap-1.5"><Columns2 className="w-4 h-4" /> Presets:</span>
+        {COMPARE_PRESETS.map((p) => {
+          const isActive = leftId === p.leftId && rightId === p.rightId;
+          return (
+            <button
+              key={p.label}
+              type="button"
+              onClick={() => {
+                setLeftId(p.leftId);
+                setRightId(p.rightId);
+              }}
+              className={`text-xs font-semibold rounded-full px-4 py-2 transition-all duration-300 shadow-sm border ${
+                isActive
+                  ? "bg-brand-500 text-white border-brand-500 shadow-brand-500/30 scale-105"
+                  : "bg-white dark:bg-[var(--card)] border-gray-200 dark:border-[var(--border)] text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-gray-300 hover:shadow-md"
+              }`}
+            >
+              {p.label}
+            </button>
+          )
+        })}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 rounded-2xl border border-gray-200/80 bg-white/60 p-4 backdrop-blur-sm">
-        <label className="text-sm">
-          <span className="text-gray-500 block mb-1">Left release</span>
-          <select
-            value={leftId}
-            onChange={(e) => setLeftId(e.target.value)}
-            className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm bg-white"
-          >
-            {activeReleases.map((r) => (
-              <option key={r.id} value={r.id}>{r.version} — {r.name} ({r.status})</option>
-            ))}
-          </select>
-        </label>
-        <label className="text-sm">
-          <span className="text-gray-500 block mb-1">Right release</span>
-          <select
-            value={rightId}
-            onChange={(e) => setRightId(e.target.value)}
-            className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm bg-white"
-          >
-            {activeReleases.map((r) => (
-              <option key={r.id} value={r.id}>{r.version} — {r.name} ({r.status})</option>
-            ))}
-          </select>
-        </label>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 rounded-2xl border border-gray-200/80 dark:border-[var(--border)] bg-gradient-to-br from-white/60 to-gray-50/50 dark:from-[var(--card)] dark:to-[var(--card)] backdrop-blur-xl shadow-theme-sm relative overflow-hidden">
+        
+        <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] pointer-events-none mix-blend-overlay"></div>
+        
+        <div className="relative group">
+          <label className="text-sm font-bold text-gray-700 dark:text-gray-200 block mb-2 tracking-wide uppercase text-[11px] ml-1">Baseline Release (Left)</label>
+          <div className="relative">
+            <select
+              value={leftId}
+              onChange={(e) => setLeftId(e.target.value)}
+              className="w-full appearance-none rounded-xl border-2 border-gray-100 dark:border-gray-800 px-4 py-3.5 text-sm font-medium bg-white dark:bg-gray-900 shadow-sm focus:border-brand-500 focus:ring-4 focus:ring-brand-500/20 transition-all cursor-pointer group-hover:border-gray-200 dark:group-hover:border-gray-700"
+            >
+              {activeReleases.map((r) => (
+                <option key={r.id} value={r.id}>{r.version} — {r.name} ({r.status})</option>
+              ))}
+            </select>
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 group-hover:text-brand-500 transition-colors">
+              <Columns2 className="w-4 h-4" />
+            </div>
+          </div>
+        </div>
+
+        <div className="relative group">
+          <label className="text-sm font-bold text-gray-700 dark:text-gray-200 block mb-2 tracking-wide uppercase text-[11px] ml-1">Comparison Target (Right)</label>
+          <div className="relative">
+            <select
+              value={rightId}
+              onChange={(e) => setRightId(e.target.value)}
+              className="w-full appearance-none rounded-xl border-2 border-gray-100 dark:border-gray-800 px-4 py-3.5 text-sm font-medium bg-white dark:bg-gray-900 shadow-sm focus:border-brand-500 focus:ring-4 focus:ring-brand-500/20 transition-all cursor-pointer group-hover:border-gray-200 dark:group-hover:border-gray-700"
+            >
+              {activeReleases.map((r) => (
+                <option key={r.id} value={r.id}>{r.version} — {r.name} ({r.status})</option>
+              ))}
+            </select>
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 group-hover:text-brand-500 transition-colors">
+              <Columns2 className="w-4 h-4" />
+            </div>
+          </div>
+        </div>
+        
       </div>
 
       {leftSnap && rightSnap ? (
         <ReleaseCompareView left={leftSnap} right={rightSnap} />
       ) : (
-        <p className="text-gray-500">Select two releases to compare.</p>
+        <div className="flex flex-col items-center justify-center py-20 rounded-2xl border border-dashed border-gray-300 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50">
+          <Columns2 className="w-12 h-12 text-gray-300 dark:text-gray-600 mb-4" />
+          <p className="text-gray-500 dark:text-gray-400 font-medium text-sm">Select two releases from the dropdowns above to begin comparison.</p>
+        </div>
       )}
-
-      <p className="text-xs text-gray-400 flex items-center gap-1.5">
-        <Columns2 className="w-3.5 h-3.5" />
-        Default preset: v2.14.0 (at risk) vs v2.14.1 (all green)
-      </p>
     </div>
   );
 }

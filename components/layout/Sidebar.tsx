@@ -57,8 +57,8 @@ export function Sidebar() {
           </div>
           {isWide && (
             <div className="min-w-0">
-              <span className="block truncate text-lg font-bold tracking-tight text-gray-900">Sentinel</span>
-              <p className="mt-0.5 truncate text-[11px] leading-snug text-gray-500">{PRODUCT_TAGLINE}</p>
+              <span className="block truncate text-lg font-bold tracking-tight text-gray-900 dark:text-white">Sentinel</span>
+              <p className="mt-0.5 truncate text-[11px] leading-snug text-gray-500 dark:text-gray-400">{PRODUCT_TAGLINE}</p>
             </div>
           )}
         </ProgressLink>

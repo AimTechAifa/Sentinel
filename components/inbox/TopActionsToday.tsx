@@ -10,9 +10,9 @@ import { cn } from "@/lib/utils";
 import { ArrowRight, Zap } from "lucide-react";
 
 const URGENCY_STYLES = {
-  critical: "border-error-200 bg-error-50/60 text-error-900",
-  high: "border-amber-200 bg-amber-50/60 text-amber-900",
-  normal: "border-brand-200 bg-brand-50/40 text-brand-900",
+  critical: "border-error-200 bg-error-50/60 text-error-900 dark:bg-error-500/20 dark:text-error-400 dark:border-error-500/30",
+  high: "border-amber-200 bg-amber-50/60 text-amber-900 dark:bg-amber-500/20 dark:text-amber-400 dark:border-amber-500/30",
+  normal: "border-brand-200 bg-brand-50/40 text-brand-900 dark:bg-brand-500/20 dark:text-brand-400 dark:border-brand-500/30",
 };
 
 export function TopActionsToday({ filterQuery }: { filterQuery?: string }) {
@@ -65,7 +65,7 @@ export function TopActionsToday({ filterQuery }: { filterQuery?: string }) {
                   URGENCY_STYLES[action.urgency]
                 )}
               >
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/80 text-xs font-bold">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/80 dark:bg-gray-900/80 text-xs font-bold">
                   {action.rank}
                 </span>
                 <span className="flex-1 min-w-0">

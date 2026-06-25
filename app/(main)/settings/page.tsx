@@ -105,7 +105,7 @@ export default function SettingsPage() {
                           {i === 0 ? "Just now" : i === 1 ? "2 hours ago" : "3 days ago"}
                         </td>
                         <td className="px-6 py-4 text-right">
-                          <button className="p-2 rounded-lg text-gray-400 hover:text-gray-900 hover:bg-gray-100 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100">
+                          <button className="p-2 rounded-lg text-gray-400 hover:text-gray-900 hover:bg-gray-100 transition-colors">
                             <MoreVertical className="h-4 w-4" />
                           </button>
                         </td>

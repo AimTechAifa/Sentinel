@@ -242,7 +242,7 @@ export default function BookingPage() {
                       </span>
                     </td>
                     <td className="px-5 py-4 text-center">
-                      <button className="text-gray-400 hover:text-gray-900 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100">
+                      <button className="text-gray-400 hover:text-gray-900 transition-colors">
                         <MoreVertical className="h-5 w-5 mx-auto" />
                       </button>
                     </td>

@@ -485,7 +485,7 @@ function UnifiedRow({
       {canEdit && (
         <td className={tableCell}>
           {row.source === "database" ? (
-            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="flex gap-2 transition-opacity">
               <button type="button" onClick={onEdit} className="text-gray-500"><Pencil className="h-4 w-4" /></button>
               <button type="button" onClick={onDelete} className="text-error-500"><Trash2 className="h-4 w-4" /></button>
             </div>
