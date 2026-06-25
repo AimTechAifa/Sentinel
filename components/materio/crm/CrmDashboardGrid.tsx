@@ -70,8 +70,6 @@ export function CrmDashboardGrid({
               value={s.value}
               icon={s.icon}
               color={s.color}
-              trend={s.title === "Planned" ? s.trend : undefined}
-              sparkline={s.title === "Planned" ? spark : undefined}
             />
           </Grid>
         ))}
