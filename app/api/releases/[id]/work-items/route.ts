@@ -3,12 +3,13 @@ import { requireRole } from "@/lib/auth/api";
 import { summarizeWorkItems } from "@/lib/dependency-impact";
 import { prisma } from "@/lib/prisma";
 
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const { error } = await requireRole("readonly");
   if (error) return error;
 
   const release = await prisma.release.findUnique({
-    where: { id: params.id },
+    where: { id: id },
     select: { releaseCode: true },
   });
   if (!release) return NextResponse.json({ error: "Not found" }, { status: 404 });

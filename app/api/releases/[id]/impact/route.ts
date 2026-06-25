@@ -17,12 +17,13 @@ const releaseInclude = {
   },
 };
 
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const { error } = await requireRole("readonly");
   if (error) return error;
 
   const [release, allReleases] = await Promise.all([
-    prisma.release.findUnique({ where: { id: params.id }, include: releaseInclude }),
+    prisma.release.findUnique({ where: { id: id }, include: releaseInclude }),
     prisma.release.findMany({ include: releaseInclude }),
   ]);
 

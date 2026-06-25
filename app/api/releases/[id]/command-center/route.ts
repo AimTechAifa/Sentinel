@@ -16,12 +16,13 @@ const releaseInclude = {
   bookings: { include: { application: true } },
 };
 
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const { error } = await requireRole("readonly");
   if (error) return error;
 
   const release = await prisma.release.findUnique({
-    where: { id: params.id },
+    where: { id: id },
     include: releaseInclude,
   });
   if (!release) return NextResponse.json({ error: "Not found" }, { status: 404 });
