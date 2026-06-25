@@ -25,7 +25,7 @@ export function ForecastChart({ data }: { data: ForecastTrendPoint[] }) {
       icon={Brain}
       variant="glass"
       action={
-        <span className="text-[10px] bg-violet-50 text-ai px-2 py-1 rounded-full font-medium">ML Forecast</span>
+        <span className="text-[10px] bg-brand-25 text-ai px-2 py-1 rounded-full font-medium">ML Forecast</span>
       }
     >
       <ResponsiveContainer width="100%" height={260}>
@@ -47,8 +47,8 @@ export function ForecastChart({ data }: { data: ForecastTrendPoint[] }) {
             yAxisId="left"
             type="monotone"
             dataKey="actualReadiness"
-            fill="#9155fd15"
-            stroke="#9155fd"
+            fill="#3b5bdb15"
+            stroke="#3b5bdb"
             name="Actual readiness %"
             connectNulls={false}
           />

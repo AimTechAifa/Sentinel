@@ -8,13 +8,13 @@ import { Database, GitBranch, LayoutDashboard, MessageSquare, Plug, Sparkles } f
 const nodes = [
   { label: "Connectors", icon: Plug, color: "from-slate-500 to-gray-600" },
   { label: "Release Record", icon: Database, color: "from-brand-500 to-indigo-600" },
-  { label: "13 AI Agents", icon: Sparkles, color: "from-violet-500 to-fuchsia-500" },
+  { label: "13 AI Agents", icon: Sparkles, color: "from-brand-400 to-blue-500" },
   { label: "Dashboard & Chat", icon: LayoutDashboard, color: "from-cyan-500 to-teal-500" },
 ];
 
 export function ArchitectureDiagram() {
   return (
-    <MagicCard gradient="from-gray-200 via-violet-100 to-brand-100" className="mb-2">
+    <MagicCard gradient="from-gray-200 via-brand-50 to-brand-100" className="mb-2">
       <div className="relative p-6 overflow-hidden">
         <DotPattern opacity={0.3} />
         <h3 className="relative font-semibold text-gray-800 mb-5 text-sm flex items-center gap-2">

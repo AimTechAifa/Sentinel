@@ -1,16 +1,7 @@
 "use client";
 
-import Box from "@mui/material/Box";
-import Chip from "@mui/material/Chip";
-import Table from "@mui/material/Table";
-import TableBody from "@mui/material/TableBody";
-import TableCell from "@mui/material/TableCell";
-import TableContainer from "@mui/material/TableContainer";
-import TableHead from "@mui/material/TableHead";
-import TableRow from "@mui/material/TableRow";
-import Typography from "@mui/material/Typography";
 import Link from "next/link";
-import { MaterioCard } from "./MaterioCard";
+import { cn } from "@/lib/utils";
 
 export type TransactionRow = {
   id: string;
@@ -38,12 +29,15 @@ const defaultColumns = {
   status: "Status",
 };
 
-function statusChipColor(status: string): "success" | "warning" | "error" | "default" | "primary" {
+function getStatusChipStyles(status: string) {
   const s = status.toLowerCase();
-  if (s.includes("go") || s.includes("ready") || s.includes("approved") || s.includes("open")) return "success";
-  if (s.includes("risk") || s.includes("pending") || s.includes("progress")) return "warning";
-  if (s.includes("block") || s.includes("fail") || s.includes("p1")) return "error";
-  return "default";
+  if (s.includes("go") || s.includes("ready") || s.includes("approved") || s.includes("open")) 
+    return "border-emerald-200 text-emerald-700 bg-emerald-50/50";
+  if (s.includes("risk") || s.includes("pending") || s.includes("progress")) 
+    return "border-amber-200 text-amber-700 bg-amber-50/50";
+  if (s.includes("block") || s.includes("fail") || s.includes("p1")) 
+    return "border-error-200 text-error-700 bg-error-50/50";
+  return "border-gray-200 text-gray-700 bg-gray-50/50";
 }
 
 export function TransactionsTable({
@@ -54,78 +48,70 @@ export function TransactionsTable({
   emptyMessage = "No items in this period.",
 }: TransactionsTableProps) {
   return (
-    <MaterioCard title={title} subheader={subheader} noPadding>
-      <TableContainer>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell>{columns.primary}</TableCell>
-              {columns.secondary && <TableCell>{columns.secondary}</TableCell>}
-              {columns.meta && <TableCell>{columns.meta}</TableCell>}
-              {columns.amount && <TableCell align="right">{columns.amount}</TableCell>}
-              <TableCell align="right">{columns.status}</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
+    <div className="flex h-full flex-col rounded-xl border border-[var(--border)] bg-white shadow-level-1">
+      <div className="border-b border-[var(--border)] p-5">
+        <h3 className="text-headline-sm text-gray-900">{title}</h3>
+        {subheader && <p className="mt-0.5 text-sm text-gray-500">{subheader}</p>}
+      </div>
+      
+      <div className="flex-1 overflow-x-auto">
+        <table className="w-full text-left text-sm text-gray-600">
+          <thead className="bg-gray-50/50 text-xs font-semibold uppercase tracking-wide text-gray-500">
+            <tr>
+              <th className="px-5 py-3 font-medium">{columns.primary}</th>
+              {columns.secondary && <th className="px-5 py-3 font-medium">{columns.secondary}</th>}
+              {columns.meta && <th className="px-5 py-3 font-medium">{columns.meta}</th>}
+              {columns.amount && <th className="px-5 py-3 font-medium text-right">{columns.amount}</th>}
+              <th className="px-5 py-3 font-medium text-right">{columns.status}</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[var(--border)]">
             {rows.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6}>
-                  <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
-                    {emptyMessage}
-                  </Typography>
-                </TableCell>
-              </TableRow>
+              <tr>
+                <td colSpan={6} className="px-5 py-8 text-center text-gray-500">
+                  {emptyMessage}
+                </td>
+              </tr>
             ) : (
               rows.map((row) => (
-                <TableRow key={row.id} hover sx={{ "&:last-child td": { border: 0 } }}>
-                  <TableCell>
+                <tr key={row.id} className="transition-colors hover:bg-gray-50/50">
+                  <td className="px-5 py-3.5 align-middle">
                     {row.href ? (
-                      <Link href={row.href} style={{ textDecoration: "none", color: "inherit", fontWeight: 500 }}>
+                      <Link href={row.href} className="font-semibold text-brand-600 hover:text-brand-700">
                         {row.primary}
                       </Link>
                     ) : (
-                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                        {row.primary}
-                      </Typography>
+                      <span className="font-medium text-gray-900">{row.primary}</span>
                     )}
-                  </TableCell>
+                  </td>
                   {columns.secondary && (
-                    <TableCell>
-                      <Typography variant="body2" color="text.secondary">
-                        {row.secondary ?? "—"}
-                      </Typography>
-                    </TableCell>
+                    <td className="px-5 py-3.5 align-middle text-gray-500">{row.secondary ?? "—"}</td>
                   )}
                   {columns.meta && (
-                    <TableCell>
-                      <Typography variant="body2" color="text.secondary">
-                        {row.meta ?? "—"}
-                      </Typography>
-                    </TableCell>
+                    <td className="px-5 py-3.5 align-middle text-gray-500">{row.meta ?? "—"}</td>
                   )}
                   {columns.amount && (
-                    <TableCell align="right">
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                        {row.amount ?? "—"}
-                      </Typography>
-                    </TableCell>
+                    <td className="px-5 py-3.5 align-middle text-right font-semibold text-gray-700">{row.amount ?? "—"}</td>
                   )}
-                  <TableCell align="right">
-                    <Chip label={row.status} size="small" color={statusChipColor(row.status)} variant="outlined" />
-                  </TableCell>
-                </TableRow>
+                  <td className="px-5 py-3.5 align-middle text-right">
+                    <span className={cn("inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium", getStatusChipStyles(row.status))}>
+                      {row.status}
+                    </span>
+                  </td>
+                </tr>
               ))
             )}
-          </TableBody>
-        </Table>
-      </TableContainer>
+          </tbody>
+        </table>
+      </div>
+      
       {rows.length > 0 && (
-        <Box sx={{ px: 3, py: 1.5, borderTop: 1, borderColor: "divider" }}>
-          <Typography variant="caption" color="text.secondary">
+        <div className="border-t border-[var(--border)] bg-gray-50/50 px-5 py-3">
+          <p className="text-xs text-gray-500">
             Showing {rows.length} item{rows.length === 1 ? "" : "s"}
-          </Typography>
-        </Box>
+          </p>
+        </div>
       )}
-    </MaterioCard>
+    </div>
   );
 }

@@ -49,7 +49,7 @@ export function YesterdayDiffPanel({ release }: { release: Release }) {
           type="button"
           onClick={ask}
           disabled={loading}
-          className="inline-flex items-center gap-1.5 rounded-xl bg-ai px-3 py-1.5 text-xs font-medium text-white hover:bg-violet-700 disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 rounded-xl bg-ai px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-600 disabled:opacity-50"
         >
           <Sparkles className="w-3.5 h-3.5" /> Ask Sentinel
         </button>
@@ -81,7 +81,7 @@ export function YesterdayDiffPanel({ release }: { release: Release }) {
 
       {loading && <AICardSkeleton />}
       {answer && !loading && (
-        <div className="rounded-xl border border-violet-100 bg-white/80 p-4">
+        <div className="rounded-xl border border-brand-50 bg-white/80 p-4">
           <AgentBadge agent="Conversation Agent" className="mb-2" />
           <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{answer}</p>
         </div>

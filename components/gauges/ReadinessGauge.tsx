@@ -16,7 +16,7 @@ export function ReadinessGauge({ value, size = 160 }: { value: number; size?: nu
       className="relative"
       style={{ width: size, height: size }}
     >
-      <div className="absolute inset-0 rounded-full bg-gradient-to-br from-brand-50/50 to-violet-50/50 blur-sm" />
+      <div className="absolute inset-0 rounded-full bg-gradient-to-br from-brand-50/50 to-brand-25/50 blur-sm" />
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           <Pie data={data} cx="50%" cy="50%" innerRadius={size * 0.35} outerRadius={size * 0.45} startAngle={90} endAngle={-270} dataKey="value" stroke="none">
@@ -30,7 +30,7 @@ export function ReadinessGauge({ value, size = 160 }: { value: number; size?: nu
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
-          className="text-3xl font-bold text-gray-800 tabular-nums"
+          className="text-3xl font-bold text-gray-800 font-mono text-[10px] uppercase tracking-wider"
         >
           {value}%
         </motion.span>

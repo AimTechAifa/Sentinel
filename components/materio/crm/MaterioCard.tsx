@@ -28,7 +28,15 @@ export function MaterioCard({
   const hasHeader = title || subheader || action || headerExtra;
 
   return (
-    <Card sx={{ height: "100%", ...sx }} {...rest}>
+    <Card 
+      className="glass-panel hover:-translate-y-1 hover:shadow-md transition-all duration-300"
+      sx={{ 
+        height: "100%", 
+        boxShadow: "none",
+        ...sx 
+      }} 
+      {...rest}
+    >
       {hasHeader && (
         <CardHeader
           title={title}

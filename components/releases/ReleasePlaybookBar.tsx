@@ -32,7 +32,7 @@ export function ReleasePlaybookBar({
   if (!canEdit) return null;
 
   return (
-    <AdvancedCard title="Playbooks & clone" icon={Sparkles} variant="glass" innerClassName="py-4">
+    <AdvancedCard className="mb-4" title="Playbooks & clone" icon={Sparkles} variant="glass" innerClassName="py-4">
       <p className="text-xs text-gray-500 mb-3">
         Start from a standard template or clone an existing DB release — apps, deps, and checklist pre-filled.
       </p>

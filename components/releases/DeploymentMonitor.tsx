@@ -169,7 +169,7 @@ export function DeploymentMonitor({
               <p className="text-[10px] font-medium opacity-80">{m.label}</p>
               {isLive && m.id !== "rollout" && <Activity className="w-3 h-3 opacity-60" />}
             </div>
-            <p className="text-lg font-bold tabular-nums">
+            <p className="text-lg font-bold font-mono text-[10px] uppercase tracking-wider">
               {m.value}
               {m.unit && <span className="text-xs font-normal ml-0.5">{m.unit}</span>}
             </p>

@@ -110,7 +110,7 @@ export function KnowledgeGraphView({ focusReleaseId }: { focusReleaseId?: string
       </div>
 
       <div className="flex flex-1 gap-4 min-h-0">
-        <MagicCard gradient="from-brand-200/40 via-white to-violet-200/40" className="flex-1 min-h-[480px]" innerClassName="h-full overflow-hidden">
+        <MagicCard gradient="from-brand-200/40 via-white to-brand-100/40" className="flex-1 min-h-[480px]" innerClassName="h-full overflow-hidden">
           <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} fitView minZoom={0.3} onNodeClick={onNodeClick}>
             <Background gap={16} color="#E2E8F0" />
             <Controls className="!rounded-xl !border-gray-200/80 !shadow-theme-sm" />

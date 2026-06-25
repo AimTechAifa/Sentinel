@@ -8,6 +8,8 @@ import { TransactionsTable } from "@/components/materio/crm/TransactionsTable";
 import type { InboxItem, InboxSection } from "@/lib/inbox-shared";
 import { formatDate } from "@/lib/utils";
 import { AlertTriangle, GitBranch, Inbox, Ticket } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
+import { MaterioCard } from "@/components/materio/crm/MaterioCard";
 
 type InboxCrmWidgetsProps = {
   loading: boolean;
@@ -32,6 +34,15 @@ export function InboxCrmWidgets({
     { title: "Open P1s", value: loading ? "…" : p1Count, icon: Ticket, color: "warning" as const },
     { title: "Mapping conflicts", value: loading ? "…" : mappingCount, icon: GitBranch, color: "info" as const },
   ];
+
+  const chartData = useMemo(() => {
+    return [
+      { name: "Blocked", value: attentionCount, color: "#ba1a1a" },
+      { name: "P1 Issues", value: p1Count, color: "#fab005" },
+      { name: "Mapping", value: mappingCount, color: "#228be6" },
+      { name: "Approvals", value: items.filter((i) => i.section === "approvals").length, color: "#40c057" },
+    ];
+  }, [attentionCount, p1Count, mappingCount, items]);
 
   const scheduleItems = useMemo(
     () =>
@@ -67,11 +78,37 @@ export function InboxCrmWidgets({
   return (
     <div className="space-y-6">
       <Grid container spacing={3}>
-        {stats.map((s) => (
-          <Grid key={s.title} size={{ xs: 12, sm: 6, lg: 3 }}>
-            <CrmStatCard title={s.title} value={s.value} icon={s.icon} color={s.color} />
+        <Grid size={{ xs: 12, lg: 5 }}>
+          <Grid container spacing={3}>
+            {stats.map((s) => (
+              <Grid key={s.title} size={{ xs: 12, sm: 6 }}>
+                <CrmStatCard title={s.title} value={s.value} icon={s.icon} color={s.color} />
+              </Grid>
+            ))}
           </Grid>
-        ))}
+        </Grid>
+        <Grid size={{ xs: 12, lg: 7 }}>
+          <MaterioCard title="Inbox Overview" sx={{ display: 'flex', flexDirection: 'column' }}>
+            <div className="h-[220px] w-full mt-2">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} />
+                  <Tooltip 
+                    cursor={{ fill: '#f3f4f6' }}
+                    contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                  />
+                  <Bar dataKey="value" radius={[4, 4, 0, 0]} maxBarSize={50}>
+                    {chartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </MaterioCard>
+        </Grid>
       </Grid>
 
       <Grid container spacing={3}>

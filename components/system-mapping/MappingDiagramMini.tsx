@@ -24,7 +24,7 @@ function MappingDiagramMiniInner({ edges, height = 220, highlightEdgeId }: Mappi
           ...e,
           animated: !!highlighted,
           style: {
-            stroke: highlighted ? "#ff4c51" : "#9155fd",
+            stroke: highlighted ? "#ff4c51" : "#3b5bdb",
             strokeWidth: highlighted ? 3 : 2,
           },
         };

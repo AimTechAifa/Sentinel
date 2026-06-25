@@ -30,7 +30,7 @@ export function edgesToFlowGraph(edges: MappingEdgeRow[]): { nodes: Node[]; edge
         fontSize: 10,
         padding: 8,
         borderRadius: 8,
-        border: "2px solid #9155fd",
+        border: "2px solid #3b5bdb",
         background: "#f3efff",
         width: 140,
         textAlign: "center" as const,
@@ -46,7 +46,7 @@ export function edgesToFlowGraph(edges: MappingEdgeRow[]): { nodes: Node[]; edge
       source: srcKey,
       target: tgtKey,
       label: e.direction === "upstream" ? "↑" : "→",
-      style: { stroke: "#9155fd", strokeWidth: 2 },
+      style: { stroke: "#3b5bdb", strokeWidth: 2 },
       labelStyle: { fontSize: 10, fill: "#6d6b77" },
     };
   });

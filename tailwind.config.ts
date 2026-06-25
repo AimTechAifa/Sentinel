@@ -16,6 +16,7 @@ const config: Config = {
         success: palette.success,
         error: palette.error,
         warning: palette.warning,
+        info: palette.info,
         ai: palette.ai,
         sidebar: palette.sidebar,
         primary: palette.brand[500],
@@ -23,20 +24,52 @@ const config: Config = {
         border: palette.border,
       },
       fontFamily: {
-        sans: ["var(--font-public-sans)", "var(--font-outfit)", "system-ui", "sans-serif"],
+        sans: ["var(--font-poppins)", "system-ui", "sans-serif"],
+        mono: ["var(--font-jetbrains)", "ui-monospace", "monospace"],
       },
       fontSize: {
+        /* design.md typography scale */
+        "display-lg": ["2.25rem", { lineHeight: "1.1", fontWeight: "700", letterSpacing: "-0.02em" }],
+        "headline-md": ["1.5rem", { lineHeight: "1.2", fontWeight: "600", letterSpacing: "-0.01em" }],
+        "headline-sm": ["1.125rem", { lineHeight: "1.2", fontWeight: "600" }],
+        "body-lg": ["1rem", { lineHeight: "1.5", fontWeight: "400" }],
+        "body-md": ["0.875rem", { lineHeight: "1.5", fontWeight: "400" }],
+        "body-sm": ["0.8125rem", { lineHeight: "1.4", fontWeight: "400" }],
+        "label-md": ["0.75rem", { lineHeight: "1", fontWeight: "600", letterSpacing: "0.05em" }],
+        "code-sm": ["0.75rem", { lineHeight: "1.4", fontWeight: "400" }],
+        /* legacy aliases kept for compatibility */
         "title-sm": ["1.875rem", { lineHeight: "2.375rem" }],
         "theme-sm": ["0.875rem", { lineHeight: "1.25rem" }],
         "theme-xs": ["0.75rem", { lineHeight: "1.125rem" }],
       },
-      boxShadow: {
-        "theme-sm": "0px 2px 6px 0px rgba(46, 38, 61, 0.08)",
-        "theme-md": "0px 4px 16px 0px rgba(46, 38, 61, 0.1)",
-        materio: "0px 2px 10px 0px rgba(46, 38, 61, 0.06)",
-      },
       borderRadius: {
+        /* design.md rounded scale */
+        sm: "0.25rem",
+        DEFAULT: "0.5rem",
+        md: "0.75rem",
+        lg: "1rem",
+        xl: "1.5rem",
+        full: "9999px",
         materio: "0.5rem",
+      },
+      boxShadow: {
+        /* modern glassmorphism elevation system */
+        "level-1": "0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)",
+        "level-2": "0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04)",
+        "level-3": "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
+        "glass-sm": "0 4px 30px rgba(0, 0, 0, 0.05)",
+        "glass-md": "0 8px 32px rgba(31, 38, 135, 0.07)",
+        "focus-ring": "0 0 0 3px rgba(124, 58, 237, 0.15)",
+        "glow-brand": "0 0 20px rgba(124, 58, 237, 0.3)",
+        /* legacy aliases mapped to new levels */
+        "theme-sm": "0 4px 6px -1px rgba(0, 0, 0, 0.05)",
+        "theme-md": "0 10px 15px -3px rgba(0, 0, 0, 0.08)",
+        materio: "0 2px 4px rgba(0,0,0,0.05)",
+      },
+      spacing: {
+        gutter: "20px",
+        "margin-mobile": "16px",
+        "margin-desktop": "32px",
       },
       animation: {
         shimmer: "shimmer 1.5s infinite",
@@ -46,6 +79,8 @@ const config: Config = {
         "border-beam": "border-beam 4s linear infinite",
         float: "float 5s ease-in-out infinite",
         glow: "glow 2s ease-in-out infinite",
+        "fade-in-up": "fadeInUp 0.5s ease-out",
+        "scale-in": "scaleIn 0.3s ease-out",
       },
       keyframes: {
         shimmer: {
@@ -75,6 +110,14 @@ const config: Config = {
         "border-beam": {
           "0%": { transform: "rotate(0deg)" },
           "100%": { transform: "rotate(360deg)" },
+        },
+        fadeInUp: {
+          "0%": { opacity: "0", transform: "translateY(10px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        scaleIn: {
+          "0%": { opacity: "0", transform: "scale(0.95)" },
+          "100%": { opacity: "1", transform: "scale(1)" },
         },
       },
     },

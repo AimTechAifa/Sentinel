@@ -17,7 +17,7 @@ export function MagicCard({
   children,
   className,
   innerClassName,
-  gradient = "from-brand-400 via-brand-500 to-brand-600",
+  gradient = "from-brand-300/30 via-brand-200/20 to-brand-100/30",
   beam = false,
   glow = false,
 }: MagicCardProps) {
@@ -26,7 +26,7 @@ export function MagicCard({
       className={cn(
         "relative rounded-xl p-px bg-gradient-to-br shadow-theme-sm transition-shadow hover:shadow-theme-md",
         gradient,
-        glow && "shadow-[0_0_40px_-12px_rgba(145,85,253,0.35)]",
+        glow && "shadow-[0_0_40px_-12px_rgba(59,91,219,0.35)]",
         className
       )}
     >

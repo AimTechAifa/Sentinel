@@ -38,7 +38,7 @@ export function SyntheticReleaseDetail({ id }: { id: string }) {
 
   return (
     <div>
-      <div className="mb-4 rounded-xl border border-violet-200 bg-violet-50/80 px-4 py-2 text-xs text-violet-800">
+      <div className="mb-4 rounded-xl border border-brand-100 bg-brand-25/80 px-4 py-2 text-xs text-brand-700">
         Demo release command center — synthetic data with live Go/No-Go, deployment, and CAB panels. Use{" "}
         <ProgressLink href="/templates" className="font-semibold underline">Quick Start</ProgressLink> scenarios to explore.
       </div>

@@ -6,12 +6,13 @@ import type { ReleaseDecision } from "@/lib/types";
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const { user, error } = await requireRole("editor");
   if (error) return error;
 
-  const release = releases.find((r) => r.id === params.id);
+  const release = releases.find((r) => r.id === id);
   if (!release) return NextResponse.json({ error: "Release not found" }, { status: 404 });
 
   const body = (await req.json()) as {
@@ -21,7 +22,7 @@ export async function POST(
     overridden?: boolean;
   };
 
-  await recordDecision(params.id, body.version ?? release.version, body.decision, {
+  await recordDecision(id, body.version ?? release.version, body.decision, {
     rationale: body.rationale,
     overridden: body.overridden,
     actor: user!.name,

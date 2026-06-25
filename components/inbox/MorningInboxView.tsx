@@ -119,15 +119,17 @@ export function MorningInboxView() {
 
       <TopActionsToday filterQuery={filterQuery} />
 
-      <div className="flex gap-1 rounded-xl border border-gray-200 bg-white/80 p-1 w-fit">
+      <div className="flex gap-1 rounded-xl border border-gray-200 bg-white p-1.5 w-fit shadow-sm">
         {(["month", "quarter", "year"] as Period[]).map((p) => (
           <button
             key={p}
             type="button"
             onClick={() => setPeriod(p)}
             className={cn(
-              "rounded-lg px-3 py-1.5 text-xs font-medium capitalize transition-colors",
-              period === p ? "bg-brand-500 text-white" : "text-gray-600 hover:bg-gray-50"
+              "rounded-lg px-4 py-1.5 text-xs font-bold capitalize transition-all duration-300",
+              period === p 
+                ? "bg-gray-100 text-brand-600 shadow-sm" 
+                : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
             )}
           >
             {p}
@@ -155,14 +157,14 @@ export function MorningInboxView() {
               type="button"
               onClick={() => setSection(f.id)}
               className={cn(
-                "rounded-full px-3 py-1.5 text-xs font-medium border transition-colors",
+                "rounded-full px-4 py-2 text-xs font-bold border transition-all duration-300",
                 active
-                  ? "bg-brand-500 text-white border-brand-500"
-                  : "border-gray-200 text-gray-600 hover:border-brand-300"
+                  ? "bg-brand-500 text-white border-brand-500 shadow-sm -translate-y-0.5"
+                  : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50 hover:shadow-sm"
               )}
             >
               {f.label}
-              {count > 0 && <span className="ml-1 opacity-80">({count})</span>}
+              {count > 0 && <span className="ml-1.5 opacity-90 px-1.5 py-0.5 rounded-full bg-black/10 text-[10px] font-bold">{count}</span>}
             </button>
           );
         })}
@@ -171,11 +173,14 @@ export function MorningInboxView() {
       {loading ? (
         <p className="text-sm text-gray-500">Loading inbox…</p>
       ) : filtered.length === 0 ? (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 px-6 py-10 text-center">
-          <p className="text-emerald-800 font-medium">Inbox clear for this scope</p>
-          <p className="text-sm text-emerald-700/80 mt-1">
+        <div className="rounded-2xl border border-gray-200 bg-white px-8 py-16 text-center shadow-sm animate-fade-in-up">
+          <div className="mx-auto w-16 h-16 rounded-full bg-gradient-to-tr from-emerald-100 to-teal-50 flex items-center justify-center mb-4 shadow-sm border border-emerald-200/50">
+            <span className="text-2xl text-emerald-500">✨</span>
+          </div>
+          <p className="text-emerald-900 font-extrabold text-lg">Inbox clear for this scope</p>
+          <p className="text-sm text-emerald-700/80 mt-2 font-medium">
             No action items match your filters. Check the{" "}
-            <ProgressLink href="/dashboard" className="underline font-medium">
+            <ProgressLink href="/dashboard" className="underline font-bold text-emerald-600 hover:text-emerald-800">
               Dashboard
             </ProgressLink>{" "}
             for portfolio overview.

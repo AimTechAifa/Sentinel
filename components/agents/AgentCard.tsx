@@ -62,7 +62,7 @@ export function AgentCard({ agent, isPaused, onTogglePause, featured }: AgentCar
                 onChange={onTogglePause}
                 className="sr-only peer"
               />
-              <div className="relative inline-flex h-6 w-11 cursor-pointer items-center rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-violet-500 peer-checked:to-brand-500 peer-checked:after:translate-x-5" />
+              <div className="relative inline-flex h-6 w-11 cursor-pointer items-center rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-brand-400 peer-checked:to-brand-500 peer-checked:after:translate-x-5" />
             </label>
           </div>
 
@@ -75,7 +75,7 @@ export function AgentCard({ agent, isPaused, onTogglePause, featured }: AgentCar
               {isPaused ? "Paused" : `Active · ${agent.lastRanMinutesAgo}m ago`}
             </span>
             {agent.liveAi && (
-              <span className="inline-flex items-center gap-1 text-violet-600 bg-violet-50 px-2 py-0.5 rounded-full">
+              <span className="inline-flex items-center gap-1 text-brand-500 bg-brand-25 px-2 py-0.5 rounded-full">
                 <Sparkles className="w-3 h-3" /> LLM
               </span>
             )}

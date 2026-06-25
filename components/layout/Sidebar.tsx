@@ -36,12 +36,10 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        "materio-sidebar fixed top-0 left-0 z-50 flex h-screen flex-col border-r border-[var(--border)] bg-[var(--sidebar)] shadow-theme-sm transition-[width] duration-300 ease-in-out lg:mt-0",
+        "materio-sidebar fixed top-0 left-0 z-50 flex h-screen flex-col bg-white border-r border-gray-200 shadow-sm transition-all duration-300 ease-in-out lg:top-0 lg:left-0 lg:h-screen lg:rounded-none",
         isWide ? "w-[var(--sidebar-width-expanded)]" : "w-[var(--sidebar-width-collapsed)]",
         isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
       )}
-      onMouseEnter={() => !isExpanded && setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
     >
       <div
         className={cn(
@@ -54,8 +52,8 @@ export function Sidebar() {
           className={cn("flex min-w-0 items-center gap-2.5", !isWide && "lg:justify-center")}
           onClick={handleNavClick}
         >
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-500 shadow-theme-sm">
-            <Shield className="h-[18px] w-[18px] text-white" />
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-400 to-brand-600 shadow-glow-brand">
+            <Shield className="h-[20px] w-[20px] text-white" />
           </div>
           {isWide && (
             <div className="min-w-0">
@@ -69,7 +67,7 @@ export function Sidebar() {
           type="button"
           onClick={handleToggle}
           className={cn(
-            "materio-sidebar-toggle flex shrink-0 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--sidebar)] text-gray-500 transition-colors hover:bg-brand-50 hover:text-brand-600",
+            "materio-sidebar-toggle flex shrink-0 items-center justify-center rounded-xl border border-white/50 bg-white/50 text-gray-500 transition-all hover:bg-brand-50 hover:text-brand-600 shadow-sm",
             isWide ? "h-8 w-8" : "h-8 w-8"
           )}
           aria-label={isExpanded ? "Collapse sidebar" : "Expand sidebar"}
@@ -129,17 +127,17 @@ export function Sidebar() {
       </nav>
 
       {isWide && (
-        <div className="shrink-0 border-t border-[var(--border)] px-3 py-4">
+        <div className="shrink-0 border-t border-white/20 px-3 py-4">
           <ProgressLink
             href="/templates"
             onClick={handleNavClick}
-            className="block rounded-lg bg-gradient-to-br from-brand-500 to-brand-600 px-4 py-4 shadow-theme-sm transition hover:from-brand-600 hover:to-brand-700"
+            className="block rounded-xl border border-white/40 bg-white/50 px-4 py-4 shadow-glass-sm backdrop-blur-md transition-all hover:border-brand-300 hover:bg-white/80 hover:-translate-y-1"
           >
-            <p className="flex items-center gap-2 text-sm font-semibold text-white">
-              <Sparkles className="h-4 w-4 text-brand-100" />
+            <p className="flex items-center gap-2 text-sm font-bold text-brand-700">
+              <Sparkles className="h-4 w-4 text-brand-500" />
               Templates
             </p>
-            <p className="mt-1 text-xs text-brand-100/90">
+            <p className="mt-1 text-xs text-gray-600 font-medium">
               {QUICK_START_TEMPLATES.length} guided demo scenarios
             </p>
           </ProgressLink>

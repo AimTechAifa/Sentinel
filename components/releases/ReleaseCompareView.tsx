@@ -42,7 +42,7 @@ function CompareColumn({
       <div className="space-y-3 text-sm">
         <div className="flex justify-between items-center rounded-lg bg-white/60 px-3 py-2 border border-gray-100">
           <span className="text-gray-500">Readiness</span>
-          <span className="text-2xl font-bold text-gray-800 tabular-nums">{snapshot.readiness}%</span>
+          <span className="text-2xl font-bold text-gray-800 font-mono text-[10px] uppercase tracking-wider">{snapshot.readiness}%</span>
         </div>
         <div className="flex justify-between">
           <span className="text-gray-500">Approvals</span>
@@ -54,18 +54,18 @@ function CompareColumn({
         </div>
         <div className="flex justify-between">
           <span className="text-gray-500">Files changed</span>
-          <span className="font-medium tabular-nums">{snapshot.filesChanged}</span>
+          <span className="font-medium font-mono text-[10px] uppercase tracking-wider">{snapshot.filesChanged}</span>
         </div>
         {snapshot.shipSuccessPct != null && (
           <div className="flex justify-between">
             <span className="text-gray-500">ML ship success</span>
-            <span className="font-bold tabular-nums">{snapshot.shipSuccessPct}%</span>
+            <span className="font-bold font-mono text-[10px] uppercase tracking-wider">{snapshot.shipSuccessPct}%</span>
           </div>
         )}
         {snapshot.rollbackRiskPct != null && (
           <div className="flex justify-between">
             <span className="text-gray-500">ML rollback risk</span>
-            <span className="font-bold tabular-nums text-error-600">{snapshot.rollbackRiskPct}%</span>
+            <span className="font-bold font-mono text-[10px] uppercase tracking-wider text-error-600">{snapshot.rollbackRiskPct}%</span>
           </div>
         )}
       </div>

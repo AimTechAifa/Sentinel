@@ -33,13 +33,13 @@ function SystemMapNode({
         "rounded-xl border-2 px-4 py-2.5 text-sm font-semibold shadow-sm min-w-[130px] text-center transition-all ring-2 ring-offset-1",
         data.nodeType === "environment"
           ? "bg-brand-50 border-brand-300 text-brand-800"
-          : "bg-violet-50 border-violet-300 text-violet-800",
+          : "bg-brand-25 border-brand-200 text-brand-700",
         data.status && statusRing[data.status],
         data.selected && "scale-105 shadow-theme-md border-brand-500"
       )}
     >
       <div>{data.label}</div>
-      {data.version && <div className="text-[10px] font-normal opacity-70 mt-0.5 tabular-nums">{data.version}</div>}
+      {data.version && <div className="text-[10px] font-normal opacity-70 mt-0.5 font-mono text-[10px] uppercase tracking-wider">{data.version}</div>}
       {data.status && data.status !== "healthy" && (
         <div className="text-[9px] uppercase tracking-wide mt-1 opacity-80">{data.status}</div>
       )}
@@ -129,7 +129,7 @@ export function SystemMappingView({
           {selected.serviceId && (
             <span className="font-mono text-[10px] bg-white/80 px-2 py-0.5 rounded border">{selected.serviceId}</span>
           )}
-          {selected.version && <span className="tabular-nums">Release target {selected.version}</span>}
+          {selected.version && <span className="font-mono text-[10px] uppercase tracking-wider">Release target {selected.version}</span>}
           {selected.serviceId && (() => {
             const rel = releases.find((r) => r.dependsOnServices.includes(selected.serviceId!));
             if (!rel) return null;
@@ -149,7 +149,7 @@ export function SystemMappingView({
           <span className="h-3 w-6 rounded border-2 border-brand-300 bg-brand-50" /> Environment
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="h-3 w-6 rounded border-2 border-violet-300 bg-violet-50" /> Application
+          <span className="h-3 w-6 rounded border-2 border-brand-200 bg-brand-25" /> Application
         </span>
         <span className="flex items-center gap-1.5">
           <span className="h-2 w-2 rounded-full bg-error-500 animate-pulse" /> Unstable / incident

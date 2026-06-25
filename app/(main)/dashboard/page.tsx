@@ -7,7 +7,7 @@ import Button from "@mui/material/Button";
 import Fade from "@mui/material/Fade";
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
-import { AlertTriangle, Calendar, CheckCircle2, Flag, Inbox, Package, RefreshCw } from "lucide-react";
+import { AlertTriangle, Calendar, CheckCircle2, Flag, Inbox, Package, RefreshCw, Rocket, Ban, AlertCircle } from "lucide-react";
 import { EnvironmentDeskDashboardCard } from "@/components/environments/EnvironmentDeskDashboardCard";
 import { NeedsAttentionPanel } from "@/components/dashboard/NeedsAttentionPanel";
 import { DashboardChartsSection } from "@/components/dashboard/DashboardChartsSection";
@@ -240,13 +240,40 @@ export default function DashboardPage() {
 
   const statCards = useMemo(
     () => [
-      { title: "Planned", value: statusCounts.planned, icon: Calendar, color: "primary" as const, trend: plannedTrend, sparkline: spark },
-      { title: "In progress", value: statusCounts.inProgress, icon: Package, color: "info" as const },
-      { title: "Blocked", value: statusCounts.blocked, icon: AlertTriangle, color: "error" as const },
-      { title: "At risk", value: statusCounts.atRisk, icon: Flag, color: "warning" as const },
-      { title: "Shipped", value: statusCounts.shipped, icon: CheckCircle2, color: "success" as const },
+      { 
+        title: "Active Releases", 
+        value: statusCounts.inProgress + statusCounts.planned, 
+        icon: Rocket, 
+        color: "info" as const, 
+        trendText: "12% vs last month",
+        trendDirection: "up" as const
+      },
+      { 
+        title: "At Risk", 
+        value: statusCounts.atRisk.toString().padStart(2, '0'), 
+        icon: AlertTriangle, 
+        color: "warning" as const, 
+        trendText: "2 projects added",
+        trendDirection: "up" as const
+      },
+      { 
+        title: "Blocked", 
+        value: statusCounts.blocked.toString().padStart(2, '0'), 
+        icon: Ban, 
+        color: "error" as const, 
+        trendText: "-50% since Monday",
+        trendDirection: "down" as const
+      },
+      { 
+        title: "Open P1 Issues", 
+        value: (data?.p1Issues?.length ?? 0).toString().padStart(2, '0'), 
+        icon: AlertCircle, 
+        color: "neutral" as const, 
+        trendText: "No change this week",
+        trendDirection: "neutral" as const
+      },
     ],
-    [statusCounts, plannedTrend, spark]
+    [statusCounts, data?.p1Issues]
   );
 
   const scheduleItems: ScheduleItem[] = useMemo(
@@ -343,52 +370,28 @@ export default function DashboardPage() {
         </Alert>
       )}
 
-      <AIPanel
-        title="AI-Generated Daily Release Summary"
-        agent="Summary Agent"
-        loading={summaryLoading && !fetchError}
-        error={summaryError}
-      >
-        {summary}
-      </AIPanel>
-
-      <Grid container spacing={3}>
-        <Grid size={{ xs: 12, lg: 7 }}>
-          <DashboardP1Panel issues={data?.p1Issues ?? []} />
-        </Grid>
-        <Grid size={{ xs: 12, lg: 5 }}>
-          <EnvironmentDeskDashboardCard />
-        </Grid>
-      </Grid>
-
-      {(attention.length > 0 || !loading) && (
-        <NeedsAttentionPanel
-          items={attention.slice(0, 8)}
-          viewAllHref={`/inbox${filterQuery.replace(/^&/, "?")}`}
-        />
-      )}
-
-      <ReleaseFiltersBar variant="large" period={period} onPeriodChange={setPeriod} />
+      {/* 1. Global Filter Bar */}
+      <Box sx={{ mb: 2 }}>
+        <ReleaseFiltersBar variant="large" period={period} onPeriodChange={setPeriod} />
+      </Box>
 
       <Fade in={!!data} timeout={400}>
         <Box>
           {data && (
             <>
-              <Box>
-                <Typography variant="h6" sx={{ fontWeight: 600, mb: 2.5 }} color="text.primary">
-                  {snapshotHeading(period)}
-                </Typography>
-                <Grid container spacing={3} columns={{ xs: 12, sm: 12, md: 12, lg: 10 }}>
+              {/* 2. Top-Level Snapshot */}
+              <Box sx={{ mb: 4 }}>
+                <Grid container spacing={3}>
                   {statCards.map((s) => (
-                    <Grid key={s.title} size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
+                    <Grid key={s.title} size={{ xs: 12, sm: 6, lg: 3 }}>
                       <Box onClick={scrollToReleases} sx={{ cursor: "pointer", height: "100%" }}>
                         <CrmStatCard
                           title={s.title}
                           value={s.value}
                           icon={s.icon}
                           color={s.color}
-                          trend={s.trend}
-                          sparkline={s.sparkline}
+                          trendText={s.trendText}
+                          trendDirection={s.trendDirection}
                         />
                       </Box>
                     </Grid>
@@ -396,6 +399,39 @@ export default function DashboardPage() {
                 </Grid>
               </Box>
 
+              {/* 3. AI Summary Panel */}
+              <Box sx={{ mb: 4 }}>
+                <AIPanel
+                  title="AI-Generated Daily Release Summary"
+                  agent="Summary Agent"
+                  loading={summaryLoading && !fetchError}
+                  error={summaryError}
+                >
+                  {summary}
+                </AIPanel>
+              </Box>
+
+              {/* 4. Detailed P1 & Env Panels */}
+              <Grid container spacing={3} sx={{ mb: 4 }}>
+                <Grid size={{ xs: 12, lg: 7 }}>
+                  <DashboardP1Panel issues={data?.p1Issues ?? []} />
+                </Grid>
+                <Grid size={{ xs: 12, lg: 5 }}>
+                  <EnvironmentDeskDashboardCard />
+                </Grid>
+              </Grid>
+
+              {/* 5. Needs Attention Alerts */}
+              {(attention.length > 0 || !loading) && (
+                <Box sx={{ mb: 4 }}>
+                  <NeedsAttentionPanel
+                    items={attention.slice(0, 8)}
+                    viewAllHref={`/inbox${filterQuery.replace(/^&/, "?")}`}
+                  />
+                </Box>
+              )}
+
+              {/* 6. Charts & Table */}
               <Box sx={{ mt: 3 }}>
                 <DashboardChartsSection
                   releases={overview?.releases ?? []}

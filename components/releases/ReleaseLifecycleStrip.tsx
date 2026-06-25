@@ -32,33 +32,39 @@ const statusStyles: Record<string, { circle: string; line: string; text: string 
 export function ReleaseLifecycleStrip({ stages }: { stages: LifecycleStageView[] }) {
   return (
     <AdvancedCard title="Release Lifecycle" variant="glass" innerClassName="p-5 md:p-6 overflow-x-auto">
-      <div className="flex items-start min-w-[640px]">
+      <div className="flex items-center min-w-[700px] w-full pt-6 pb-20 px-8">
         {stages.map((stage, idx) => {
           const Icon = icons[stage.id] ?? GitBranch;
           const s = statusStyles[stage.status];
           const isLast = idx === stages.length - 1;
 
           return (
-            <div key={stage.id} className="flex items-start flex-1 min-w-0">
-              <div className="flex flex-col items-center flex-1 min-w-0 px-1">
+            <div key={stage.id} className={cn("relative flex items-center", isLast ? "flex-none" : "flex-1")}>
+              
+              <div className="relative z-10 flex flex-col items-center">
                 <div
                   className={cn(
-                    "w-10 h-10 rounded-full border-2 flex items-center justify-center shrink-0 transition-all",
+                    "w-12 h-12 rounded-full border-[3px] flex items-center justify-center shrink-0 transition-all bg-white shadow-sm",
                     s.circle,
-                    stage.status === "active" && "animate-pulse"
+                    stage.status === "active" && "animate-pulse ring-4 ring-brand-100"
                   )}
                 >
                   {stage.status === "complete" ? (
-                    <Check className="w-5 h-5" />
+                    <Check className="w-5 h-5" strokeWidth={3} />
                   ) : (
                     <Icon className="w-5 h-5" />
                   )}
                 </div>
-                <p className={cn("mt-2 text-xs font-semibold text-center", s.text)}>{stage.label}</p>
-                <p className="mt-1 text-[10px] text-gray-400 text-center leading-tight line-clamp-2">{stage.detail}</p>
+                
+                {/* Absolute Text Container to prevent layout shifts/cut-offs */}
+                <div className="absolute top-14 left-1/2 -translate-x-1/2 w-36 text-center">
+                  <p className={cn("text-xs font-bold uppercase tracking-wider mb-1", s.text)}>{stage.label}</p>
+                  <p className="text-[11px] text-gray-500 leading-snug">{stage.detail}</p>
+                </div>
               </div>
+
               {!isLast && (
-                <div className={cn("h-0.5 w-full mt-5 min-w-[12px]", s.line, stage.status === "pending" && "bg-gray-200")} />
+                <div className={cn("flex-1 h-1 z-0", s.line, stage.status === "pending" && "bg-gray-200")} />
               )}
             </div>
           );

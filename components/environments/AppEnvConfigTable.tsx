@@ -64,7 +64,7 @@ export function AppEnvConfigTable({
               <td className={cn(tableCell, "text-gray-600 max-w-[200px] font-mono text-xs")}>{row.infra}</td>
               <td className={cn(tableCell, "text-gray-600 max-w-[180px]")}>{row.firewall}</td>
               <td className={cn(tableCell, "text-gray-600")}>{row.networkZone}</td>
-              <td className={cn(tableCell, "text-gray-400 text-xs tabular-nums whitespace-nowrap")}>
+              <td className={cn(tableCell, "text-gray-400 text-xs font-mono text-[10px] uppercase tracking-wider whitespace-nowrap")}>
                 {formatDate(row.lastUpdated)}
               </td>
             </tr>

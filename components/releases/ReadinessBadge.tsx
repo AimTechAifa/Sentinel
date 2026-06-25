@@ -21,7 +21,7 @@ export function ReadinessBadge({
       <div className="flex items-center gap-2">
         <span
           className={cn(
-            "inline-flex items-center rounded-full px-2 py-0.5 text-theme-xs font-semibold tabular-nums",
+            "inline-flex items-center rounded-full px-2 py-0.5 text-theme-xs font-semibold font-mono text-[10px] uppercase tracking-wider",
             token.bg,
             token.text
           )}

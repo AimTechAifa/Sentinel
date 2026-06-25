@@ -121,7 +121,7 @@ function SourceStat({
       <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-gray-500">
         {Icon && <Icon className="h-3 w-3" />} {label}
       </div>
-      <p className="text-xl font-bold tabular-nums text-gray-800 mt-0.5">{value}</p>
+      <p className="text-xl font-bold font-mono text-[10px] uppercase tracking-wider text-gray-800 mt-0.5">{value}</p>
       <p className="text-[10px] text-gray-400 mt-0.5">{hint}</p>
     </div>
   );

@@ -104,7 +104,7 @@ export function VersionMatrix({
                         e.stopPropagation();
                         onPromote(row.application, row.promotionPct <= 33 ? "dev" : "test", row.promotionPct <= 33 ? "test" : "prod");
                       }}
-                      className="text-left text-xs font-medium text-violet-600 hover:text-violet-800"
+                      className="text-left text-xs font-medium text-brand-500 hover:text-brand-700"
                     >
                       Promote →
                     </button>
@@ -123,7 +123,7 @@ function VersionBadge({ version, ahead, prod }: { version: string; ahead?: boole
   return (
     <span
       className={cn(
-        "inline-flex rounded-lg px-2.5 py-1 text-xs font-bold tabular-nums",
+        "inline-flex rounded-lg px-2.5 py-1 text-xs font-bold font-mono text-[10px] uppercase tracking-wider",
         prod ? "bg-gray-100 text-gray-700" : ahead ? "bg-brand-50 text-brand-700 ring-1 ring-brand-200" : "bg-success-50 text-success-700"
       )}
     >
@@ -144,7 +144,7 @@ function PromotionBar({ pct, drift }: { pct: number; drift: boolean }) {
           className={cn("h-full rounded-full", drift ? "bg-gradient-to-r from-brand-400 to-warning-400" : "bg-success-500")}
         />
       </div>
-      <span className="text-[10px] tabular-nums text-gray-500 w-8">{pct}%</span>
+      <span className="text-[10px] font-mono text-[10px] uppercase tracking-wider text-gray-500 w-8">{pct}%</span>
     </div>
   );
 }

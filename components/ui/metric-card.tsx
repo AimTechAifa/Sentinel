@@ -50,7 +50,7 @@ export function MetricCard({ label, value, icon: Icon, delay = 0, trend, classNa
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: delay + 0.15 }}
-              className="mt-2 text-title-sm font-bold text-gray-800 tabular-nums"
+              className="mt-2 text-title-sm font-bold text-gray-800 font-mono text-[10px] uppercase tracking-wider"
             >
               {value}
             </motion.h4>

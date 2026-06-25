@@ -1,10 +1,6 @@
 "use client";
 
-import Box from "@mui/material/Box";
-import Skeleton from "@mui/material/Skeleton";
-import Typography from "@mui/material/Typography";
 import { AgentBadge } from "@/components/badges/AgentBadge";
-import { MaterioCard } from "@/components/materio/crm/MaterioCard";
 import type { AgentRole } from "@/lib/types";
 
 interface AIPanelProps {
@@ -17,37 +13,35 @@ interface AIPanelProps {
 
 function PanelSkeleton() {
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
-      {[100, 92, 78, 65].map((w) => (
-        <Skeleton key={w} variant="rounded" height={14} width={`${w}%`} sx={{ bgcolor: "action.hover" }} />
-      ))}
-    </Box>
+    <div className="flex flex-col gap-2">
+      <div className="h-3 w-full animate-pulse rounded bg-gray-200" />
+      <div className="h-3 w-[92%] animate-pulse rounded bg-gray-200" />
+      <div className="h-3 w-[78%] animate-pulse rounded bg-gray-200" />
+      <div className="h-3 w-[65%] animate-pulse rounded bg-gray-200" />
+    </div>
   );
 }
 
 export function AIPanel({ title, agent, children, loading, error }: AIPanelProps) {
   return (
-    <MaterioCard
-      title={title}
-      action={<AgentBadge agent={agent} />}
-      sx={{
-        borderLeft: 4,
-        borderLeftColor: "primary.main",
-        bgcolor: (theme) =>
-          theme.palette.mode === "dark" ? "background.paper" : "rgba(145, 85, 253, 0.04)",
-      }}
-    >
+    <div className="relative overflow-hidden rounded-xl border border-brand-200 bg-brand-50/40 p-5 shadow-sm">
+      <div className="absolute bottom-0 left-0 top-0 w-1 bg-brand-500" />
+      <div className="mb-4 flex items-center justify-between gap-4">
+        <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
+        <AgentBadge agent={agent} />
+      </div>
+      
       {loading && <PanelSkeleton />}
+      
       {error && !loading && (
-        <Typography variant="body2" color="error.main">
-          {error}
-        </Typography>
+        <p className="text-sm text-error-600">{error}</p>
       )}
+      
       {children && !loading && (
-        <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.7 }}>
+        <div className="text-sm leading-relaxed text-gray-700">
           {children}
-        </Typography>
+        </div>
       )}
-    </MaterioCard>
+    </div>
   );
 }

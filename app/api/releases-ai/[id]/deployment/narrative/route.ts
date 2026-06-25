@@ -4,12 +4,13 @@ import { setRollbackNarrative } from "@/lib/release-state-repo";
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const { error } = await requireRole("editor");
   if (error) return error;
 
   const body = (await req.json()) as { narrative: string };
-  await setRollbackNarrative(params.id, body.narrative);
+  await setRollbackNarrative(id, body.narrative);
   return NextResponse.json({ ok: true });
 }

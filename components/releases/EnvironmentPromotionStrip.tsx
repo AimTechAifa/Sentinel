@@ -38,25 +38,34 @@ export function EnvironmentPromotionStrip({
         {regions.map((region) => {
           const row = promotions.filter((p) => p.region === region);
           return (
-            <div key={region}>
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 mb-2">{region}</p>
-              <div className="flex flex-wrap gap-2">
-                {ENV_ORDER.map((env) => {
+            <div key={region} className="bg-white/60 p-4 rounded-xl border border-gray-100 shadow-sm">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-gray-500 mb-3">{region} Region</p>
+              <div className="flex items-center flex-wrap gap-2">
+                {ENV_ORDER.map((env, i) => {
                   const promo = row.find((p) => p.environment === env);
                   if (!promo) return null;
                   return (
-                    <div
-                      key={`${region}-${env}`}
-                      className={cn(
-                        "flex flex-col rounded-xl border px-3 py-2 min-w-[100px] transition-all",
-                        statusStyles[promo.status]
+                    <div key={`${region}-${env}`} className="flex items-center">
+                      <div
+                        className={cn(
+                          "flex flex-col rounded-xl border px-4 py-2.5 min-w-[120px] transition-all shadow-theme-sm bg-white",
+                          statusStyles[promo.status]
+                        )}
+                      >
+                        <span className="text-[10px] font-bold tracking-wider uppercase opacity-60 mb-0.5">{ENV_LABELS[env]}</span>
+                        <span className="text-sm font-bold font-mono tracking-wider">{promo.version}</span>
+                        <span className="text-[10px] uppercase font-bold tracking-wider mt-1 opacity-80">
+                          {promo.status === "deploying" ? "Deploying…" : promo.status.replace("-", " ")}
+                        </span>
+                      </div>
+                      
+                      {i < ENV_ORDER.length - 1 && (
+                        <div className="text-gray-300 mx-2">
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                          </svg>
+                        </div>
                       )}
-                    >
-                      <span className="text-[10px] font-medium opacity-70">{ENV_LABELS[env]}</span>
-                      <span className="text-sm font-bold tabular-nums">{promo.version}</span>
-                      <span className="text-[10px] capitalize mt-0.5 opacity-80">
-                        {promo.status === "deploying" ? "Deploying…" : promo.status.replace("-", " ")}
-                      </span>
                     </div>
                   );
                 })}

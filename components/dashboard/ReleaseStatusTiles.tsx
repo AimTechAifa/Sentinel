@@ -24,11 +24,11 @@ type TileConfig = {
 };
 
 const TILES: TileConfig[] = [
-  { key: "planned", label: "Planned", icon: Calendar, color: "#9155FD", bg: "rgba(145, 85, 253, 0.12)" },
-  { key: "blocked", label: "Blocked", icon: AlertTriangle, color: "#FF4C51", bg: "rgba(255, 76, 81, 0.12)" },
-  { key: "shipped", label: "Shipped", icon: CheckCircle2, color: "#56CA00", bg: "rgba(86, 202, 0, 0.12)" },
-  { key: "atRisk", label: "At Risk", icon: Flag, color: "#FFB400", bg: "rgba(255, 180, 0, 0.14)" },
-  { key: "inProgress", label: "In Progress", icon: Package, color: "#16B1FF", bg: "rgba(22, 177, 255, 0.12)" },
+  { key: "planned", label: "Planned", icon: Calendar, color: "#3b5bdb", bg: "rgba(59, 91, 219, 0.12)" },
+  { key: "blocked", label: "Blocked", icon: AlertTriangle, color: "#ba1a1a", bg: "rgba(186, 26, 26, 0.12)" },
+  { key: "shipped", label: "Shipped", icon: CheckCircle2, color: "#40c057", bg: "rgba(64, 192, 87, 0.12)" },
+  { key: "atRisk", label: "At Risk", icon: Flag, color: "#fab005", bg: "rgba(250, 176, 5, 0.14)" },
+  { key: "inProgress", label: "In Progress", icon: Package, color: "#228be6", bg: "rgba(34, 139, 230, 0.12)" },
 ];
 
 export function ReleaseStatusTiles({

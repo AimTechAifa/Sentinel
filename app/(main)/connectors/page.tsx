@@ -1,163 +1,289 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
-import { TopBar } from "@/components/layout/TopBar";
-import { StatusBadge } from "@/components/badges/StatusBadge";
-import { AdvancedCard } from "@/components/ui/advanced-card";
-import { MetricCard } from "@/components/ui/metric-card";
-import { connectors } from "@/lib/dummy-data";
-import { connectorSlug } from "@/lib/connectors";
-import type { ConnectorCategory } from "@/lib/types";
-import { formatDateTime } from "@/lib/utils";
-import { taBtnSecondary } from "@/lib/styles";
-import { Plug, Link2, Unlink, AlertCircle, RefreshCw } from "lucide-react";
-import type { SessionUser } from "@/lib/auth/roles";
-
-const CATEGORY_ORDER: ConnectorCategory[] = [
-  "Issue Tracking",
-  "Source Control",
-  "CI/CD",
-  "Change Management",
-  "Monitoring",
-  "Incident",
-  "Security",
-  "Documentation",
-  "Communication",
-  "Deployment",
-  "Artifact Registry",
-  "Feature Flags",
-  "Secrets & Config",
-];
-
-const statusDot: Record<string, string> = {
-  Connected: "bg-emerald-500 shadow-[0_0_8px_rgba(18,183,106,0.5)]",
-  Disconnected: "bg-gray-400",
-  Error: "bg-error-500 shadow-[0_0_8px_rgba(240,68,56,0.5)]",
-};
+import { ChevronRight, Settings, Plus, RefreshCw, AlertTriangle, ChevronDown, Zap, Search, Link2 } from "lucide-react";
 
 export default function ConnectorsPage() {
-  const searchParams = useSearchParams();
-  const filter = searchParams.get("filter");
-  const [liveSync, setLiveSync] = useState<{ name: string; lastSynced: string }[]>([]);
-  const [user, setUser] = useState<SessionUser | null>(null);
-  const [syncing, setSyncing] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetch("/api/connectors").then((r) => r.json()).then(setLiveSync);
-    fetch("/api/auth/me").then((r) => r.json()).then((d) => setUser(d.user));
-  }, []);
-
-  const syncNow = async (name: string) => {
-    setSyncing(name);
-    const res = await fetch("/api/connectors", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name }),
-    });
-    if (res.ok) {
-      const row = await res.json();
-      setLiveSync((prev) => prev.map((c) => (c.name === name ? row : c)));
-    }
-    setSyncing(null);
-  };
-
-  const canSync = user?.role === "editor" || user?.role === "admin";
-
-  const filteredConnectors = useMemo(() => {
-    if (filter === "issues") {
-      return connectors.filter((c) => c.status === "Error" || c.status === "Disconnected");
-    }
-    return connectors;
-  }, [filter]);
-
-  const connected = connectors.filter((c) => c.status === "Connected").length;
-  const errors = connectors.filter((c) => c.status === "Error").length;
-  const disconnected = connectors.filter((c) => c.status === "Disconnected").length;
-
-  const byCategory = CATEGORY_ORDER.map((category) => ({
-    category,
-    items: filteredConnectors.filter((c) => c.category === category),
-  })).filter((g) => g.items.length > 0);
-
-  const metrics = [
-    { label: "Total integrations", value: connectors.length, icon: Plug },
-    { label: "Connected", value: connected, icon: Link2 },
-    { label: "Errors", value: errors, icon: AlertCircle },
-    { label: "Disconnected", value: disconnected, icon: Unlink },
-  ];
-
   return (
-    <div>
-      <TopBar
-        title="Connectors"
-        subtitle={
-          filter === "issues"
-            ? "Showing integrations with sync errors or disconnected status"
-            : `${connectors.length} integrations across your DevOps toolchain`
-        }
-        highlight
-      />
-
-      <div className="grid grid-cols-12 gap-4 md:gap-6 mb-8">
-        {metrics.map(({ label, value, icon: Icon }, i) => (
-          <div key={label} className="col-span-6 sm:col-span-3">
-            <MetricCard label={label} value={value} icon={Icon} delay={i * 0.06} />
+    <div className="max-w-[1200px] font-sans pb-24 relative">
+      {/* Header Section */}
+      <div className="mb-8 mt-2">
+        <div className="flex items-center text-[13px] text-gray-500 font-medium mb-3">
+          <span className="hover:text-gray-800 cursor-pointer">Settings</span>
+          <ChevronRight className="h-3 w-3 mx-1.5" />
+          <span className="text-[#2548C9] font-semibold">Connectors</span>
+        </div>
+        
+        <div className="flex items-start justify-between">
+          <div className="max-w-[700px]">
+            <h1 className="text-[32px] font-bold text-[#111827] tracking-tight mb-2">System Connectors</h1>
+            <p className="text-[15px] text-gray-500 font-medium leading-relaxed">
+              Manage automated data synchronization between Release Manager and your enterprise stack. Real-time status for CI/CD, ITSM, and issue tracking systems.
+            </p>
           </div>
-        ))}
+          <div className="flex items-center gap-4">
+            <button className="flex items-center gap-2 rounded-lg bg-white px-5 py-2.5 text-[14px] font-semibold text-gray-700 shadow-sm border border-gray-300 hover:bg-gray-50 transition-colors">
+              <RefreshCw className="h-4 w-4 text-gray-600" /> Sync All
+            </button>
+            <button className="flex items-center gap-2 rounded-lg bg-[#2548C9] px-6 py-2.5 text-[14px] font-semibold text-white shadow-sm hover:bg-[#1E3A9F] transition-colors">
+              <Plus className="h-4 w-4" /> Add Connector
+            </button>
+          </div>
+        </div>
       </div>
 
-      {liveSync.length > 0 && (
-        <AdvancedCard title="Release Desk integrations" subtitle="Live sync status — same sources shown on Dashboard" variant="glass" className="mb-8">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {liveSync.map((c) => (
-              <div key={c.name} className="rounded-xl border border-gray-100 bg-white/80 p-4 flex flex-col gap-2">
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold text-gray-800">{c.name}</span>
-                  <StatusBadge status="Connected" />
+      {/* Grid Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mb-10">
+        
+        {/* Jira Software Card */}
+        <div className="rounded-xl border border-gray-200 bg-white shadow-sm flex flex-col overflow-hidden">
+          <div className="p-5 flex-1">
+            <div className="flex justify-between items-start mb-6">
+              <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-gray-100 bg-[#F4F5F7] shadow-sm">
+                  {/* Fake Jira Icon */}
+                  <div className="text-[#0052CC] font-bold text-xl">J</div>
                 </div>
-                <p className="text-xs text-gray-500">Last synced: {formatDateTime(c.lastSynced)}</p>
-                {canSync && (
-                  <button type="button" className={taBtnSecondary + " text-xs !py-1.5"} onClick={() => syncNow(c.name)} disabled={syncing === c.name}>
-                    <RefreshCw className={`h-3.5 w-3.5 inline mr-1 ${syncing === c.name ? "animate-spin" : ""}`} />
-                    {syncing === c.name ? "Syncing…" : "Sync now"}
-                  </button>
-                )}
+                <div>
+                  <h3 className="text-[17px] font-bold text-gray-900 mb-0.5">Jira Software</h3>
+                  <div className="flex items-center gap-1.5 text-[13px] font-semibold text-[#16A34A]">
+                    <div className="h-2 w-2 rounded-full bg-[#16A34A]" /> Healthy
+                  </div>
+                </div>
               </div>
-            ))}
-          </div>
-        </AdvancedCard>
-      )}
-
-      <div className="space-y-8">
-        {byCategory.map(({ category, items }) => (
-          <section key={category}>
-            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">{category}</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {items.map((c) => (
-                <div key={c.id} id={connectorSlug(c.name)} className="scroll-mt-24 h-full">
-                <AdvancedCard variant="glass" className="h-full">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-semibold text-gray-800">{c.name}</h3>
-                    <div className="flex items-center gap-2">
-                      <span className={`w-2 h-2 rounded-full ${statusDot[c.status]}`} />
-                      <StatusBadge status={c.status} />
-                    </div>
-                  </div>
-                  <p className="text-sm text-gray-500 mb-3">{c.description}</p>
-                  <div className="text-xs text-gray-400 space-y-1">
-                    <p>
-                      Token: <code className="bg-slate-100 px-1 rounded">{c.maskedToken}</code>
-                    </p>
-                    <p>Last synced: {formatDateTime(c.lastSynced)}</p>
-                  </div>
-                </AdvancedCard>
-                </div>
-              ))}
+              <Settings className="h-5 w-5 text-gray-400 cursor-pointer hover:text-gray-600" />
             </div>
-          </section>
-        ))}
+
+            <div className="space-y-3 font-mono text-[13px] text-gray-600">
+              <div className="flex justify-between">
+                <span>Last synced</span>
+                <span className="font-medium text-gray-900">2 mins ago</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Active Webhooks</span>
+                <span className="font-medium text-gray-900">14 active</span>
+              </div>
+            </div>
+          </div>
+          <div className="border-t border-gray-100 bg-gray-50/50 px-5 py-3 flex items-center justify-between">
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Project-Alpha, Tech-Ops</span>
+            <button className="flex items-center gap-1.5 text-[13px] font-bold text-[#2548C9] hover:underline">
+              <RefreshCw className="h-3.5 w-3.5" /> Sync now
+            </button>
+          </div>
+        </div>
+
+        {/* GitHub Enterprise Card */}
+        <div className="rounded-xl border border-orange-200 border-l-4 border-l-orange-500 bg-white shadow-sm flex flex-col overflow-hidden">
+          <div className="p-5 flex-1">
+            <div className="flex justify-between items-start mb-6">
+              <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-gray-100 bg-gray-900 shadow-sm">
+                  {/* Fake GitHub Icon */}
+                  <svg viewBox="0 0 24 24" className="w-7 h-7 text-white" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.03-2.682-.103-.253-.447-1.27.098-2.646 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.114 2.504.336 1.909-1.294 2.747-1.025 2.747-1.025.546 1.376.202 2.394.1 2.646.64.699 1.026 1.591 1.026 2.682 0 3.841-2.337 4.687-4.565 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.161 22 16.418 22 12c0-5.523-4.477-10-10-10z"></path></svg>
+                </div>
+                <div>
+                  <h3 className="text-[17px] font-bold text-gray-900 mb-0.5">GitHub Enterprise</h3>
+                  <div className="flex items-center gap-1.5 text-[13px] font-semibold text-[#D97706]">
+                    <div className="h-2 w-2 rounded-full bg-[#D97706]" /> Latency Warning
+                  </div>
+                </div>
+              </div>
+              <Settings className="h-5 w-5 text-gray-400 cursor-pointer hover:text-gray-600" />
+            </div>
+
+            <div className="space-y-3 font-mono text-[13px] text-gray-600 mb-4">
+              <div className="flex justify-between">
+                <span>Last synced</span>
+                <span className="font-medium text-gray-900">45 mins ago</span>
+              </div>
+            </div>
+
+            <div className="rounded-lg bg-[#FFF7ED] p-3 border border-[#FFEDD5]">
+              <p className="text-[13px] text-[#C2410C] font-medium leading-relaxed">
+                <AlertTriangle className="h-4 w-4 inline mr-1.5 -mt-0.5" />
+                Rate limit approaching (92%). Automated sync frequency temporarily reduced.
+              </p>
+            </div>
+          </div>
+          <div className="border-t border-gray-100 bg-gray-50/50 px-5 py-3 flex items-center justify-between">
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">86 REPOSITORIES</span>
+            <button className="flex items-center gap-1.5 text-[13px] font-bold text-[#2548C9] hover:underline">
+              <RefreshCw className="h-3.5 w-3.5" /> Sync now
+            </button>
+          </div>
+        </div>
+
+        {/* ServiceNow Card */}
+        <div className="rounded-xl border border-red-200 border-l-4 border-l-red-500 bg-white shadow-sm flex flex-col overflow-hidden">
+          <div className="p-5 flex-1">
+            <div className="flex justify-between items-start mb-6">
+              <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-gray-100 bg-[#E8F5E9] shadow-sm">
+                  {/* Fake ServiceNow Icon */}
+                  <div className="text-[#2E7D32] font-bold text-xl">S</div>
+                </div>
+                <div>
+                  <h3 className="text-[17px] font-bold text-gray-900 mb-0.5">ServiceNow</h3>
+                  <div className="flex items-center gap-1.5 text-[13px] font-semibold text-[#DC2626]">
+                    <div className="h-2 w-2 rounded-full bg-[#DC2626]" /> Auth Failed
+                  </div>
+                </div>
+              </div>
+              <Settings className="h-5 w-5 text-gray-400 cursor-pointer hover:text-gray-600" />
+            </div>
+
+            <div className="space-y-3 font-mono text-[13px] text-gray-600 mb-4">
+              <div className="flex justify-between">
+                <span>Last synced</span>
+                <span className="font-medium text-gray-900">3 hours ago</span>
+              </div>
+            </div>
+
+            <div className="rounded-lg bg-[#FEF2F2] px-3 py-2 border border-[#FEE2E2] flex items-center justify-between cursor-pointer hover:bg-red-50 transition-colors">
+              <div className="flex items-center gap-2 text-[13px] text-[#DC2626] font-semibold">
+                <AlertTriangle className="h-4 w-4" /> 3 Affected Releases
+              </div>
+              <ChevronDown className="h-4 w-4 text-[#DC2626]" />
+            </div>
+          </div>
+          <div className="border-t border-gray-100 bg-gray-50/50 px-5 py-3 flex items-center justify-between">
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1">
+              PROD_ITSM_INSTANCE <Link2 className="h-3 w-3 text-red-400" />
+            </span>
+            <button className="flex items-center gap-1.5 text-[13px] font-bold text-[#DC2626] hover:underline text-right leading-tight">
+              Update<br/>Credentials
+            </button>
+          </div>
+        </div>
+
+        {/* AWS CloudWatch Card */}
+        <div className="rounded-xl border border-gray-200 bg-white shadow-sm flex flex-col overflow-hidden">
+          <div className="p-5 flex-1">
+            <div className="flex justify-between items-start mb-6">
+              <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-gray-100 bg-[#232F3E] shadow-sm">
+                  {/* Fake AWS Icon */}
+                  <div className="text-[#FF9900] font-bold text-xl">AWS</div>
+                </div>
+                <div>
+                  <h3 className="text-[17px] font-bold text-gray-900 mb-0.5">AWS CloudWatch</h3>
+                  <div className="flex items-center gap-1.5 text-[13px] font-semibold text-[#16A34A]">
+                    <div className="h-2 w-2 rounded-full bg-[#16A34A]" /> Healthy
+                  </div>
+                </div>
+              </div>
+              <Settings className="h-5 w-5 text-gray-400 cursor-pointer hover:text-gray-600" />
+            </div>
+
+            <div className="space-y-3 font-mono text-[13px] text-gray-600">
+              <div className="flex justify-between">
+                <span>Last synced</span>
+                <span className="font-medium text-gray-900">8 mins ago</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Log Streams</span>
+                <span className="font-medium text-gray-900">1,242 connected</span>
+              </div>
+            </div>
+          </div>
+          <div className="border-t border-gray-100 bg-gray-50/50 px-5 py-3 flex items-center justify-between">
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">US-EAST-1, US-WEST-2</span>
+            <button className="flex items-center gap-1.5 text-[13px] font-bold text-[#2548C9] hover:underline">
+              <RefreshCw className="h-3.5 w-3.5" /> Sync now
+            </button>
+          </div>
+        </div>
+
+        {/* Slack Ops Hub Card */}
+        <div className="rounded-xl border border-gray-200 bg-white shadow-sm flex flex-col overflow-hidden">
+          <div className="p-5 flex-1">
+            <div className="flex justify-between items-start mb-6">
+              <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-gray-100 bg-white shadow-sm">
+                  {/* Fake Slack Icon */}
+                  <div className="flex gap-0.5">
+                    <div className="w-2 h-2 rounded-full bg-[#E01E5A]" />
+                    <div className="w-2 h-2 rounded-full bg-[#36C5F0]" />
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-[17px] font-bold text-gray-900 mb-0.5">Slack Ops Hub</h3>
+                  <div className="flex items-center gap-1.5 text-[13px] font-semibold text-[#16A34A]">
+                    <div className="h-2 w-2 rounded-full bg-[#16A34A]" /> Healthy
+                  </div>
+                </div>
+              </div>
+              <Settings className="h-5 w-5 text-gray-400 cursor-pointer hover:text-gray-600" />
+            </div>
+
+            <div className="space-y-3 font-mono text-[13px] text-gray-600">
+              <div className="flex justify-between">
+                <span>Last heartbeat</span>
+                <span className="font-medium text-gray-900">10s ago</span>
+              </div>
+              <div className="text-center pt-2">
+                <span className="font-medium text-gray-900 block leading-tight">Channels #rel-notifs, #ops-incidents</span>
+              </div>
+            </div>
+          </div>
+          <div className="border-t border-gray-100 bg-gray-50/50 px-5 py-3 flex items-center justify-between">
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">RELEASE_BOT_USER</span>
+            <button className="flex items-center gap-1.5 text-[13px] font-bold text-[#2548C9] hover:underline">
+              <Zap className="h-3.5 w-3.5" fill="currentColor" /> Test Webhook
+            </button>
+          </div>
+        </div>
+
+        {/* Add Custom Source Card */}
+        <div className="rounded-xl border-2 border-dashed border-gray-300 bg-gray-50/50 shadow-sm flex flex-col items-center justify-center p-8 cursor-pointer hover:bg-gray-50 hover:border-gray-400 transition-colors group min-h-[250px]">
+          <div className="h-12 w-12 rounded-full border border-gray-300 bg-white flex items-center justify-center mb-4 group-hover:shadow-md transition-shadow">
+            <Plus className="h-6 w-6 text-gray-400" />
+          </div>
+          <h3 className="text-[16px] font-bold text-gray-700 mb-1">Add Custom Source</h3>
+          <p className="text-[13px] text-gray-500 text-center font-medium max-w-[200px]">
+            Connect via REST, GraphQL or gRPC
+          </p>
+        </div>
+
       </div>
+
+      {/* Real-time Sync Activity Footer */}
+      <div className="rounded-xl border border-gray-200 bg-[#F8FAFC] shadow-sm overflow-hidden mb-8">
+        <div className="px-6 py-4 flex items-center justify-between border-b border-gray-200">
+          <h3 className="text-[16px] font-bold text-gray-900">Real-time Sync Activity</h3>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1.5 text-[13px] font-semibold text-[#16A34A]">
+              <div className="h-2 w-2 rounded-full bg-[#16A34A] animate-pulse" /> Live Monitoring
+            </div>
+            <button className="text-[13px] font-bold text-[#2548C9] hover:underline">
+              View System Logs
+            </button>
+          </div>
+        </div>
+        <div className="p-6 space-y-4 font-mono text-[13px]">
+          {/* Row 1 */}
+          <div className="flex items-center gap-4">
+            <span className="text-gray-500 w-[100px] shrink-0">10:45:02 AM</span>
+            <span className="px-2 py-0.5 rounded bg-gray-200 text-gray-700 font-bold text-[11px] w-[55px] text-center shrink-0">JIRA</span>
+            <span className="text-gray-700 flex-1">Successful sync: Imported 14 new tickets for Project ALPHA</span>
+            <span className="text-[#16A34A] font-bold shrink-0">SUCCESS</span>
+          </div>
+          
+          {/* Row 2 */}
+          <div className="flex items-center gap-4">
+            <span className="text-gray-500 w-[100px] shrink-0">10:42:55 AM</span>
+            <span className="px-2 py-0.5 rounded bg-gray-200 text-gray-700 font-bold text-[11px] w-[55px] text-center shrink-0">SLACK</span>
+            <span className="text-gray-700 flex-1">Outbound webhook: Deployment notification sent to #rel-notifs</span>
+            <span className="text-[#16A34A] font-bold shrink-0">SUCCESS</span>
+          </div>
+        </div>
+      </div>
+
+      {/* FAB Button */}
+      <div className="fixed bottom-8 right-8 h-14 w-14 rounded-full bg-[#2548C9] shadow-lg shadow-blue-900/20 flex items-center justify-center cursor-pointer hover:bg-[#1E3A9F] hover:scale-105 transition-all z-50">
+        <Plus className="h-6 w-6 text-white" />
+      </div>
+
     </div>
   );
 }

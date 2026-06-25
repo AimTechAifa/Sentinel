@@ -490,7 +490,7 @@ function UnifiedRow({
               <button type="button" onClick={onDelete} className="text-error-500"><Trash2 className="h-4 w-4" /></button>
             </div>
           ) : (
-            <span className="text-[10px] text-violet-600">Demo</span>
+            <span className="text-[10px] text-brand-500">Demo</span>
           )}
         </td>
       )}

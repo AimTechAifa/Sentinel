@@ -99,11 +99,11 @@ export function ReleaseTimeline({
           return (
             <div
               key={fw.id}
-              className="absolute top-[36px] bottom-2 rounded-lg bg-violet-100/60 border border-violet-200/80 z-0"
+              className="absolute top-[36px] bottom-2 rounded-lg bg-brand-50/60 border border-brand-100/80 z-0"
               style={{ left: `${left}%`, width: `${width}%` }}
               title={`${fw.name}: ${fw.reason}`}
             >
-              <span className="absolute top-1 left-2 text-[9px] font-semibold text-violet-600 truncate max-w-full pr-2 flex items-center gap-0.5">
+              <span className="absolute top-1 left-2 text-[9px] font-semibold text-brand-500 truncate max-w-full pr-2 flex items-center gap-0.5">
                 <Snowflake className="h-2.5 w-2.5 shrink-0" /> {fw.name}
               </span>
             </div>
@@ -121,7 +121,7 @@ export function ReleaseTimeline({
         )}
         <div className="flex justify-between text-[10px] text-gray-400 mb-1 px-0.5">
           {ticks.map((t, i) => (
-            <span key={i} className="tabular-nums">
+            <span key={i} className="font-mono text-[10px] uppercase tracking-wider">
               {t.toLocaleDateString("en-AU", { month: "short", day: "numeric" })}
             </span>
           ))}
@@ -142,7 +142,7 @@ export function ReleaseTimeline({
                   className={cn(
                     "absolute top-1 h-8 rounded-lg border flex items-center px-2 gap-1.5 text-xs font-medium shadow-sm transition-all hover:shadow-md hover:scale-[1.02] text-left overflow-hidden z-10",
                     impactStyles[entry.impact],
-                    entry.inFreezeWindow && "ring-2 ring-violet-300 ring-offset-1",
+                    entry.inFreezeWindow && "ring-2 ring-brand-200 ring-offset-1",
                     selected && "ring-2 ring-brand-400 shadow-theme-md z-20"
                   )}
                   style={{
@@ -153,10 +153,10 @@ export function ReleaseTimeline({
                   title={`${entry.name} · ${formatDate(entry.startDate)} → ${formatDate(entry.endDate)}`}
                 >
                   <span className={cn("h-2 w-2 rounded-full shrink-0", sizeColors[entry.size])} />
-                  {entry.inFreezeWindow && <Snowflake className="h-3 w-3 shrink-0 text-violet-500" />}
+                  {entry.inFreezeWindow && <Snowflake className="h-3 w-3 shrink-0 text-brand-400" />}
                   <span className="truncate font-semibold">{entry.name}</span>
                   {entry.version && (
-                    <span className="text-[10px] opacity-70 shrink-0 tabular-nums">{entry.version}</span>
+                    <span className="text-[10px] opacity-70 shrink-0 font-mono text-[10px] uppercase tracking-wider">{entry.version}</span>
                   )}
                   <span className="text-[10px] opacity-50 shrink-0 ml-auto">{entry.department}</span>
                 </motion.button>
@@ -186,7 +186,7 @@ export function ReleaseTimeline({
               </p>
             </div>
             {entry.inFreezeWindow && (
-              <span className="text-xs text-violet-600 flex items-center gap-1">
+              <span className="text-xs text-brand-500 flex items-center gap-1">
                 <Snowflake className="h-3 w-3" /> Overlaps {entry.freezeWindowName}
               </span>
             )}
@@ -214,7 +214,7 @@ export function ReleaseTimeline({
           <span className="h-2 w-2 rounded-full bg-success-500" /> Low size
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="h-3 w-4 rounded bg-violet-100 border border-violet-200" /> Freeze window
+          <span className="h-3 w-4 rounded bg-brand-50 border border-brand-100" /> Freeze window
         </span>
       </div>
     </AdvancedCard>

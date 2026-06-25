@@ -43,7 +43,7 @@ export function EnterpriseReleaseImpactPanel({ impacts }: { impacts: EnterpriseR
             <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
               <div>
                 <h4 className="font-semibold text-gray-800">{impact.releaseName}</h4>
-                {impact.version && <p className="text-xs text-gray-500 tabular-nums">{impact.version}</p>}
+                {impact.version && <p className="text-xs text-gray-500 font-mono text-[10px] uppercase tracking-wider">{impact.version}</p>}
               </div>
               <div className="flex items-center gap-2">
                 {impact.active && (

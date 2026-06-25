@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, use } from "react";
 import ReactFlow, { Background, Controls, MarkerType, type Edge, type Node } from "reactflow";
 import "reactflow/dist/style.css";
 import { ProgressLink } from "@/components/layout/NavigationProgress";
@@ -128,9 +128,10 @@ function DbDependenciesPage({ id }: { id: string }) {
   );
 }
 
-export default function DependenciesPage({ params }: { params: { id: string } }) {
-  if (isSyntheticReleaseId(params.id)) {
-    return <SyntheticDependenciesPage id={params.id} />;
+export default function DependenciesPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
+  if (isSyntheticReleaseId(id)) {
+    return <SyntheticDependenciesPage id={id} />;
   }
-  return <DbDependenciesPage id={params.id} />;
+  return <DbDependenciesPage id={id} />;
 }

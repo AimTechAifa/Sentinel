@@ -19,7 +19,7 @@ export function AgentControlHero() {
   ];
 
   return (
-    <MagicCard gradient="from-violet-600 via-brand-500 to-cyan-500" beam glow className="mb-6">
+    <MagicCard gradient="from-brand-500 via-brand-500 to-cyan-500" beam glow className="mb-6">
       <div className="relative overflow-hidden p-6 md:p-8">
         <DotPattern opacity={0.4} />
         <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-6">

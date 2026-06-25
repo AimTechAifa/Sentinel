@@ -18,6 +18,7 @@ import {
 } from "recharts";
 import { DollarSign, MoreVertical, PieChart, Wallet } from "lucide-react";
 import Link from "next/link";
+import { motion } from "framer-motion";
 import { MaterioCard } from "./MaterioCard";
 import type { PortfolioSummary, StackPoint } from "@/lib/materio/chart-data";
 
@@ -54,29 +55,51 @@ export function TotalProfitChart({
   ];
 
   return (
-    <MaterioCard noPadding sx={{ overflow: "hidden" }}>
-      <Grid container>
-        <Grid size={{ xs: 12, md: 8 }} sx={{ p: 3, borderRight: { md: 1 }, borderColor: { md: "divider" } }}>
-          <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }} color="text.primary">
-            {title}
-          </Typography>
-          <Box sx={{ height: 300, mx: -1 }}>
-            <ResponsiveContainer width="100%" height="100%">
+    <motion.div
+      initial={{ opacity: 0, y: 30 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-40px" }}
+      transition={{ duration: 0.7, ease: "easeOut" }}
+    >
+      <MaterioCard noPadding sx={{ overflow: "hidden" }}>
+        <Grid container>
+          <Grid size={{ xs: 12, md: 8 }} sx={{ p: 3, borderRight: { md: 1 }, borderColor: { md: "divider" } }}>
+            <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }} color="text.primary">
+              {title}
+            </Typography>
+            <Box sx={{ height: 300, mx: -1 }}>
+              <ResponsiveContainer width="100%" height="100%">
               <BarChart data={data} barCategoryGap="18%">
+                <defs>
+                  <linearGradient id="colorPlanned" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={theme.palette.primary.light} stopOpacity={1} />
+                    <stop offset="100%" stopColor={theme.palette.primary.main} stopOpacity={1} />
+                  </linearGradient>
+                  <linearGradient id="colorInProgress" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={theme.palette.success.light} stopOpacity={1} />
+                    <stop offset="100%" stopColor={theme.palette.success.main} stopOpacity={1} />
+                  </linearGradient>
+                  <linearGradient id="colorShipped" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={theme.palette.secondary.light} stopOpacity={1} />
+                    <stop offset="100%" stopColor={theme.palette.secondary.main} stopOpacity={1} />
+                  </linearGradient>
+                </defs>
                 <CartesianGrid strokeDasharray="4 4" stroke={grid} vertical={false} />
                 <XAxis dataKey="label" tick={{ fontSize: 11, fill: tick }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 11, fill: tick }} axisLine={false} tickLine={false} allowDecimals={false} />
                 <Tooltip
+                  cursor={{ fill: theme.palette.action.hover }}
                   contentStyle={{
-                    borderRadius: 8,
+                    borderRadius: 12,
                     border: `1px solid ${theme.palette.divider}`,
                     background: theme.palette.background.paper,
-                    boxShadow: theme.shadows[4],
+                    boxShadow: theme.shadows[6],
+                    fontWeight: 500,
                   }}
                 />
-                <Bar dataKey="planned" name="Planned" stackId="a" fill={theme.palette.primary.main} radius={[0, 0, 0, 0]} maxBarSize={36} />
-                <Bar dataKey="inProgress" name="In progress" stackId="a" fill={theme.palette.success.main} maxBarSize={36} />
-                <Bar dataKey="shipped" name="Shipped" stackId="a" fill={theme.palette.secondary.main} radius={[8, 8, 0, 0]} maxBarSize={36} />
+                <Bar dataKey="planned" name="Planned" stackId="a" fill="url(#colorPlanned)" radius={[0, 0, 4, 4]} maxBarSize={36} isAnimationActive={true} animationDuration={1200} />
+                <Bar dataKey="inProgress" name="In progress" stackId="a" fill="url(#colorInProgress)" maxBarSize={36} isAnimationActive={true} animationDuration={1200} />
+                <Bar dataKey="shipped" name="Shipped" stackId="a" fill="url(#colorShipped)" radius={[8, 8, 0, 0]} maxBarSize={36} isAnimationActive={true} animationDuration={1200} />
               </BarChart>
             </ResponsiveContainer>
           </Box>
@@ -138,12 +161,13 @@ export function TotalProfitChart({
             variant="contained"
             color="primary"
             fullWidth
-            sx={{ mt: 3, textTransform: "none", fontWeight: 600, py: 1.25 }}
+            sx={{ mt: 3, textTransform: "none", fontWeight: 600, py: 1.25, borderRadius: 2 }}
           >
             {reportLabel}
           </Button>
         </Grid>
       </Grid>
     </MaterioCard>
+    </motion.div>
   );
 }

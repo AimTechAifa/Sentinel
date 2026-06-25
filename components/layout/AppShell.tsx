@@ -28,8 +28,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
           )}
         >
           <AppHeader />
-          <main className="materio-main flex-1 px-6 pb-6 pt-0">
-            <PageHelpBanner />
+          <main className="materio-main flex-1 px-4 pb-6 pt-6 md:px-6 lg:px-8">
             {children}
           </main>
           <ChatPanel />

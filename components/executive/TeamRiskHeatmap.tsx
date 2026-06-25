@@ -22,7 +22,7 @@ export function TeamRiskHeatmap({ data }: { data: TeamRiskCell[] }) {
           >
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium text-gray-800">{cell.team}</span>
-              <span className={cn("text-lg font-bold tabular-nums", getRiskTextColor(cell.riskScore))}>
+              <span className={cn("text-lg font-bold font-mono text-[10px] uppercase tracking-wider", getRiskTextColor(cell.riskScore))}>
                 {cell.riskScore}
               </span>
             </div>

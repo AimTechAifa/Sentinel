@@ -218,7 +218,7 @@ export function ReleaseFormModal({
                 onClick={() => toggleMulti("dependsOnReleaseIds", r.value)}
                 className={cn(
                   "rounded-lg px-2.5 py-1 text-xs border",
-                  form.dependsOnReleaseIds.includes(r.value) ? "bg-violet-500 text-white border-violet-500" : "border-gray-200 text-gray-600"
+                  form.dependsOnReleaseIds.includes(r.value) ? "bg-brand-400 text-white border-brand-400" : "border-gray-200 text-gray-600"
                 )}
               >
                 {r.label}

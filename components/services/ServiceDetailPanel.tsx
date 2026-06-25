@@ -61,7 +61,7 @@ export function ServiceDetailPanel({ serviceId, onClose, className }: ServiceDet
       )}
 
       {ml && (
-        <div className="rounded-lg bg-white/70 border border-violet-100 p-3 mb-4 text-xs">
+        <div className="rounded-lg bg-white/70 border border-brand-50 p-3 mb-4 text-xs">
           <p className="text-gray-500">Lowest ML ship forecast among touching releases</p>
           <p className="font-medium text-gray-800 mt-1">
             {ml.version}: {ml.shipSuccessPct}% ship · {ml.rollbackRiskPct}% rollback risk

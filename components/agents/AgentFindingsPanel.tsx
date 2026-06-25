@@ -87,14 +87,14 @@ export function AgentFindingsPanel({ agent, isPaused }: { agent: AgentMeta; isPa
         {expanded && agent.liveAi && !isPaused && loading && <AISkeleton lines={3} />}
         {expanded && error && !loading && <p className="text-xs text-error-600">{error}</p>}
         {expanded && summary && !loading && (
-          <p className="text-gray-600 text-xs border-l-2 border-violet-300 pl-3 leading-relaxed whitespace-pre-wrap bg-violet-50/50 rounded-r-lg py-2">
+          <p className="text-gray-600 text-xs border-l-2 border-brand-200 pl-3 leading-relaxed whitespace-pre-wrap bg-brand-25/50 rounded-r-lg py-2">
             {summary}
           </p>
         )}
         {(!agent.liveAi || (expanded && isPaused)) && expanded && (
           <ul className="space-y-2">
             {agent.sampleFindings.map((f, i) => (
-              <li key={i} className="text-gray-600 text-xs border-l-2 border-violet-200 pl-2">
+              <li key={i} className="text-gray-600 text-xs border-l-2 border-brand-100 pl-2">
                 {renderFinding(f.text, f.releaseId)}
               </li>
             ))}

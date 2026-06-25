@@ -598,7 +598,7 @@ export const activityFeed: ActivityFeedItem[] = [
 export const agents: AgentMeta[] = [
   {
     id: "ag1", name: "Ticket Agent", watches: "Linked tickets/stories", description: "Flags stuck or reopened tickets",
-    tagline: "Work tracking", accent: "from-violet-500 via-purple-500 to-fuchsia-500",
+    tagline: "Work tracking", accent: "from-brand-400 via-brand-500 to-blue-500",
     status: "Active", lastRanMinutesAgo: 4, liveAi: true, sparkline: [2, 3, 1, 4, 2, 3, 5],
     sampleFindings: [
       { text: "PLAT-4418 Security review still in progress", releaseId: "rel-v2140", timestamp: daysAgo(0.1) },
@@ -648,7 +648,7 @@ export const agents: AgentMeta[] = [
   },
   {
     id: "ag6", name: "Summary Agent", watches: "All agents", description: "Daily plain-English digest",
-    tagline: "Executive brief", accent: "from-indigo-500 via-violet-500 to-purple-500",
+    tagline: "Executive brief", accent: "from-brand-500 via-brand-400 to-blue-400",
     status: "Active", lastRanMinutesAgo: 1, liveAi: false, sparkline: [1, 1, 1, 2, 1, 1, 1],
     sampleFindings: [
       { text: "Morning digest: 5 active releases, 2 at risk, 1 blocked", timestamp: daysAgo(0.05) },

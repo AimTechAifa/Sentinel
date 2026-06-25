@@ -114,7 +114,7 @@ export function DbAIRiskPanel({ releaseId }: { releaseId: string }) {
           {flags.map((f, i) => (
             <li
               key={i}
-              className="border border-violet-100 rounded-xl p-3 bg-white/80 backdrop-blur-sm"
+              className="border border-brand-50 rounded-xl p-3 bg-white/80 backdrop-blur-sm"
             >
               <div className="flex items-start justify-between gap-2">
                 <p className="font-medium text-sm text-gray-800">{f.title}</p>

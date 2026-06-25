@@ -8,8 +8,8 @@ type Variant = "default" | "ai" | "glass" | "plain";
 
 const GRADIENTS: Record<Exclude<Variant, "plain">, string> = {
   default: "from-gray-200/80 via-white to-gray-200/80",
-  ai: "from-brand-400 via-brand-500 to-brand-600",
-  glass: "from-brand-200/30 via-white to-brand-100/40",
+  ai: "from-brand-300/30 via-brand-200/20 to-brand-100/30",
+  glass: "from-brand-100/30 via-white to-brand-50/40",
 };
 
 interface AdvancedCardProps {
@@ -48,7 +48,7 @@ export function AdvancedCard({
           </div>
         )}
         <div className="min-w-0">
-          {title && <h3 className="font-semibold text-gray-800 truncate">{title}</h3>}
+          {title && <h3 className="text-headline-sm text-gray-900 truncate">{title}</h3>}
           {subtitle && <p className="text-xs text-gray-500 mt-0.5">{subtitle}</p>}
         </div>
       </div>

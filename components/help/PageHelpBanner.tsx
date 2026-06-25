@@ -39,7 +39,7 @@ export function PageHelpBanner() {
   return (
     <div
       className={cn(
-        "mb-6 rounded-lg border border-brand-200 bg-brand-50/80 shadow-theme-sm overflow-hidden"
+        "mb-6 rounded-lg border border-[var(--border)] bg-white shadow-level-1 overflow-hidden"
       )}
       role="region"
       aria-label={`Help: ${guide.title}`}
@@ -82,7 +82,7 @@ export function PageHelpBanner() {
       </div>
 
       {expanded && (
-        <div className="border-t border-brand-100/80 px-4 py-3 md:px-5 bg-white/40 space-y-3">
+        <div className="border-t border-[var(--border)] px-4 py-3 md:px-5 bg-gray-50/50 space-y-3">
           {guide.tips.length > 0 && (
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1.5 flex items-center gap-1">

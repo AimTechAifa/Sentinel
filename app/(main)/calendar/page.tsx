@@ -2,15 +2,11 @@
 
 import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, CalendarDays, GanttChart } from "lucide-react";
-import { TopBar } from "@/components/layout/TopBar";
-import { ReleaseScheduleGrid } from "@/components/calendar/ReleaseScheduleGrid";
-import { ReleaseFiltersBar } from "@/components/releases/ReleaseFiltersBar";
-import { AdvancedCard } from "@/components/ui/advanced-card";
+import { MonthGridCalendar } from "@/components/calendar/MonthGridCalendar";
 import { useReleaseFilters } from "@/context/ReleaseFiltersContext";
 import { releases as demoReleases } from "@/lib/dummy-data";
 import { dbReleaseMatchesFilters, filterLabel } from "@/lib/release-filters";
 import {
-  buildScheduleColumns,
   periodTitle,
   shiftPeriodAnchor,
 } from "@/lib/calendar-schedule";
@@ -21,12 +17,11 @@ import {
   mergeReleases,
 } from "@/lib/unified-releases";
 import { inPeriod, periodRange, type Period } from "@/lib/period-range";
-import { periodLabel } from "@/lib/period-labels";
 import { cn, formatDate } from "@/lib/utils";
 import { taBtnSecondary } from "@/lib/styles";
 
 type ViewMode = "calendar" | "timeline";
-type SourceFilter = "all" | "database" | "demo";
+type TabMode = "releases" | "environments";
 
 type DbRelease = {
   id: string;
@@ -44,9 +39,13 @@ type DbRelease = {
 
 export default function CalendarPage() {
   const [period, setPeriod] = useState<Period>("month");
-  const [viewMode, setViewMode] = useState<ViewMode>("calendar");
-  const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
-  const [viewDate, setViewDate] = useState(() => new Date());
+  const [viewDate, setViewDate] = useState(() => {
+    // For demo matching the screenshot, force it to Dec 2023 if desired, 
+    // but default to current date is better.
+    return new Date();
+  });
+  const [tab, setTab] = useState<TabMode>("releases");
+  const [viewMode, setViewMode] = useState<"month" | "week">("month");
 
   const {
     filters,
@@ -57,11 +56,6 @@ export default function CalendarPage() {
     bookings,
     dbRows,
   } = useReleaseFilters();
-
-  const scopeLabel = useMemo(
-    () => filterLabel(filters, departments, applications, environments),
-    [filters, departments, applications, environments]
-  );
 
   const { start: periodStart, end: periodEnd } = useMemo(
     () => periodRange(period, viewDate),
@@ -79,108 +73,84 @@ export default function CalendarPage() {
       .filter((r) => inPeriod(r.targetDate, period, viewDate))
       .map(demoToUnified);
 
-    let merged = mergeReleases(filteredDb, filteredDemo);
-    if (sourceFilter === "database") merged = merged.filter((r) => r.source === "database");
-    if (sourceFilter === "demo") merged = merged.filter((r) => r.source === "demo");
-    return merged;
-  }, [dbRows, period, viewDate, sourceFilter, filters, bookings, environments, departments, applications]);
+    return mergeReleases(filteredDb, filteredDemo);
+  }, [dbRows, period, viewDate, filters, bookings, environments, departments, applications]);
 
-  const columns = useMemo(() => buildScheduleColumns(period, viewDate), [period, viewDate]);
   const title = useMemo(() => periodTitle(period, viewDate), [period, viewDate]);
 
   const prevPeriod = () => setViewDate((d) => shiftPeriodAnchor(period, d, -1));
   const nextPeriod = () => setViewDate((d) => shiftPeriodAnchor(period, d, 1));
-  const goToday = () => setViewDate(new Date());
+  
+  // Format title like "December 2023"
+  const formattedMonth = useMemo(() => {
+    return viewDate.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+  }, [viewDate]);
 
   return (
-    <div className="space-y-6">
-      <TopBar
-        title="Release Calendar"
-        subtitle={hasRefinement ? `Filtered · ${scopeLabel}` : "Releases plotted by date across the selected period"}
-        highlight
-      />
-
-      <ReleaseFiltersBar variant="large" period={period} onPeriodChange={setPeriod} />
-
-      <AdvancedCard variant="glass" innerClassName="p-4 md:p-5">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">Viewing options</p>
-            <div className="flex gap-1 rounded-xl border border-gray-200 bg-white p-1">
-              <button
-                type="button"
-                onClick={() => setViewMode("calendar")}
-                className={cn(
-                  "rounded-lg px-4 py-2 text-sm font-medium flex items-center gap-2 transition-colors",
-                  viewMode === "calendar" ? "bg-brand-500 text-white shadow-theme-sm" : "text-gray-600 hover:bg-gray-50"
-                )}
-              >
-                <CalendarDays className="h-4 w-4" /> Calendar
+    <div className="space-y-6 max-w-7xl mx-auto">
+      {/* Header matching screenshot */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-theme-sm overflow-hidden">
+        <div className="px-6 pt-6 pb-2">
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-xl font-bold text-gray-900">Calendar</h1>
+            
+            {/* Center Navigation */}
+            <div className="flex items-center gap-4 absolute left-1/2 -translate-x-1/2">
+              <button type="button" onClick={prevPeriod} className="p-1 hover:bg-gray-100 rounded text-gray-500">
+                <ChevronLeft className="h-4 w-4" />
               </button>
-              <button
-                type="button"
-                onClick={() => setViewMode("timeline")}
-                className={cn(
-                  "rounded-lg px-4 py-2 text-sm font-medium flex items-center gap-2 transition-colors",
-                  viewMode === "timeline" ? "bg-brand-500 text-white shadow-theme-sm" : "text-gray-600 hover:bg-gray-50"
-                )}
-              >
-                <GanttChart className="h-4 w-4" /> Timeline
+              <span className="text-sm font-semibold text-gray-800 min-w-[120px] text-center">
+                {formattedMonth}
+              </span>
+              <button type="button" onClick={nextPeriod} className="p-1 hover:bg-gray-100 rounded text-gray-500">
+                <ChevronRight className="h-4 w-4" />
               </button>
             </div>
-          </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="flex gap-1 rounded-xl border border-gray-200 bg-white p-1">
-              {(["all", "database", "demo"] as SourceFilter[]).map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => setSourceFilter(s)}
-                  className={cn(
-                    "rounded-lg px-3 py-1.5 text-xs font-medium capitalize transition-colors",
-                    sourceFilter === s ? "bg-violet-500 text-white" : "text-gray-600 hover:bg-gray-50"
-                  )}
-                >
-                  {s === "all" ? "All" : s}
-                </button>
-              ))}
+            {/* Right Toggle */}
+            <div className="flex bg-gray-50 p-1 rounded-lg border border-gray-200">
+              <button
+                className={cn("px-3 py-1 text-xs font-medium rounded-md", viewMode === "month" ? "bg-white text-brand-600 shadow-sm" : "text-gray-500")}
+                onClick={() => setViewMode("month")}
+              >
+                Month
+              </button>
+              <button
+                className={cn("px-3 py-1 text-xs font-medium rounded-md", viewMode === "week" ? "bg-white text-brand-600 shadow-sm" : "text-gray-500")}
+                onClick={() => setViewMode("week")}
+              >
+                Week
+              </button>
             </div>
           </div>
-        </div>
 
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 pt-4">
-          <div className="flex items-center gap-2">
-            <button type="button" onClick={prevPeriod} className={cn(taBtnSecondary, "!p-2")} aria-label="Previous period">
-              <ChevronLeft className="h-5 w-5 text-gray-600" />
+          {/* Tabs */}
+          <div className="flex items-center gap-6 border-b border-gray-100">
+            <button
+              onClick={() => setTab("releases")}
+              className={cn(
+                "pb-3 text-xs font-bold tracking-wide uppercase border-b-2 transition-colors",
+                tab === "releases" ? "border-brand-500 text-brand-600" : "border-transparent text-gray-400 hover:text-gray-600"
+              )}
+            >
+              Release Calendar
             </button>
-            <div className="text-center min-w-[140px]">
-              <h2 className="font-semibold text-gray-800">{title}</h2>
-              <p className="text-xs text-gray-500">{periodLabel(period)} view</p>
-            </div>
-            <button type="button" onClick={nextPeriod} className={cn(taBtnSecondary, "!p-2")} aria-label="Next period">
-              <ChevronRight className="h-5 w-5 text-gray-600" />
-            </button>
-            <button type="button" onClick={goToday} className={cn(taBtnSecondary, "text-xs ml-1")}>
-              Today
+            <button
+              onClick={() => setTab("environments")}
+              className={cn(
+                "pb-3 text-xs font-bold tracking-wide uppercase border-b-2 transition-colors",
+                tab === "environments" ? "border-brand-500 text-brand-600" : "border-transparent text-gray-400 hover:text-gray-600"
+              )}
+            >
+              Environment Bookings
             </button>
           </div>
-          <p className="text-xs text-gray-500">
-            {unified.length} release{unified.length === 1 ? "" : "s"} · {formatDate(periodStart.toISOString())} – {formatDate(periodEnd.toISOString())}
-          </p>
         </div>
-      </AdvancedCard>
-
-      <div>
-        <p className="text-xs text-gray-500 mb-2 flex flex-wrap gap-3">
-          <span>Dates run horizontally along the top; each release is a row on the vertical axis.</span>
-          {viewMode === "calendar" ? (
-            <span className="inline-flex items-center gap-1"><span className="inline-block h-3 w-3 rounded bg-brand-500" /> Calendar — marker on release date</span>
-          ) : (
-            <span className="inline-flex items-center gap-1"><span className="inline-block h-1.5 w-6 rounded-full bg-brand-500" /> Timeline — bar on release date</span>
-          )}
-        </p>
-        <ReleaseScheduleGrid releases={unified} columns={columns} mode={viewMode} />
+        
+        {/* Calendar Grid */}
+        <div className="p-6 pt-0 bg-gray-50/30">
+          <MonthGridCalendar releases={unified} viewDate={viewDate} />
+        </div>
       </div>
     </div>
   );

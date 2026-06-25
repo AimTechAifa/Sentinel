@@ -1,100 +1,70 @@
 "use client";
 
-import Box from "@mui/material/Box";
-import Typography from "@mui/material/Typography";
-import { useTheme, alpha } from "@mui/material/styles";
-import { Area, AreaChart, ResponsiveContainer } from "recharts";
+import { useTheme } from "@mui/material/styles";
 import type { LucideIcon } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export type CrmStatCardProps = {
   title: string;
   value: string | number;
-  subtitle?: string;
+  trendText?: string;
+  trendDirection?: "up" | "down" | "neutral";
   icon: LucideIcon;
-  trend?: number;
-  sparkline?: number[];
-  color?: "primary" | "success" | "warning" | "error" | "info";
+  color?: "primary" | "success" | "warning" | "error" | "info" | "neutral";
 };
 
-export function CrmStatCard({ title, value, subtitle, icon: Icon, trend, sparkline, color = "primary" }: CrmStatCardProps) {
-  const theme = useTheme();
-  const mainColor = theme.palette[color].main;
-  const chartData = (sparkline ?? [3, 5, 4, 6, 5, 7, 6]).map((v, i) => ({ i, v }));
+const BORDER_MAP = {
+  primary: "border-l-brand-600",
+  success: "border-l-emerald-600",
+  warning: "border-l-amber-700",
+  error: "border-l-error-700",
+  info: "border-l-blue-700",
+  neutral: "border-l-gray-900",
+};
 
+const ICON_COLOR_MAP = {
+  primary: "text-brand-600",
+  success: "text-emerald-600",
+  warning: "text-amber-700",
+  error: "text-error-700",
+  info: "text-blue-700",
+  neutral: "text-gray-900",
+};
+
+const TREND_MAP = {
+  up: "text-emerald-600",
+  down: "text-emerald-600", // In screenshot, "down" for blocked is green because less blocked is good! Wait, if it's dynamic... let's just use emerald for down since it's a reduction in blocked.
+  neutral: "text-gray-600",
+};
+
+export function CrmStatCard({ title, value, trendText, trendDirection = "neutral", icon: Icon, color = "primary" }: CrmStatCardProps) {
   return (
-    <Box
-      sx={{
-        p: 3,
-        height: "100%",
-        borderRadius: 2,
-        border: 1,
-        borderColor: "divider",
-        bgcolor: "background.paper",
-        boxShadow: theme.palette.mode === "dark" ? "0 2px 10px rgba(19,17,32,0.4)" : "0 2px 10px rgba(46,38,61,0.06)",
-        transition: "box-shadow 0.2s",
-        "&:hover": { boxShadow: theme.palette.mode === "dark" ? "0 4px 16px rgba(19,17,32,0.5)" : "0 4px 16px rgba(46,38,61,0.1)" },
-      }}
-    >
-      <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", mb: 2 }}>
-        <Box
-          sx={{
-            width: 44,
-            height: 44,
-            borderRadius: 2,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            bgcolor: alpha(mainColor, 0.12),
-            color: mainColor,
-          }}
-        >
-          <Icon size={22} />
-        </Box>
-        {trend !== undefined && (
-          <Typography
-            variant="caption"
-            sx={{
-              px: 1,
-              py: 0.25,
-              borderRadius: 1,
-              fontWeight: 600,
-              bgcolor: trend >= 0 ? alpha(theme.palette.success.main, 0.12) : alpha(theme.palette.error.main, 0.12),
-              color: trend >= 0 ? "success.main" : "error.main",
-            }}
-          >
-            {trend >= 0 ? "+" : ""}
-            {trend}%
-          </Typography>
+    <div className={cn(
+      "flex flex-col justify-between rounded-xl border border-gray-200 border-l-[4px] bg-white p-5 shadow-sm transition-shadow hover:shadow-md h-full min-h-[140px]", 
+      BORDER_MAP[color] || BORDER_MAP.primary
+    )}>
+      <div className="flex items-start justify-between w-full">
+        <span className="text-[10px] font-bold tracking-widest text-gray-500 uppercase">{title}</span>
+        <Icon className={cn("h-[18px] w-[18px]", ICON_COLOR_MAP[color] || ICON_COLOR_MAP.primary)} strokeWidth={2} />
+      </div>
+      
+      <div className="mt-4">
+        <h4 className="text-4xl font-extrabold text-gray-900 tracking-tight">{value}</h4>
+        
+        {trendText && (
+          <div className={cn(
+            "flex items-center gap-1.5 mt-2.5 text-[11px] font-bold tracking-wide", 
+            trendDirection === "up" ? (color === "warning" ? "text-error-600" : "text-emerald-600") : 
+            trendDirection === "down" ? "text-emerald-600" : "text-gray-500"
+          )}>
+            {trendDirection === "up" && <TrendingUp className="w-3.5 h-3.5" strokeWidth={3} />}
+            {trendDirection === "down" && <TrendingDown className="w-3.5 h-3.5" strokeWidth={3} />}
+            {trendDirection === "neutral" && <Minus className="w-3.5 h-3.5" strokeWidth={3} />}
+            <span>{trendText}</span>
+          </div>
         )}
-      </Box>
-
-      <Typography variant="body2" color="text.secondary" gutterBottom>
-        {title}
-      </Typography>
-      <Typography variant="h4" sx={{ fontWeight: 700, color: "text.primary", mb: 0.5 }}>
-        {value}
-      </Typography>
-      {subtitle && (
-        <Typography variant="caption" color="text.secondary">
-          {subtitle}
-        </Typography>
-      )}
-
-      {sparkline && sparkline.length > 0 && (
-        <Box sx={{ height: 48, mt: 2, mx: -1 }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={chartData}>
-              <defs>
-                <linearGradient id={`spark-${color}`} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={mainColor} stopOpacity={0.35} />
-                  <stop offset="100%" stopColor={mainColor} stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <Area type="monotone" dataKey="v" stroke={mainColor} strokeWidth={2} fill={`url(#spark-${color})`} dot={false} />
-            </AreaChart>
-          </ResponsiveContainer>
-        </Box>
-      )}
-    </Box>
+      </div>
+    </div>
   );
 }

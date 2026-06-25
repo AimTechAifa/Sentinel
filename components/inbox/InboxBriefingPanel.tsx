@@ -1,7 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { AgentBadge } from "@/components/badges/AgentBadge";
+import { useCallback, useEffect, useState, ReactNode } from "react";
 import { AIPanel } from "@/components/ui/ai-panel";
 import { callAgent } from "@/lib/agent-client";
 import {
@@ -11,6 +10,28 @@ import {
 import { parseCitations } from "@/lib/utils";
 import { RefreshCw, Sparkles } from "lucide-react";
 import { taBtnSecondary } from "@/lib/styles";
+
+function renderBold(text: string): ReactNode[] {
+  const parts = text.split(/(\*\*.*?\*\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={i} className="font-semibold text-gray-900">{part.slice(2, -2)}</strong>;
+    }
+    return <span key={i}>{part}</span>;
+  });
+}
+
+function renderMarkdown(text: string): ReactNode[] {
+  const lines = text.split('\n');
+  return lines.map((line, i) => {
+    if (line.trim().startsWith('- ')) {
+      const content = line.trim().substring(2);
+      return <li key={i} className="ml-5 list-disc mb-1.5">{renderBold(content)}</li>;
+    }
+    if (line.trim() === '') return null; // let spacing handle it
+    return <p key={i} className="mb-2">{renderBold(line)}</p>;
+  }).filter(Boolean);
+}
 
 export function InboxBriefingPanel({
   briefingContext,
@@ -78,7 +99,7 @@ export function InboxBriefingPanel({
       error={error}
     >
       <div className="flex flex-wrap items-center gap-2 mb-3">
-        <Sparkles className="h-4 w-4 text-violet-500" />
+        <Sparkles className="h-4 w-4 text-brand-400" />
         <span className="text-xs text-gray-500 flex-1">
           Interprets your top actions with live inbox counts — grounded in DB data only.
         </span>
@@ -94,11 +115,10 @@ export function InboxBriefingPanel({
             "Refresh briefing"
           )}
         </button>
-        <AgentBadge agent="Conversation Agent" />
       </div>
-      {briefing && <p className="whitespace-pre-wrap text-sm text-gray-700">{briefing}</p>}
+      {briefing && <div className="text-sm text-gray-700 mt-4 space-y-1">{renderMarkdown(briefing)}</div>}
       {citations.length > 0 && (
-        <p className="text-xs text-gray-400 mt-3 border-t border-violet-100 pt-2">
+        <p className="text-xs text-gray-400 mt-3 border-t border-brand-50 pt-2">
           Based on: {citations.join(", ")}
         </p>
       )}

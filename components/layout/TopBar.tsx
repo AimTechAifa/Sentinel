@@ -1,8 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { DotPattern } from "@/components/ui/dot-pattern";
-import { ShimmerText } from "@/components/ui/shimmer-text";
 import { cn } from "@/lib/utils";
 
 interface TopBarProps {
@@ -16,30 +13,15 @@ interface TopBarProps {
 
 export function TopBar({ title, subtitle, positioning, highlight = false, badge, className }: TopBarProps) {
   return (
-    <motion.header
-      initial={{ opacity: 0, y: -10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-      className={cn(
-        "relative mb-6 overflow-hidden rounded-lg border border-gray-200 bg-white p-5 shadow-theme-sm md:p-6",
-        className
-      )}
-    >
-      <DotPattern className="opacity-[0.15]" />
-      <div className="relative flex flex-wrap items-start justify-between gap-3">
+    <header className={cn("relative mb-4 md:mb-5", className)}>
+      <div className="relative flex flex-wrap items-end justify-between gap-4">
         <div>
-          {highlight ? (
-            <ShimmerText className="text-title-sm font-bold">{title}</ShimmerText>
-          ) : (
-            <h1 className="text-title-sm font-bold text-gray-900">{title}</h1>
-          )}
-          {subtitle && <p className="mt-1 text-sm text-gray-500">{subtitle}</p>}
-          {positioning && (
-            <p className="mt-1 text-xs text-gray-400">{positioning}</p>
-          )}
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900">{title}</h1>
+          {subtitle && <p className="mt-1.5 text-sm font-medium text-gray-500">{subtitle}</p>}
+          {positioning && <p className="mt-1 text-xs text-gray-400">{positioning}</p>}
         </div>
         {badge}
       </div>
-    </motion.header>
+    </header>
   );
 }

@@ -53,7 +53,7 @@ export function AIRiskPanel({ release }: { release: Release }) {
         {!loading && !error && (
           <ul className="space-y-3">
             {flags.map((f, i) => (
-              <li key={i} className="border border-violet-100 rounded-xl p-3 bg-white/80 backdrop-blur-sm">
+              <li key={i} className="border border-brand-50 rounded-xl p-3 bg-white/80 backdrop-blur-sm">
                 <div className="flex items-start justify-between gap-2">
                   <p className="font-medium text-sm text-gray-800">{f.title}</p>
                   <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 ${f.severity === "high" ? "bg-red-100 text-red-700" : f.severity === "medium" ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-gray-600"}`}>{f.severity}</span>
@@ -67,7 +67,7 @@ export function AIRiskPanel({ release }: { release: Release }) {
           </ul>
         )}
       </AdvancedCard>
-      <button onClick={() => setShowReasoning(!showReasoning)} className="flex items-center gap-1 text-sm text-ai hover:text-violet-800 transition-colors">
+      <button onClick={() => setShowReasoning(!showReasoning)} className="flex items-center gap-1 text-sm text-ai hover:text-brand-700 transition-colors">
         {showReasoning ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
         View AI reasoning
       </button>

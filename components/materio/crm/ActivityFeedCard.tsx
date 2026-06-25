@@ -1,11 +1,7 @@
 "use client";
 
-import Avatar from "@mui/material/Avatar";
-import Box from "@mui/material/Box";
-import Typography from "@mui/material/Typography";
-import { alpha, useTheme } from "@mui/material/styles";
 import { Bot, GitCommit, Shield, Sparkles } from "lucide-react";
-import { MaterioCard } from "./MaterioCard";
+import { cn } from "@/lib/utils";
 
 export type ActivityItem = {
   id: string;
@@ -33,61 +29,49 @@ export function ActivityFeedCard({
   title = "Activity Timeline",
   subheader = "Recent agent and release desk events",
 }: ActivityFeedCardProps) {
-  const theme = useTheme();
-
   return (
-    <MaterioCard title={title} subheader={subheader}>
-      <Box sx={{ position: "relative", pl: 2 }}>
-        <Box
-          sx={{
-            position: "absolute",
-            left: 19,
-            top: 8,
-            bottom: 8,
-            width: 2,
-            bgcolor: "divider",
-            borderRadius: 1,
-          }}
-        />
-        {items.map((item) => {
-          const Icon = typeIcon[item.type ?? "release"];
-          const color =
-            item.type === "agent"
-              ? theme.palette.primary.main
-              : item.type === "security"
-                ? theme.palette.error.main
-                : item.type === "demo"
-                  ? theme.palette.info.main
-                  : theme.palette.success.main;
+    <div className="flex h-full flex-col rounded-xl border border-[var(--border)] bg-white shadow-sm">
+      <div className="border-b border-[var(--border)] p-5">
+        <h3 className="text-headline-sm text-gray-900">{title}</h3>
+        {subheader && <p className="mt-0.5 text-sm text-gray-500">{subheader}</p>}
+      </div>
 
-          return (
-            <Box key={item.id} sx={{ display: "flex", gap: 2, mb: 2.5, position: "relative" }}>
-              <Avatar
-                sx={{
-                  width: 36,
-                  height: 36,
-                  zIndex: 1,
-                  bgcolor: alpha(color, 0.12),
-                  color,
-                }}
-              >
-                <Icon size={16} />
-              </Avatar>
-              <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                  {item.title}
-                </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ mt: 0.25, display: "block" }}>
-                  {item.description}
-                </Typography>
-                <Typography variant="caption" color="text.disabled" sx={{ mt: 0.5, display: "block" }}>
-                  {item.time}
-                </Typography>
-              </Box>
-            </Box>
-          );
-        })}
-      </Box>
-    </MaterioCard>
+      <div className="flex-1 p-5 pt-6">
+        <div className="relative">
+          {/* Vertical Line */}
+          <div className="absolute left-[11px] top-2 bottom-6 w-px bg-gray-200" />
+          
+          <ul className="flex flex-col gap-6">
+            {items.map((item) => {
+              const Icon = typeIcon[item.type ?? "release"];
+              const colorClass = 
+                item.type === "agent" ? "bg-brand-50 text-brand-600" :
+                item.type === "security" ? "bg-error-50 text-error-600" :
+                item.type === "demo" ? "bg-blue-50 text-blue-600" :
+                "bg-emerald-50 text-emerald-600";
+                
+              return (
+                <li key={item.id} className="relative flex items-start">
+                  {/* Timeline Node (In flow) */}
+                  <div className={cn(
+                    "relative z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full ring-[6px] ring-white mt-0.5",
+                    colorClass
+                  )}>
+                    <Icon className="h-3 w-3" strokeWidth={2.5} />
+                  </div>
+                  
+                  {/* Content */}
+                  <div className="flex-1 pb-1 ml-4">
+                    <p className="text-sm font-semibold text-gray-900">{item.title}</p>
+                    <p className="mt-0.5 text-xs text-gray-500">{item.description}</p>
+                    <p className="mt-1.5 text-[11px] font-medium text-gray-400">{item.time}</p>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      </div>
+    </div>
   );
 }
