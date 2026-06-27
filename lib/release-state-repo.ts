@@ -511,7 +511,11 @@ export async function applyQuickStartSeed(seedId: QuickStartSeedId, actor: strin
 }
 
 /** Aggregated live state for the release store context. */
-export async function getLiveState(): Promise<ReleaseStoreState> {
+const LIVE_STATE_TTL_MS = 25_000;
+let liveStateCache: { at: number; data: ReleaseStoreState } | null = null;
+let liveStateInflight: Promise<ReleaseStoreState> | null = null;
+
+async function loadLiveState(): Promise<ReleaseStoreState> {
   await ensureDefaultNotifications();
   const now = new Date();
 
@@ -543,6 +547,29 @@ export async function getLiveState(): Promise<ReleaseStoreState> {
     deployments,
     pausedAgents,
   };
+}
+
+export async function getLiveState(): Promise<ReleaseStoreState> {
+  const now = Date.now();
+  if (liveStateCache && now - liveStateCache.at < LIVE_STATE_TTL_MS) {
+    return liveStateCache.data;
+  }
+  if (liveStateInflight) return liveStateInflight;
+
+  liveStateInflight = loadLiveState()
+    .then((data) => {
+      liveStateCache = { at: Date.now(), data };
+      return data;
+    })
+    .finally(() => {
+      liveStateInflight = null;
+    });
+
+  return liveStateInflight;
+}
+
+export function invalidateLiveStateCache() {
+  liveStateCache = null;
 }
 
 export { unreadCount } from "./release-store";

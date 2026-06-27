@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState,useEffect } from "react";
 import { ChevronLeft, ChevronRight, CalendarDays, GanttChart } from "lucide-react";
 import { MonthGridCalendar } from "@/components/calendar/MonthGridCalendar";
 import { useReleaseFilters } from "@/context/ReleaseFiltersContext";

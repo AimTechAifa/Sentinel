@@ -45,15 +45,15 @@ function darkPalette(): ThemeOptions["palette"] {
     warning: { main: materioWarning, light: palette.warning[700], dark: palette.warning[500], contrastText: "#fff" },
     error: { main: materioError, light: palette.error[700], dark: palette.error[500], contrastText: "#fff" },
     info: { main: materioInfo, light: palette.info[700], dark: palette.info[500], contrastText: "#fff" },
-    background: { default: "#1a1f2e", paper: "#212738" },
-    text: { primary: "rgba(235, 241, 250, 0.87)", secondary: "rgba(235, 241, 250, 0.6)", disabled: "rgba(235, 241, 250, 0.38)" },
+    background: { default: "#1a1f2e", paper: "#2a3142" },
+    text: { primary: "#ffffff", secondary: "rgba(255, 255, 255, 0.75)", disabled: "rgba(255, 255, 255, 0.45)" },
     divider: "rgba(235, 241, 250, 0.12)",
   };
 }
 
 function componentOverrides(mode: ThemeMode): ThemeOptions["components"] {
   const isDark = mode === "dark";
-  const paperBg = isDark ? "#212738" : "#ffffff";
+  const paperBg = isDark ? "#2a3142" : "#ffffff";
   const shadow = isDark ? "0px 2px 4px rgba(0, 0, 0, 0.2)" : "0 2px 4px rgba(0,0,0,0.05)";
 
   return {
@@ -105,6 +105,42 @@ function componentOverrides(mode: ThemeMode): ThemeOptions["components"] {
     MuiPaper: {
       styleOverrides: {
         root: { backgroundImage: "none", backgroundColor: paperBg },
+      },
+    },
+    MuiOutlinedInput: {
+      styleOverrides: {
+        root: {
+          backgroundColor: isDark ? "#2a3142" : "#ffffff",
+          "& .MuiOutlinedInput-notchedOutline": {
+            borderColor: isDark ? "rgba(235, 241, 250, 0.16)" : palette.border,
+          },
+          "&:hover .MuiOutlinedInput-notchedOutline": {
+            borderColor: isDark ? "rgba(235, 241, 250, 0.28)" : palette.border,
+          },
+        },
+        input: { color: isDark ? "#ffffff" : undefined },
+      },
+    },
+    MuiSelect: {
+      styleOverrides: {
+        icon: { color: isDark ? "rgba(255, 255, 255, 0.65)" : undefined },
+      },
+    },
+    MuiMenu: {
+      styleOverrides: {
+        paper: {
+          backgroundColor: isDark ? "#212738" : "#ffffff",
+          backgroundImage: "none",
+          border: isDark ? "1px solid rgba(235, 241, 250, 0.16)" : undefined,
+        },
+      },
+    },
+    MuiMenuItem: {
+      styleOverrides: {
+        root: {
+          "&:hover": { backgroundColor: isDark ? "rgba(255, 255, 255, 0.08)" : undefined },
+          "&.Mui-selected": { backgroundColor: isDark ? "rgba(59, 91, 219, 0.22)" : undefined },
+        },
       },
     },
   };

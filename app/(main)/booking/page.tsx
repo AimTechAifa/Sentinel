@@ -38,6 +38,10 @@ export default function BookingPage() {
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50/50 text-[11px] font-bold uppercase tracking-widest text-gray-500">
+                <th className="px-5 py-4 font-bold whitespace-nowrap">Booked By</th>
+                <th className="px-5 py-4 font-bold whitespace-nowrap">Team</th>
+                <th className="px-5 py-4 font-bold whitespace-nowrap">From</th>
+                <th className="px-5 py-4 font-bold whitespace-nowrap">To</th>
                 <th className="px-5 py-4 font-bold whitespace-nowrap">Booking ID</th>
                 <th className="px-5 py-4 font-bold whitespace-nowrap">Release ID</th>
                 <th className="px-5 py-4 font-bold whitespace-nowrap">Application</th>
@@ -63,12 +67,16 @@ export default function BookingPage() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {loading ? (
-                <tr><td colSpan={21} className="p-4 text-center text-gray-500">Loading...</td></tr>
+                <tr><td colSpan={25} className="p-4 text-center text-gray-500">Loading...</td></tr>
               ) : bookings.length === 0 ? (
-                <tr><td colSpan={21} className="p-4 text-center text-gray-500">No data found.</td></tr>
+                <tr><td colSpan={25} className="p-4 text-center text-gray-500">No data found.</td></tr>
               ) : bookings.map((row) => (
                 <tr key={row.id} className="hover:bg-gray-50/50 transition-colors group">
-                  <td className="px-5 py-4 text-gray-900 whitespace-nowrap">{row.id}</td>
+                  <td className="px-5 py-4 text-gray-600 whitespace-nowrap">{row.bookedBy ?? "—"}</td>
+                  <td className="px-5 py-4 text-gray-600 whitespace-nowrap">{row.team ?? "—"}</td>
+                  <td className="px-5 py-4 text-gray-600 whitespace-nowrap">{row.fromDate ? new Date(row.fromDate).toISOString().split('T')[0] : "—"}</td>
+                  <td className="px-5 py-4 text-gray-600 whitespace-nowrap">{row.toDate ? new Date(row.toDate).toISOString().split('T')[0] : "—"}</td>
+                  <td className="px-5 py-4 text-gray-900 whitespace-nowrap font-mono text-xs">{row.id.slice(0, 8)}…</td>
                   <td className="px-5 py-4 font-semibold text-brand-600 whitespace-nowrap">{row.release?.releaseCode ?? "—"}</td>
                   <td className="px-5 py-4 text-gray-600 whitespace-nowrap">{row.application?.name ?? "—"}</td>
                   <td className="px-5 py-4 text-gray-600 whitespace-nowrap">{row.application?.department?.name ?? row.departmentName ?? "—"}</td>

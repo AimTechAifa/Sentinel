@@ -46,6 +46,7 @@ export function EnvironmentDetailsTable({
         application: appName,
         department: v.application?.department?.name ?? "Unknown",
         environment: v.environment?.type ?? v.environment?.name ?? "Unknown",
+        envOwner: v.environment?.owner ?? "—",
         version: v.version ?? "—",
         buildNumber: v.buildNumber ?? "—",
         deployDate: v.deployDate,
@@ -93,6 +94,7 @@ export function EnvironmentDetailsTable({
             <th className={cn(tableCell, "text-left font-medium")}>Application</th>
             <th className={cn(tableCell, "text-left font-medium")}>Department</th>
             <th className={cn(tableCell, "text-left font-medium")}>Environment</th>
+            <th className={cn(tableCell, "text-left font-medium")}>Env Owner</th>
             <th className={cn(tableCell, "text-left font-medium")}>Version</th>
             <th className={cn(tableCell, "text-left font-medium")}>Build Number</th>
             <th className={cn(tableCell, "text-left font-medium")}>Deploy Date</th>
@@ -112,6 +114,7 @@ export function EnvironmentDetailsTable({
                   {row.environment}
                 </span>
               </td>
+              <td className={cn(tableCell, "text-gray-600 max-w-[160px] truncate")} title={row.envOwner}>{row.envOwner}</td>
               <td className={cn(tableCell, "font-mono text-xs text-brand-600 font-semibold")}>{row.version}</td>
               <td className={cn(tableCell, "font-mono text-[10px] text-gray-500")}>{row.buildNumber}</td>
               <td className={cn(tableCell, "text-gray-500 text-xs")}>{formatDate(row.deployDate)}</td>
@@ -131,7 +134,7 @@ export function EnvironmentDetailsTable({
           ))}
           {rows.length === 0 && (
             <tr>
-              <td colSpan={10} className="py-8 text-center text-gray-500 text-sm">
+              <td colSpan={11} className="py-8 text-center text-gray-500 text-sm">
                 No deployment data found.
               </td>
             </tr>

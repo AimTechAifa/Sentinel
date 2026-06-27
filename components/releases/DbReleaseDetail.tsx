@@ -28,9 +28,26 @@ type ReleaseDetail = {
   decision: string | null;
   departmentId: string;
   department: { name: string };
+  releaseSize?: string | null;
+  cabDate?: string | null;
+  startDate?: string | null;
+  testEnvRequired?: string | null;
+  uatEnvRequired?: string | null;
+  conflictFlag?: boolean;
+  readinessPercent?: number | null;
+  blockers?: string | null;
+  vendorMaintenance?: string | null;
+  changeFreeze?: string | null;
+  regulatory?: string | null;
+  approvalStatus?: string | null;
+  rollbackPlan?: string | null;
+  goLiveChecklistPercent?: number | null;
+  deploymentWindow?: string | null;
+  releaseOwner?: { userId: string; name: string; email: string; role: string } | null;
+  stakeholders?: { user: { userId: string; name: string; email: string; role: string } }[];
   applications: { application: { id: string; name: string } }[];
   dependsOn: { dependsOnRelease: { id: string; releaseCode: string; name: string } }[];
-  bookings: { id: string; purpose: string | null; fromDate: string; toDate: string; application: { name: string } }[];
+  bookings: { id: string; purpose: string | null; fromDate: string; toDate: string; bookedBy?: string; team?: string; application: { name: string } }[];
   auditEvents: { id: string; action: string; actor: string; detail: string | null; createdAt: string }[];
 };
 
@@ -144,9 +161,30 @@ export function DbReleaseDetail({ id }: { id: string }) {
           <dl className="grid sm:grid-cols-2 gap-3 text-sm">
             <Item label="Program / Project" value={release.programProject ?? "N/A"} />
             <Item label="Priority / Impact" value={`${release.priority} / ${release.impact}`} />
+            <Item label="Release size" value={release.releaseSize ?? "—"} />
+            <Item label="Start date" value={release.startDate ? formatDate(release.startDate) : "—"} />
+            <Item label="CAB date" value={release.cabDate ? formatDate(release.cabDate) : "—"} />
+            <Item label="Deployment window" value={release.deploymentWindow ?? "—"} />
+            <Item label="Test env required" value={release.testEnvRequired ?? "—"} />
+            <Item label="UAT env required" value={release.uatEnvRequired ?? "—"} />
+            <Item label="Readiness" value={release.readinessPercent != null ? `${release.readinessPercent}%` : "—"} />
+            <Item label="Go-live checklist" value={release.goLiveChecklistPercent != null ? `${release.goLiveChecklistPercent}%` : "—"} />
+            <Item label="Approval status" value={release.approvalStatus ?? "—"} />
+            <Item label="Conflict flag" value={release.conflictFlag ? "Yes" : "No"} />
             <Item label="Applications" value={release.applications.map((a) => a.application.name).join(", ") || "—"} />
             <Item label="Depends on" value={release.dependsOn.map((d) => d.dependsOnRelease.releaseCode).join(", ") || "—"} />
+            <Item label="Release owner (user)" value={release.releaseOwner ? `${release.releaseOwner.name} (${release.releaseOwner.userId})` : release.owner} />
+            <Item label="Stakeholders" value={release.stakeholders?.map((s) => s.user.name).join(", ") || "—"} />
           </dl>
+          {(release.blockers || release.vendorMaintenance || release.changeFreeze || release.regulatory || release.rollbackPlan) && (
+            <dl className="grid sm:grid-cols-2 gap-3 text-sm mt-4 pt-4 border-t border-gray-100">
+              {release.blockers && <Item label="Blockers" value={release.blockers} />}
+              {release.vendorMaintenance && <Item label="Vendor maintenance" value={release.vendorMaintenance} />}
+              {release.changeFreeze && <Item label="Change freeze" value={release.changeFreeze} />}
+              {release.regulatory && <Item label="Regulatory" value={release.regulatory} />}
+              {release.rollbackPlan && <Item label="Rollback plan" value={release.rollbackPlan} />}
+            </dl>
+          )}
           {canEdit && (
             <div className="mt-4 flex flex-wrap gap-2">
               <span className="text-xs text-gray-500 w-full">Quick status</span>
@@ -189,6 +227,8 @@ export function DbReleaseDetail({ id }: { id: string }) {
             {release.bookings.map((b) => (
               <li key={b.id} className="text-gray-700">
                 <strong>{b.application.name}</strong> · {formatDate(b.fromDate)} → {formatDate(b.toDate)}
+                {b.bookedBy && <span className="text-gray-500"> · Booked by {b.bookedBy}</span>}
+                {b.team && <span className="text-gray-500"> · Team {b.team}</span>}
                 {b.purpose && <span className="text-gray-500"> · {b.purpose}</span>}
               </li>
             ))}

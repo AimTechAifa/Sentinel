@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth/api";
 import { parseReleaseFilters } from "@/lib/db-release-filter";
-import { buildInboxItems } from "@/lib/inbox";
+import { buildInboxItemsCached } from "@/lib/inbox";
 import { prisma } from "@/lib/prisma";
 import type { Period } from "@/lib/unified-releases";
 
@@ -10,10 +10,10 @@ export async function GET(req: Request) {
   if (error) return error;
 
   const url = new URL(req.url);
-  const period = (url.searchParams.get("period") ?? "month") as Period;
+  const period = (url.searchParams.get("period") ?? "year") as Period;
   const filters = parseReleaseFilters(req);
 
-  const payload = await buildInboxItems({
+  const payload = await buildInboxItemsCached({
     period,
     filters,
     sessionName: user?.name ?? "",

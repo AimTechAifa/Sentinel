@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma db push && prisma db seed && prisma generate && next build",
+    "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "db:push": "prisma db push",
@@ -23,6 +23,7 @@
     "@mui/material": "^9.1.2",
     "@mui/material-nextjs": "^9.1.1",
     "@prisma/client": "^6.19.3",
+    "@upstash/redis": "^1.38.0",
     "framer-motion": "^12.40.0",
     "lucide-react": "^1.21.0",
     "next": "^16.2.9",

@@ -15,6 +15,7 @@ import { periodRange, type Period } from "./unified-releases";
 import type { ReleaseDecision } from "./types";
 import { isApprovalOverdue } from "./utils";
 import { ownerMatches } from "./user-match";
+import { cacheKey, cachedJson, DEFAULT_CACHE_TTL_SECONDS } from "./cache";
 
 function overlaps(aStart: Date, aEnd: Date, bStart: Date, bEnd: Date) {
   return aStart <= bEnd && bStart <= aEnd;
@@ -205,6 +206,21 @@ export async function buildInboxItems(deps: InboxBuildDeps): Promise<{
   };
 
   return { period, range: { start, end }, counts, items: sorted, attention };
+}
+
+function inboxCacheKey(deps: InboxBuildDeps): string {
+  return cacheKey("inbox", {
+    period: deps.period,
+    dept: deps.filters.departmentId,
+    app: deps.filters.applicationId,
+    env: deps.filters.environmentId,
+    user: deps.sessionName,
+  });
+}
+
+/** Redis-cached inbox build — shared by /api/inbox and /api/actions/today. */
+export async function buildInboxItemsCached(deps: InboxBuildDeps) {
+  return cachedJson(inboxCacheKey(deps), DEFAULT_CACHE_TTL_SECONDS, () => buildInboxItems(deps));
 }
 
 export type { InboxItem, InboxSection } from "./inbox-shared";

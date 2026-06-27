@@ -5,6 +5,8 @@ import { normalizeProgramProject } from "@/lib/release-id";
 
 const releaseInclude = {
   department: true,
+  releaseOwner: { select: { userId: true, name: true, email: true, role: true } },
+  stakeholders: { include: { user: { select: { userId: true, name: true, email: true, role: true } } } },
   applications: { include: { application: { include: { department: true } } } },
   dependsOn: { include: { dependsOnRelease: true } },
   dependedBy: { include: { release: true } },

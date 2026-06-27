@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth/api";
 import { parseReleaseFilters } from "@/lib/db-release-filter";
 import { predictDbRelease } from "@/lib/db-predictive";
-import { buildInboxItems } from "@/lib/inbox";
+import { buildInboxItemsCached } from "@/lib/inbox";
 import { buildInboxBriefingContext } from "@/lib/db-ai-context";
 import { buildTopActionsToday } from "@/lib/top-actions";
 import { prisma } from "@/lib/prisma";
@@ -24,7 +24,7 @@ export async function GET(req: Request) {
   const sessionName = user?.name ?? "";
 
   const [inbox, releases, p1Issues] = await Promise.all([
-    buildInboxItems({ period, filters, sessionName, prisma }),
+    buildInboxItemsCached({ period, filters, sessionName, prisma }),
     prisma.release.findMany({ include: releaseInclude }),
     prisma.p1Issue.findMany(),
   ]);

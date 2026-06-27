@@ -73,7 +73,7 @@ function buildFallbackSummary(dashboard: DashboardData, scopeLabel: string | nul
 }
 
 export default function DashboardPage() {
-  const [period, setPeriod] = useState<Period>("month");
+  const [period, setPeriod] = useState<Period>("year");
   const [data, setData] = useState<DashboardData | null>(null);
   const [overview, setOverview] = useState<OverviewData | null>(null);
   const [summary, setSummary] = useState<string | null>(null);

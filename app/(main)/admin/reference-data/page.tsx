@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ChevronRight, FileText, BarChart3, Database } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DataTable } from "@/components/ui/data-table";
+import { ReferenceDataLiveSection } from "@/components/admin/ReferenceDataLiveSection";
 
 // Static data constants
 const STATS = [
@@ -340,6 +341,8 @@ export default function AdminReferenceDataPage() {
             </tbody>
           </table>
         </DataTable>
+
+        <ReferenceDataLiveSection />
 
         {/* 1. Departments */}
         <div id="dept" className="scroll-mt-24">

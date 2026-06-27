@@ -111,8 +111,8 @@ export default function SystemMappingPage() {
         ns.push({
           id: key,
           type: "service",
-          parentNode: `dept-${dept}`,
-          // removed extent: "parent" so they can be dragged freely if overlapping
+          parentId: `dept-${dept}`,
+          extent: "parent" as const,
           data: {
             label: meta.label,
             code: mock.code,
@@ -165,17 +165,17 @@ export default function SystemMappingPage() {
 
   const highlightedNodeIds = useMemo(() => {
     if (!selectedNode) return new Set<string>();
-    const nodeIds = new Set<string>([selectedNode.id, selectedNode.parentNode as string]);
+    const nodeIds = new Set<string>([selectedNode.id, selectedNode.parentId as string]);
     edges.forEach(e => {
       if (e.source === selectedNode.id) {
         nodeIds.add(e.target);
         const tNode = nodes.find(n => n.id === e.target);
-        if (tNode?.parentNode) nodeIds.add(tNode.parentNode);
+        if (tNode?.parentId) nodeIds.add(tNode.parentId);
       }
       if (e.target === selectedNode.id) {
         nodeIds.add(e.source);
         const sNode = nodes.find(n => n.id === e.source);
-        if (sNode?.parentNode) nodeIds.add(sNode.parentNode);
+        if (sNode?.parentId) nodeIds.add(sNode.parentId);
       }
     });
     return nodeIds;
@@ -261,7 +261,16 @@ export default function SystemMappingPage() {
             onPaneClick={() => setSelectedNode(null)}
             nodeTypes={nodeTypes} 
             fitView
+            proOptions={{ hideAttribution: true }}
           >
+            {displayNodes.length === 0 && (
+              <Panel position="top-center" className="mt-20 text-center max-w-md">
+                <p className="text-sm font-medium text-gray-700">No mapping edges loaded</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Run <code className="font-mono bg-gray-100 px-1 rounded">npx tsx prisma/seed-mapping-only.ts</code> or use Add Mapping to generate topology.
+                </p>
+              </Panel>
+            )}
             <Background gap={16} color="#E2E8F0" />
             <Controls className="!rounded-xl shadow-theme-md border-gray-200 !mb-14" position="bottom-right" />
             
@@ -313,7 +322,7 @@ export default function SystemMappingPage() {
                   </div>
                   <div className="flex justify-between py-1 border-b border-gray-50">
                     <span className="text-gray-500">Dept</span>
-                    <span className="font-medium text-gray-900">{selectedNode.parentNode?.replace("dept-", "") || "N/A"}</span>
+                    <span className="font-medium text-gray-900">{selectedNode.parentId?.replace("dept-", "") || "N/A"}</span>
                   </div>
                   <div className="flex justify-between py-1 border-b border-gray-50">
                     <span className="text-gray-500">Status</span>

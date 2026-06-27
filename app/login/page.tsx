@@ -94,7 +94,7 @@ function LoginForm() {
         <div className="max-w-md px-12 text-center text-white">
           <h2 className="text-2xl font-bold">Release Desk MVP</h2>
           <p className="mt-3 text-sm text-brand-100/90">
-            Reference data, env booking, system mapping, and role-based access — backed by SQLite for this build.
+            Reference data, env booking, system mapping, and role-based access — backed by PostgreSQL for this build.
           </p>
         </div>
       </div>

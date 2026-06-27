@@ -55,7 +55,7 @@ const SECTION_FILTERS: { id: InboxSection | "all"; label: string }[] = [
 
 export function MorningInboxView() {
   const searchParams = useSearchParams();
-  const [period, setPeriod] = useState<Period>("month");
+  const [period, setPeriod] = useState<Period>("year");
   const [data, setData] = useState<InboxData | null>(null);
   const [loading, setLoading] = useState(true);
   const initialSection = (searchParams.get("section") as InboxSection | "all") || "all";

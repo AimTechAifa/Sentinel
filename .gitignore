@@ -51,4 +51,7 @@ dash.json
 login.json
 overview.json
 
+# duplicate seed source bundle (canonical copy is prisma/seed-data/)
+/releasedesk-seed/
+
 /lib/generated/prisma

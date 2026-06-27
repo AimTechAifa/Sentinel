@@ -187,15 +187,48 @@ export function mergeReleases(db: UnifiedRelease[], demo: UnifiedRelease[]): Uni
   return merged;
 }
 
-export function countByStatus(rows: UnifiedRelease[]) {
-  return {
-    planned: rows.filter((r) => r.status === "Planned" || r.status === "Scheduled").length,
-    inProgress: rows.filter((r) => r.status === "In Progress" || r.status === "Ready").length,
-    blocked: rows.filter((r) => r.status === "Blocked").length,
-    atRisk: rows.filter((r) => r.status === "At Risk").length,
-    shipped: rows.filter((r) => r.status === "Shipped" || r.status === "Complete").length,
+type StatusBucket = "planned" | "inProgress" | "blocked" | "atRisk" | "shipped";
+
+/** Maps demo + workbook release statuses into dashboard tile buckets. */
+export function bucketReleaseStatus(status: string): StatusBucket {
+  switch (status) {
+    case "Blocked":
+      return "blocked";
+    case "At Risk":
+      return "atRisk";
+    case "Draft":
+    case "Planning":
+    case "Planned":
+    case "Scheduled":
+      return "planned";
+    case "Approved":
+    case "Pending CAB":
+    case "Testing":
+    case "In Progress":
+    case "Ready":
+      return "inProgress";
+    case "Shipped":
+    case "Complete":
+    case "Completed":
+      return "shipped";
+    default:
+      return "planned";
+  }
+}
+
+export function countByStatus(rows: Array<{ status: string }>) {
+  const counts = {
+    planned: 0,
+    inProgress: 0,
+    blocked: 0,
+    atRisk: 0,
+    shipped: 0,
     total: rows.length,
   };
+  for (const r of rows) {
+    counts[bucketReleaseStatus(r.status)]++;
+  }
+  return counts;
 }
 
 export function dbReleaseToSearchResult(r: {

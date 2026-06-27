@@ -43,8 +43,8 @@ export function AdvancedCard({
     <div className={cn("flex items-start justify-between gap-3", !noPadding && "mb-4")}>
       <div className="flex items-start gap-2.5 min-w-0">
         {Icon && (
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-50">
-            <Icon className="h-4 w-4 text-brand-500" />
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-50 dark:bg-brand-500/15">
+            <Icon className="h-4 w-4 text-brand-500 dark:text-brand-400" />
           </div>
         )}
         <div className="min-w-0">

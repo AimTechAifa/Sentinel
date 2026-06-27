@@ -136,7 +136,7 @@ export function MonthGridCalendar({
                     colorClass = "bg-blue-500";
                   }
                   
-                  const isLink = r.releaseId && r.release?.releaseCode;
+                  const isLink = !!r.releaseId;
                   
                   return (
                     <div
@@ -150,7 +150,7 @@ export function MonthGridCalendar({
                         !cell.isCurrentMonth && "opacity-70",
                         isLink && "hover:border-gray-300 hover:bg-white cursor-pointer"
                       )}
-                      onClick={() => isLink ? window.location.href = `/releases/${r.release.releaseCode}` : null}
+                      onClick={() => isLink && r.releaseId ? window.location.href = `/releases/${r.releaseId}` : null}
                     >
                       <span className={cn("inline-block w-1.5 h-1.5 rounded-full mr-1.5", colorClass)} />
                       {r.title}

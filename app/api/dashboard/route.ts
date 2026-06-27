@@ -2,41 +2,54 @@ import { NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth/api";
 import { prismaReleaseWhere, parseReleaseFilters } from "@/lib/db-release-filter";
 import { prisma } from "@/lib/prisma";
+import { countByStatus } from "@/lib/unified-releases";
 import { periodRange, type Period } from "@/lib/period-range";
+import { cacheKey, cachedJson, DEFAULT_CACHE_TTL_SECONDS } from "@/lib/cache";
 
 export async function GET(req: Request) {
   const { error } = await requireRole("readonly");
   if (error) return error;
 
   const url = new URL(req.url);
-  const period = (url.searchParams.get("period") ?? "month") as Period;
+  const period = (url.searchParams.get("period") ?? "year") as Period;
   const filters = parseReleaseFilters(req);
-  const { start, end } = periodRange(period);
 
-  const where = prismaReleaseWhere(filters, {
-    releaseDate: { gte: start, lte: end },
+  const key = cacheKey("dashboard", {
+    period,
+    dept: filters.departmentId,
+    app: filters.applicationId,
+    env: filters.environmentId,
   });
 
-  const releases = await prisma.release.findMany({ where });
+  const payload = await cachedJson(key, DEFAULT_CACHE_TTL_SECONDS, async () => {
+    const { start, end } = periodRange(period);
 
-  const counts = {
-    planned: releases.filter((r) => r.status === "Planned" || r.status === "Scheduled").length,
-    inProgress: releases.filter((r) => r.status === "In Progress" || r.status === "Ready").length,
-    blocked: releases.filter((r) => r.status === "Blocked").length,
-    atRisk: releases.filter((r) => r.status === "At Risk").length,
-    shipped: releases.filter((r) => r.status === "Shipped" || r.status === "Complete").length,
-  };
+    const where = prismaReleaseWhere(filters, {
+      releaseDate: { gte: start, lte: end },
+    });
 
-  const p1Where: { priority: string; application?: string } = { priority: "P1" };
-  if (filters.applicationId) {
-    const app = await prisma.application.findUnique({ where: { id: filters.applicationId } });
-    if (app) p1Where.application = app.name;
-  }
+    const releases = await prisma.release.findMany({ where });
+    const counts = countByStatus(releases);
 
-  const [connectors, p1Issues] = await Promise.all([
-    prisma.connectorSync.findMany({ orderBy: { name: "asc" } }),
-    prisma.p1Issue.findMany({ where: p1Where, orderBy: { updatedAt: "desc" } }),
-  ]);
+    const p1Where: { priority: string; application?: string } = { priority: "P1" };
+    if (filters.applicationId) {
+      const app = await prisma.application.findUnique({ where: { id: filters.applicationId } });
+      if (app) p1Where.application = app.name;
+    }
 
-  return NextResponse.json({ period, counts, connectors, p1Issues, range: { start, end } });
+    const [connectors, p1Issues] = await Promise.all([
+      prisma.connectorSync.findMany({ orderBy: { name: "asc" } }),
+      prisma.p1Issue.findMany({ where: p1Where, orderBy: { updatedAt: "desc" } }),
+    ]);
+
+    return {
+      period,
+      counts,
+      connectors,
+      p1Issues,
+      range: { start: start.toISOString(), end: end.toISOString() },
+    };
+  });
+
+  return NextResponse.json(payload);
 }
