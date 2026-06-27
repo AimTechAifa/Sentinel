@@ -11,21 +11,28 @@ import { useState } from "react";
 import { useThemeMode } from "@/context/ThemeModeContext";
 import type { ThemeMode } from "@/lib/materio/theme";
 
-const THEME_OPTIONS: ThemeMode[] = ["light", "dark"];
+type SelectableThemeMode = "light" | "dark";
 
-const MODE_META: Record<"light" | "dark", { label: string; icon: typeof Sun; description: string }> = {
+const THEME_OPTIONS: SelectableThemeMode[] = ["light", "dark"];
+
+const MODE_META: Record<SelectableThemeMode, { label: string; icon: typeof Sun; description: string }> = {
   light: { label: "Light", icon: Sun, description: "Materio light theme" },
   dark: { label: "Dark", icon: Moon, description: "Full dark mode" },
 };
 
+function selectableMode(mode: ThemeMode): SelectableThemeMode {
+  return mode === "semi-dark" ? "dark" : mode;
+}
+
 export function ThemeModeToggle() {
   const { mode, setMode } = useThemeMode();
   const [anchor, setAnchor] = useState<null | HTMLElement>(null);
-  const CurrentIcon = MODE_META[mode === "semi-dark" ? "dark" : mode].icon;
+  const active = selectableMode(mode);
+  const CurrentIcon = MODE_META[active].icon;
 
   return (
     <>
-      <Tooltip title={`Theme: ${MODE_META[mode === "semi-dark" ? "dark" : mode].label}`}>
+      <Tooltip title={`Theme: ${MODE_META[active].label}`}>
         <IconButton
           onClick={(e) => setAnchor(e.currentTarget)}
           size="small"
@@ -48,7 +55,7 @@ export function ThemeModeToggle() {
           return (
             <MenuItem
               key={key}
-              selected={mode === key}
+              selected={active === key}
               onClick={() => {
                 setMode(key);
                 setAnchor(null);
