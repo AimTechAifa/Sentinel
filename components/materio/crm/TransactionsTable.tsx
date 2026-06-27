@@ -32,9 +32,9 @@ const defaultColumns = {
 function getStatusChipStyles(status: string) {
   const s = status.toLowerCase();
   if (s.includes("go") || s.includes("ready") || s.includes("approved") || s.includes("open")) 
-    return "border-emerald-200 text-emerald-700 bg-emerald-50/50";
+    return "border-success-200 text-success-700 bg-success-50/50";
   if (s.includes("risk") || s.includes("pending") || s.includes("progress")) 
-    return "border-amber-200 text-amber-700 bg-amber-50/50";
+    return "border-warning-200 text-warning-700 bg-warning-50/50";
   if (s.includes("block") || s.includes("fail") || s.includes("p1")) 
     return "border-error-200 text-error-700 bg-error-50/50";
   return "border-gray-200 text-gray-700 bg-gray-50/50";

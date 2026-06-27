@@ -2,6 +2,7 @@
 
 import { MagicCard } from "@/components/ui/magic-card";
 import type { LucideIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface DataTableProps {
   title?: string;
@@ -16,7 +17,7 @@ export function DataTable({ title, subtitle, icon: Icon, action, children, class
   return (
     <MagicCard
       gradient="from-gray-200/70 via-white to-gray-200/70"
-      className={className}
+      className={cn("w-full max-w-full overflow-hidden", className)}
       innerClassName="overflow-hidden"
     >
       {(title || Icon) && (

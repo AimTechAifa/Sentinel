@@ -6,9 +6,9 @@ export type MappingEdgeRow = {
   targetEnvId: string;
   direction: string;
   notes?: string | null;
-  sourceApp?: { name: string };
+  sourceApp?: { name: string; department?: { name: string } | null };
   sourceEnv?: { name: string };
-  targetApp?: { name: string };
+  targetApp?: { name: string; department?: { name: string } | null };
   targetEnv?: { name: string };
 };
 

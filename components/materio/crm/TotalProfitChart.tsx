@@ -68,7 +68,7 @@ export function TotalProfitChart({
               {title}
             </Typography>
             <Box sx={{ height: 300, mx: -1 }}>
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer minWidth={0} minHeight={0} width="100%" height="100%">
               <BarChart data={data} barCategoryGap="18%">
                 <defs>
                   <linearGradient id="colorPlanned" x1="0" y1="0" x2="0" y2="1">

@@ -17,7 +17,7 @@ export function ReadinessGauge({ value, size = 160 }: { value: number; size?: nu
       style={{ width: size, height: size }}
     >
       <div className="absolute inset-0 rounded-full bg-gradient-to-br from-brand-50/50 to-brand-25/50 blur-sm" />
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer minWidth={0} minHeight={0} width="100%" height="100%">
         <PieChart>
           <Pie data={data} cx="50%" cy="50%" innerRadius={size * 0.35} outerRadius={size * 0.45} startAngle={90} endAngle={-270} dataKey="value" stroke="none">
             <Cell fill={color} />

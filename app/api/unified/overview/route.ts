@@ -1,14 +1,12 @@
 import { NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth/api";
-import { buildBookings, buildVersionMatrix } from "@/lib/db-environment-desk";
 import {
-  filterDemoReleasesForPeriod,
   parseReleaseFilters,
   prismaReleaseWhere,
 } from "@/lib/db-release-filter";
-import { releases as demoReleases } from "@/lib/dummy-data";
+import { buildBookings, buildVersionMatrix } from "@/lib/db-environment-desk";
 import { prisma } from "@/lib/prisma";
-import { countByStatus, dbToUnified, demoToUnified, mergeReleases, periodRange, type Period } from "@/lib/unified-releases";
+import { countByStatus, dbToUnified, periodRange, type Period } from "@/lib/unified-releases";
 
 export async function GET(req: Request) {
   const { error } = await requireRole("readonly");
@@ -57,20 +55,10 @@ export async function GET(req: Request) {
     }),
   ]);
 
-  const demoFiltered = filterDemoReleasesForPeriod(
-    period,
-    filters,
-    departments,
-    applications,
-    environments
-  );
-  const demoInPeriod = demoFiltered.map(demoToUnified);
-
   const dbUnified = dbReleases.map(dbToUnified);
-  const combined = mergeReleases(dbUnified, demoInPeriod);
+  const combined = dbUnified;
   const combinedCounts = countByStatus(combined);
-  const demoCounts = countByStatus(demoInPeriod);
-  const dbCounts = countByStatus(dbUnified);
+  const dbCounts = combinedCounts;
   const versionMatrix = buildVersionMatrix(apps, versions, dbReleases);
   const driftApps = versionMatrix.filter((v) => v.drift).length;
 
@@ -80,7 +68,6 @@ export async function GET(req: Request) {
     counts: {
       combined: combinedCounts,
       database: dbCounts,
-      demo: demoCounts,
     },
     releases: combined.slice(0, 20),
     bookings: buildBookings(bookings),
@@ -91,17 +78,7 @@ export async function GET(req: Request) {
       bookedEnvs: bookings.length,
       applications: apps.length,
     },
-    demoPortfolio: {
-      totalDemoReleases: demoReleases.length,
-      inPeriod: demoInPeriod.length,
-      atRisk: demoCounts.atRisk,
-      blocked: demoCounts.blocked,
-    },
     links: [
-      { label: "All releases", href: "/releases?view=all" },
-      { label: "Database releases", href: "/releases?view=database" },
-      { label: "Demo command center", href: "/releases?view=demo" },
-      { label: "Quick Start scenarios", href: "/templates" },
       { label: "Environment desk", href: "/environments" },
       { label: "Env booking", href: "/booking" },
       { label: "System mapping", href: "/system-mapping" },

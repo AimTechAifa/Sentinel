@@ -25,6 +25,7 @@ export async function GET() {
 
   return NextResponse.json({
     versionMatrix,
+    versions,
     timeline,
     bookings: bookingRows,
     edges,

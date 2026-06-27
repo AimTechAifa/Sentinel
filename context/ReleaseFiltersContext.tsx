@@ -30,6 +30,7 @@ type ReleaseFiltersContextValue = {
   envOptions: EnvFilterRow[];
   bookings: BookingFilterRow[];
   dbRows: DbReleaseFilterRow[];
+  calendarEvents: any[]; // We will type this properly below
   setDepartmentId: (id: string) => void;
   setApplicationId: (id: string) => void;
   setEnvironmentId: (id: string) => void;
@@ -60,6 +61,7 @@ export function ReleaseFiltersProvider({ children }: { children: ReactNode }) {
   const [environments, setEnvironments] = useState<EnvFilterRow[]>([]);
   const [bookings, setBookings] = useState<BookingFilterRow[]>([]);
   const [dbRows, setDbRows] = useState<DbReleaseFilterRow[]>([]);
+  const [calendarEvents, setCalendarEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const refreshLookups = useCallback(() => {
@@ -70,13 +72,15 @@ export function ReleaseFiltersProvider({ children }: { children: ReactNode }) {
       fetch("/api/environments").then((r) => r.json()),
       fetch("/api/bookings").then((r) => r.json()),
       fetch("/api/releases").then((r) => r.json()),
+      fetch("/api/calendar").then((r) => r.json()),
     ])
-      .then(([depts, apps, envs, bks, releases]) => {
+      .then(([depts, apps, envs, bks, releases, calEvents]) => {
         setDepartments(depts);
         setApplications(apps);
         setEnvironments(envs);
         setBookings(bks);
         setDbRows(releases);
+        setCalendarEvents(calEvents);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -134,6 +138,7 @@ export function ReleaseFiltersProvider({ children }: { children: ReactNode }) {
       envOptions,
       bookings,
       dbRows,
+      calendarEvents,
       setDepartmentId,
       setApplicationId,
       setEnvironmentId,
@@ -150,6 +155,7 @@ export function ReleaseFiltersProvider({ children }: { children: ReactNode }) {
       envOptions,
       bookings,
       dbRows,
+      calendarEvents,
       setDepartmentId,
       setApplicationId,
       setEnvironmentId,

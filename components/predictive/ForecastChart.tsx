@@ -28,7 +28,7 @@ export function ForecastChart({ data }: { data: ForecastTrendPoint[] }) {
         <span className="text-[10px] bg-brand-25 text-ai px-2 py-1 rounded-full font-medium">ML Forecast</span>
       }
     >
-      <ResponsiveContainer width="100%" height={260}>
+      <ResponsiveContainer minWidth={0} minHeight={0} width="100%" height={260}>
         <ComposedChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
           <XAxis dataKey="week" tick={{ fontSize: 10 }} stroke="#94A3B8" />

@@ -1,4 +1,4 @@
-import { filterDemoReleasesForPeriod, parseReleaseFilters, prismaReleaseWhere } from "./db-release-filter";
+import { parseReleaseFilters, prismaReleaseWhere } from "./db-release-filter";
 import {
   sortInboxItems,
   type InboxItem,
@@ -6,7 +6,6 @@ import {
 } from "./inbox-shared";
 import {
   buildDbAttentionItem,
-  buildDemoAttentionItem,
   isNeedsAttentionStatus,
   sortAttentionItems,
   type NeedsAttentionItem,
@@ -114,19 +113,7 @@ export async function buildInboxItems(deps: InboxBuildDeps): Promise<{
     ]);
 
   const dbAttention = dbRows.map(buildDbAttentionItem);
-  const demoFiltered = filterDemoReleasesForPeriod(period, filters, departments, applications, environments);
-  const demoAttention = demoFiltered
-    .filter((r) => isNeedsAttentionStatus(r.status))
-    .map((release) => {
-      const decision =
-        (liveState.decisions[release.id]?.decision as ReleaseDecision | undefined) ??
-        release.decision ??
-        null;
-      const deployPhase = liveState.deployments[release.id]?.phase ?? "Not Started";
-      return buildDemoAttentionItem(release, decision, deployPhase);
-    });
-
-  const attention = sortAttentionItems([...dbAttention, ...demoAttention]);
+  const attention = sortAttentionItems(dbAttention);
   const items: InboxItem[] = attention.map(attentionToInboxItem);
 
   p1Issues.forEach((p) => {
@@ -182,27 +169,7 @@ export async function buildInboxItems(deps: InboxBuildDeps): Promise<{
     });
   });
 
-  demoFiltered.forEach((release) => {
-    const overdue = release.approvals.filter((a) => {
-      const typical = release.typicalApprovalHours[a.gate] ?? 24;
-      return isApprovalOverdue(a, typical);
-    });
-    overdue.forEach((gate) => {
-      items.push({
-        id: `approval-${release.id}-${gate.gate}`,
-        section: "approvals",
-        priority: 5,
-        title: `${release.version} — ${gate.gate}`,
-        subtitle: `${release.team} · ${release.owner}`,
-        reason: `${gate.gate} approval overdue`,
-        responsible:
-          gate.approver && gate.approver !== "System" ? gate.approver : `${gate.gate} approver`,
-        href: `/releases/${release.id}`,
-        date: release.targetDate,
-        source: "demo",
-      });
-    });
-  });
+
 
   if (sessionName) {
     myRows

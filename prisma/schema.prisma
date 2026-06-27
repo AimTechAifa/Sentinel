@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -33,6 +33,7 @@ model Application {
   mappingFrom   SystemMappingEdge[]  @relation("MappingSourceApp")
   mappingTo     SystemMappingEdge[]  @relation("MappingTargetApp")
   envVersions   EnvironmentVersion[]
+  drifts        Drift[]
   createdAt     DateTime             @default(now())
   updatedAt     DateTime             @updatedAt
 
@@ -66,6 +67,10 @@ model EnvironmentVersion {
   environment   Environment @relation(fields: [environmentId], references: [id], onDelete: Cascade)
   version       String
   updatedBy     String?
+  buildNumber   String?
+  deployDate    DateTime?
+  status        String?
+  notes         String?
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 
@@ -83,26 +88,53 @@ model ReleaseAuditEvent {
 }
 
 model Release {
-  id             String               @id @default(cuid())
-  releaseCode    String               @unique
-  name           String
-  programProject String?
-  owner          String
-  status         String
-  releaseDate    DateTime
-  priority       String
-  impact         String
-  departmentId   String
-  department     Department           @relation(fields: [departmentId], references: [id])
-  notes          String?
-  decision       String?
-  applications   ReleaseApplication[]
-  dependsOn      ReleaseDependency[]  @relation("ReleaseDependsOn")
-  dependedBy     ReleaseDependency[]  @relation("ReleaseDependedBy")
-  bookings       EnvBooking[]
-  auditEvents    ReleaseAuditEvent[]
-  createdAt      DateTime             @default(now())
-  updatedAt      DateTime             @updatedAt
+  id                    String               @id @default(cuid())
+  releaseCode           String               @unique
+  name                  String
+  programProject        String?
+  owner                 String
+  status                String
+  releaseDate           DateTime
+  priority              String
+  impact                String
+  departmentId          String
+  department            Department           @relation(fields: [departmentId], references: [id])
+  notes                 String?
+  decision              String?
+
+  // --- Phase 1 new fields ---
+  releaseSize           String?
+  cabDate               DateTime?
+  startDate             DateTime?
+  testEnvRequired       String?
+  uatEnvRequired        String?
+  conflictFlag          Boolean              @default(false)
+  readinessPercent      Float?
+  blockers              String?
+  vendorMaintenance     String?
+  changeFreeze          String?
+  regulatory            String?
+  approvalStatus        String?
+  rollbackPlan          String?
+  goLiveChecklistPercent Float?
+  deploymentWindow      String?
+  releaseOwnerId        String?
+  releaseOwner          User?                @relation("ReleaseOwner", fields: [releaseOwnerId], references: [id])
+
+  // --- Relations ---
+  applications          ReleaseApplication[]
+  dependsOn             ReleaseDependency[]  @relation("ReleaseDependsOn")
+  dependedBy            ReleaseDependency[]  @relation("ReleaseDependedBy")
+  bookings              EnvBooking[]
+  auditEvents           ReleaseAuditEvent[]
+  risks                 Risk[]
+  drifts                Drift[]
+  approvals             Approval[]
+  dependentLeaves       LeaveRecordRelease[]
+  stakeholders          ReleaseStakeholder[]
+  calendarEvents        CalendarEvent[]
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
 }
 
 model ReleaseApplication {
@@ -120,27 +152,50 @@ model ReleaseDependency {
   dependsOnReleaseId String
   release            Release @relation("ReleaseDependsOn", fields: [releaseId], references: [id], onDelete: Cascade)
   dependsOnRelease   Release @relation("ReleaseDependedBy", fields: [dependsOnReleaseId], references: [id], onDelete: Cascade)
+  dependencyType     String?
+  status             String?
+  impactIfBlocked    String?
+  notes              String?
 
   @@unique([releaseId, dependsOnReleaseId])
 }
 
 model EnvBooking {
-  id            String       @id @default(cuid())
-  applicationId String
-  application   Application  @relation(fields: [applicationId], references: [id], onDelete: Cascade)
-  environmentId String?
-  environment   Environment? @relation(fields: [environmentId], references: [id], onDelete: SetNull)
-  bookedBy      String
-  team          String
-  departmentName String?
-  fromDate      DateTime
-  toDate        DateTime
-  purpose       String?
-  releaseId     String?
-  release       Release?     @relation(fields: [releaseId], references: [id], onDelete: SetNull)
-  status        String       @default("BOOKED")
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  id              String       @id @default(cuid())
+  applicationId   String
+  application     Application  @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  environmentId   String?
+  environment     Environment? @relation(fields: [environmentId], references: [id], onDelete: SetNull)
+  bookedBy        String
+  team            String
+  departmentName  String?
+  fromDate        DateTime
+  toDate          DateTime
+  purpose         String?
+  releaseId       String?
+  release         Release?     @relation(fields: [releaseId], references: [id], onDelete: SetNull)
+  status          String       @default("BOOKED")
+
+  // --- Phase 1 new fields (release-driven booking shape) ---
+  releaseSize     String?
+  prodReleaseDate DateTime?
+  cabDate         DateTime?
+  testEnvCode     String?
+  testStart       DateTime?
+  testEnd         DateTime?
+  testDays        Int?
+  uatEnvCode      String?
+  uatStart        DateTime?
+  uatEnd          DateTime?
+  uatDays         Int?
+  preProdEnvCode  String?
+  preProdStart    DateTime?
+  preProdEnd      DateTime?
+  preProdDays     Int?
+  conflictFlag    Boolean      @default(false)
+
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
 }
 
 model SystemMappingGroup {
@@ -256,4 +311,145 @@ model AgentPauseState {
   agentId   String   @id
   paused    Boolean  @default(false)
   updatedAt DateTime @updatedAt
+}
+
+model User {
+  id              String               @id @default(cuid())
+  userId          String               @unique
+  name            String
+  email           String               @unique
+  role            String
+  department      String
+  manager         String?
+  accessLevel     String
+  status          String
+  lastLogin       DateTime?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  // Back-relations
+  ownedReleases   Release[]            @relation("ReleaseOwner")
+  risksOwned      Risk[]
+  approvalsGiven  Approval[]
+  leaveRecords    LeaveRecord[]
+  stakeholderOf   ReleaseStakeholder[]
+}
+
+// ─── Phase 1: New Models ────────────────────────────────────
+
+model ReleaseStakeholder {
+  releaseId String
+  userId    String
+  release   Release @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([releaseId, userId])
+}
+
+model Risk {
+  id                 String   @id @default(cuid())
+  riskCode           String   @unique
+  releaseId          String
+  release            Release  @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+  category           String
+  description        String
+  likelihood         Int
+  impact             Int
+  riskScore          Int
+  affectedArea       String?
+  mitigationStrategy String?
+  riskOwnerId        String?
+  riskOwner          User?    @relation(fields: [riskOwnerId], references: [id])
+  status             String
+  notes              String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([releaseId])
+}
+
+model Drift {
+  id                String      @id @default(cuid())
+  driftCode         String      @unique
+  releaseId         String
+  release           Release     @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+  applicationId     String
+  application       Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  environmentName   String
+  driftType         String
+  driftCategory     String?
+  detectedDate      DateTime
+  severity          String
+  description       String
+  impactOnRelease   String?
+  remediationAction String?
+  status            String
+  etaToFix          DateTime?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  @@index([releaseId])
+  @@index([applicationId])
+}
+
+model Approval {
+  id            String    @id @default(cuid())
+  approvalCode  String    @unique
+  releaseId     String
+  release       Release   @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+  approvalType  String
+  approverId    String
+  approver      User      @relation(fields: [approverId], references: [id])
+  submittedDate DateTime
+  decisionDate  DateTime?
+  decision      String    @default("Pending")
+  comments      String?
+  cabMeetingId  String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([releaseId])
+}
+
+model LeaveRecord {
+  id               String               @id @default(cuid())
+  leaveCode        String               @unique
+  userId           String
+  user             User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  leaveStart       DateTime
+  leaveEnd         DateTime
+  leaveType        String
+  days             Int
+  riskImpact       String?
+  riskScore        Int
+  affectedReleases LeaveRecordRelease[]
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  @@index([userId])
+}
+
+model LeaveRecordRelease {
+  leaveRecordId String
+  releaseId     String
+  leaveRecord   LeaveRecord @relation(fields: [leaveRecordId], references: [id], onDelete: Cascade)
+  release       Release     @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+
+  @@id([leaveRecordId, releaseId])
+}
+
+model CalendarEvent {
+  id             String    @id @default(cuid())
+  date           DateTime
+  eventType      String
+  releaseId      String?
+  release        Release?  @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+  title          String
+  departmentName String?
+  sizeImpact     String?
+  notes          String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([releaseId])
 }

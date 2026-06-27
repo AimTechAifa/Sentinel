@@ -23,7 +23,7 @@ export function TrendChart({ data }: { data: HistoricalTrendPoint[] }) {
       subheader="26-week org-wide trend (demo data)"
     >
       <Box sx={{ height: 280, mx: -1 }}>
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer minWidth={0} minHeight={0} width="100%" height="100%">
           <ComposedChart data={chartData}>
             <CartesianGrid strokeDasharray="4 4" stroke={grid} vertical={false} />
             <XAxis dataKey="week" tick={{ fontSize: 11, fill: tick }} axisLine={false} tickLine={false} />

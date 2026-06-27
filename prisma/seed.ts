@@ -1,482 +1,481 @@
 import { PrismaClient } from "@prisma/client";
-import { seedLiveState } from "./seed-live-state";
+import * as xlsx from "xlsx";
+import * as path from "path";
 
 const prisma = new PrismaClient();
 
-const daysFromNow = (d: number) => new Date(Date.now() + d * 86400000);
-const daysAgo = (d: number) => new Date(Date.now() - d * 86400000);
+function parseExcelDate(excelDate: number | string | null | undefined): Date | null {
+  if (!excelDate) return null;
+  if (typeof excelDate === "number") {
+    return new Date(Math.round((excelDate - 25569) * 86400 * 1000));
+  }
+  if (typeof excelDate === "string") {
+    const d = new Date(excelDate);
+    if (!isNaN(d.getTime())) return d;
+  }
+  return null;
+}
 
 async function main() {
-  await prisma.releaseHistoryEvent.deleteMany();
-  await prisma.releaseDecisionState.deleteMany();
-  await prisma.deploymentState.deleteMany();
-  await prisma.appNotificationRow.deleteMany();
-  await prisma.agentPauseState.deleteMany();
-  await prisma.releaseAuditEvent.deleteMany();
-  await prisma.releaseDependency.deleteMany();
-  await prisma.releaseApplication.deleteMany();
-  await prisma.envBooking.deleteMany();
-  await prisma.systemMappingEdge.deleteMany();
-  await prisma.systemMappingGroup.deleteMany();
-  await prisma.p1Issue.deleteMany();
-  await prisma.workItem.deleteMany();
-  await prisma.release.deleteMany();
-  await prisma.environmentVersion.deleteMany();
-  await prisma.environment.deleteMany();
-  await prisma.application.deleteMany();
-  await prisma.department.deleteMany();
-  await prisma.connectorSync.deleteMany();
+  console.log("Loading Excel file...");
+  const filePath = path.join(__dirname, "ReleaseDesk_SampleData (1).xlsx");
+  const wb = xlsx.readFile(filePath);
 
-  const fin = await prisma.department.create({ data: { name: "FIN", head: "Guru Sharma" } });
-  const platform = await prisma.department.create({ data: { name: "Platform", head: "Alex Kim" } });
-  const crm = await prisma.department.create({ data: { name: "CRM", head: "Lisa Park" } });
-  const security = await prisma.department.create({ data: { name: "Security", head: "Sarah Chen" } });
-  const ops = await prisma.department.create({ data: { name: "Operations", head: "Emma Walsh" } });
+  const getSheetData = (sheetName: string, range?: number) => {
+    const ws = wb.Sheets[sheetName];
+    if (!ws) {
+      console.warn(`Warning: Sheet "${sheetName}" not found!`);
+      return [];
+    }
+    return xlsx.utils.sheet_to_json<any>(ws, { range });
+  };
 
-  const sap = await prisma.application.create({
-    data: {
-      name: "SAP",
-      departmentId: platform.id,
-      type: "ERP",
-      productOwner: "Lisa Park",
-      techLead: "Jordan Lee",
-      support: "Platform Ops",
-      criticality: "Critical",
-    },
-  });
-  const finApp = await prisma.application.create({
-    data: {
-      name: "FIN",
-      departmentId: fin.id,
-      type: "Finance",
-      productOwner: "Guru Sharma",
-      techLead: "Chris Nguyen",
-      support: "FIN Support",
-      criticality: "Critical",
-    },
-  });
-  const crmApp = await prisma.application.create({
-    data: {
-      name: "CRM",
-      departmentId: crm.id,
-      type: "Customer",
-      productOwner: "Lisa Park",
-      techLead: "David Frost",
-      support: "CRM Support",
-      criticality: "High",
-    },
-  });
-  const oracle = await prisma.application.create({
-    data: {
-      name: "Oracle",
-      departmentId: ops.id,
-      type: "Data Platform",
-      productOwner: "Raj Patel",
-      techLead: "Alex Kim",
-      support: "Data Ops",
-      criticality: "High",
-    },
-  });
+  console.log("Wiping existing data...");
+  await prisma.leaveRecordRelease.deleteMany({});
+  await prisma.leaveRecord.deleteMany({});
+  await prisma.approval.deleteMany({});
+  await prisma.drift.deleteMany({});
+  await prisma.risk.deleteMany({});
+  await prisma.envBooking.deleteMany({});
+  await prisma.releaseDependency.deleteMany({});
+  await prisma.releaseStakeholder.deleteMany({});
+  await prisma.releaseApplication.deleteMany({});
+  await prisma.release.deleteMany({});
+  await prisma.environmentVersion.deleteMany({});
+  await prisma.environment.deleteMany({});
+  await prisma.application.deleteMany({});
+  await prisma.user.deleteMany({});
+  await prisma.department.deleteMany({});
 
-  const sapDev = await prisma.environment.create({
-    data: { applicationId: sap.id, name: "DEV SAP", type: "Dev", owner: "Jordan Lee", lastDbRefresh: daysAgo(7), status: "Available" },
-  });
-  const sapTest = await prisma.environment.create({
-    data: { applicationId: sap.id, name: "TEST SAP", type: "Test", owner: "Jordan Lee", lastDbRefresh: daysAgo(3), status: "Available" },
-  });
-  const sapProd = await prisma.environment.create({
-    data: { applicationId: sap.id, name: "PROD SAP", type: "Prod", owner: "Emma Walsh", lastDbRefresh: daysAgo(1), status: "Restricted" },
-  });
-  const finUat = await prisma.environment.create({
-    data: { applicationId: finApp.id, name: "UAT Asset Mgmt", type: "UAT", owner: "Guru Sharma", lastDbRefresh: daysAgo(5), status: "Available" },
-  });
-  const oracleDev = await prisma.environment.create({
-    data: { applicationId: oracle.id, name: "DEV Oracle", type: "Dev", owner: "Raj Patel", lastDbRefresh: daysAgo(10), status: "Available" },
-  });
-  const crmDev = await prisma.environment.create({
-    data: { applicationId: crmApp.id, name: "DEV CRM", type: "Dev", owner: "David Frost", lastDbRefresh: daysAgo(4), status: "Available" },
-  });
+  const usersData = getSheetData("Users", 0);
+  const refDataRaw = xlsx.utils.sheet_to_json<any>(wb.Sheets["Reference Data"], { header: 1 });
+  
+  // 1. Department
+  console.log("Seeding Departments...");
+  let deptHeaderIdx = -1;
+  for (let i = 0; i < refDataRaw.length; i++) {
+    if (refDataRaw[i][0] === "Dept ID" && refDataRaw[i][1] === "Dept Code") {
+      deptHeaderIdx = i; break;
+    }
+  }
 
-  const defaultGroup = await prisma.systemMappingGroup.create({
-    data: {
-      name: "Default enterprise setup",
-      status: "accepted",
-      sourceNotes: "Seeded demo mappings for SAP, FIN, Oracle, and CRM integration paths.",
-    },
-  });
+  const deptsToCreate: any[] = [];
+  if (deptHeaderIdx !== -1) {
+    for (let i = deptHeaderIdx + 1; i < refDataRaw.length; i++) {
+      const row = refDataRaw[i];
+      if (!row || !row[0]) break; // empty row marks end of block
+      
+      const deptName = row[2];
+      // Find head from Users data
+      const executiveUser = usersData.find(u => u["Department"] === deptName && u["Access Level"] === "Executive");
+      
+      deptsToCreate.push({
+        name: deptName,
+        head: executiveUser ? executiveUser["Name"] : "Unassigned"
+      });
+    }
+  }
 
-  await prisma.systemMappingEdge.createMany({
-    data: [
-      {
-        groupId: defaultGroup.id,
-        sourceAppId: sap.id,
-        sourceEnvId: sapTest.id,
-        targetAppId: finApp.id,
-        targetEnvId: finUat.id,
-        direction: "downstream",
-        notes: "FIN UAT consumes TEST SAP interfaces for SIT and UAT cycles.",
-        isDefault: true,
-      },
-      {
-        groupId: defaultGroup.id,
-        sourceAppId: sap.id,
-        sourceEnvId: sapTest.id,
-        targetAppId: oracle.id,
-        targetEnvId: oracleDev.id,
-        direction: "downstream",
-        notes: "Ledger replication from SAP TEST to Oracle DEV for reconciliation.",
-        isDefault: true,
-      },
-      {
-        groupId: defaultGroup.id,
-        sourceAppId: finApp.id,
-        sourceEnvId: finUat.id,
-        targetAppId: crmApp.id,
-        targetEnvId: crmDev.id,
-        direction: "downstream",
-        notes: "Customer billing events feed CRM DEV during end-to-end tests.",
-        isDefault: false,
-      },
-    ],
-  });
+  const deptMap = new Map<string, string>();
+  for (const d of deptsToCreate) {
+    const created = await prisma.department.create({ data: d });
+    deptMap.set(created.name, created.id);
+  }
 
-  const rel2140 = await prisma.release.create({
-    data: {
-      releaseCode: "RD-2026-0140",
-      name: "Platform Release",
-      programProject: "Core Banking Transformation",
-      owner: "Priya Sharma",
-      status: "At Risk",
-      releaseDate: daysFromNow(1),
-      priority: "High",
-      impact: "High",
-      departmentId: platform.id,
-      applications: { create: [{ applicationId: sap.id }] },
-    },
-  });
+  // 2. User
+  console.log("Seeding Users...");
+  const userMap = new Map<string, string>();
+  const userNameMap = new Map<string, string>();
+  for (const r of usersData) {
+    const deptId = deptMap.get(r["Department"]);
+    const created = await prisma.user.create({
+      data: {
+        userId: r["User ID"],
+        name: r["Name"],
+        email: r["Email"],
+        role: r["Role"],
+        department: r["Department"],
+        manager: r["Manager"],
+        accessLevel: r["Access Level"],
+        status: r["Status"],
+        lastLogin: parseExcelDate(r["Last Login"])
+      }
+    });
+    userMap.set(r["User ID"], created.id);
+    userNameMap.set(r["User ID"], created.name);
+  }
 
-  const rel2135 = await prisma.release.create({
-    data: {
-      releaseCode: "RD-2026-0135",
-      name: "Billing Hotfix",
-      programProject: "N/A",
-      owner: "Alex Kim",
-      status: "Blocked",
-      releaseDate: daysFromNow(3),
-      priority: "High",
-      impact: "Medium",
-      departmentId: fin.id,
-      applications: { create: [{ applicationId: finApp.id }] },
-    },
-  });
+  // 3. Application + Environment
+  console.log("Seeding Applications and Environments...");
+  const appsData = getSheetData("Applications", 0);
+  
+  const appMap = new Map<string, string>();
+  const envMap = new Map<string, string>();
+  let totalEnvRows = 0;
+  
+  let currentDeptName = "";
+  let currentAppOwner = "";
+  let currentTechLead = "";
 
-  const rel2150 = await prisma.release.create({
-    data: {
-      releaseCode: "RD-2026-0150",
-      name: "Search Enhancement",
-      programProject: "Digital CRM",
-      owner: "Priya Sharma",
-      status: "In Progress",
-      releaseDate: daysFromNow(7),
-      priority: "Medium",
-      impact: "Medium",
-      departmentId: crm.id,
-      applications: { create: [{ applicationId: crmApp.id }] },
-    },
-  });
+  for (const r of appsData) {
+    if (r["Department"]) currentDeptName = r["Department"];
+    if (r["Application Owner"]) currentAppOwner = r["Application Owner"];
+    if (r["Tech Lead"]) currentTechLead = r["Tech Lead"];
 
-  const rel2141 = await prisma.release.create({
-    data: {
-      releaseCode: "RD-2026-0141",
-      name: "Mobile App Release",
-      programProject: "Digital CRM",
-      owner: "Nina Okonkwo",
-      status: "Ready",
-      releaseDate: daysFromNow(2),
-      priority: "Low",
-      impact: "Low",
-      departmentId: crm.id,
-      decision: "Go",
-      notes: "Low-risk mobile patch — all gates green.",
-      applications: { create: [{ applicationId: crmApp.id }] },
-    },
-  });
+    const appName = r["Application"];
+    if (!appName) continue;
 
-  const rel2138 = await prisma.release.create({
-    data: {
-      releaseCode: "RD-2026-0138",
-      name: "Identity Patch",
-      programProject: "Security Hardening",
-      owner: "Sarah Chen",
-      status: "Scheduled",
-      releaseDate: daysFromNow(5),
-      priority: "Medium",
-      impact: "Medium",
-      departmentId: security.id,
-      applications: { create: [{ applicationId: sap.id }] },
-    },
-  });
+    const deptId = deptMap.get(currentDeptName);
+    if (!deptId) continue;
 
-  const rel2120 = await prisma.release.create({
-    data: {
-      releaseCode: "RD-2026-0120",
-      name: "Core Platform Patch",
-      programProject: "Core Banking Transformation",
-      owner: "Jordan Lee",
-      status: "Shipped",
-      releaseDate: daysAgo(8),
-      priority: "Medium",
-      impact: "Medium",
-      departmentId: platform.id,
-      decision: "Go",
-      applications: { create: [{ applicationId: sap.id }, { applicationId: oracle.id }] },
-    },
-  });
+    let appId = appMap.get(appName);
+    if (!appId) {
+      const app = await prisma.application.create({
+        data: {
+          name: appName,
+          departmentId: deptId,
+          productOwner: currentAppOwner || "Unknown",
+          techLead: currentTechLead || "Unknown",
+          type: "Business Application", 
+          support: `${currentDeptName} Support Team`, 
+          criticality: "Medium", 
+        }
+      });
+      appId = app.id;
+      appMap.set(appName, appId);
+    }
+    
+    const envName = r["Env"];
+    if (envName) {
+      const env = await prisma.environment.create({
+        data: {
+          applicationId: appId,
+          name: envName,
+          type: envName,
+          owner: r["Env Owner"] || "Unknown",
+          status: "Active"
+        }
+      });
+      envMap.set(`${appId}_${envName}`, env.id);
+      totalEnvRows++;
+    }
+  }
 
-  const rel2160 = await prisma.release.create({
-    data: {
-      releaseCode: "RD-2026-0160",
-      name: "Payments API Hardening",
-      programProject: "Core Banking Transformation",
-      owner: "Emma Walsh",
-      status: "Planned",
-      releaseDate: daysFromNow(14),
-      priority: "High",
-      impact: "High",
-      departmentId: platform.id,
-      applications: { create: [{ applicationId: sap.id }] },
-    },
-  });
+  // 4. EnvironmentVersion
+  console.log("Seeding Environment Versions...");
+  const versionsData = getSheetData("Versions", 0);
+  for (const r of versionsData) {
+    const appName = r["Application"];
+    const envName = r["Environment"];
+    const appId = appMap.get(appName);
+    if (!appId) continue;
+    const envId = envMap.get(`${appId}_${envName}`);
+    if (!envId) continue;
+    
+    await prisma.environmentVersion.create({
+      data: {
+        applicationId: appId,
+        environmentId: envId,
+        version: r["Version"]?.toString() || "Unknown",
+        buildNumber: r["Build Number"]?.toString(),
+        deployDate: parseExcelDate(r["Deploy Date"]),
+        updatedBy: r["Deployed By"],
+        status: r["Status"],
+        notes: r["Notes"]
+      }
+    });
+  }
 
-  await prisma.releaseDependency.createMany({
-    data: [
-      { releaseId: rel2150.id, dependsOnReleaseId: rel2140.id },
-      { releaseId: rel2160.id, dependsOnReleaseId: rel2140.id },
-    ],
-  });
+  // 5. Release
+  console.log("Seeding Releases...");
+  const releasesData = getSheetData("Releases", 0);
+  const releaseMap = new Map<string, string>(); 
+  for (const r of releasesData) {
+    const code = r["Release ID"];
+    const deptId = deptMap.get(r["Department"]);
+    const ownerId = userMap.get(r["Release Owner ID"]);
+    const ownerName = userNameMap.get(r["Release Owner ID"]) || "Unknown";
+    
+    const conflictStr = r["Conflict Flag"];
+    const conflictFlag = conflictStr === "⚠️ CONFLICT" || (!!conflictStr && String(conflictStr).trim().length > 0);
+    
+    if (!deptId) continue;
 
-  await prisma.releaseAuditEvent.createMany({
-    data: [
-      { releaseId: rel2140.id, action: "status_change", actor: "Priya Sharma", detail: "Marked At Risk — SAP TEST booking conflict" },
-      { releaseId: rel2135.id, action: "decision", actor: "Alex Kim", detail: "No-Go — build #4468 failing integration tests" },
-      { releaseId: rel2141.id, action: "decision", actor: "Nina Okonkwo", detail: "Go — all gates green for mobile patch" },
-      { releaseId: rel2120.id, action: "status_change", actor: "Jordan Lee", detail: "Shipped to production — smoke tests passed" },
-      { releaseId: rel2140.id, action: "environment", actor: "Emma Walsh", detail: "Environment drift remediated — SAP DEV/TEST/PROD aligned to 2.14.0" },
-    ],
-  });
+    const release = await prisma.release.create({
+      data: {
+        releaseCode: code,
+        name: r["Release Name"],
+        departmentId: deptId,
+        releaseSize: r["Release Size"],
+        impact: r["Impact"] || "Medium",
+        priority: r["Priority"] || "Medium",
+        cabDate: parseExcelDate(r["CAB Date"]),
+        startDate: parseExcelDate(r["Start Date"]),
+        releaseDate: parseExcelDate(r["End Date"]) || new Date(), 
+        testEnvRequired: r["Test Env Required"],
+        uatEnvRequired: r["UAT Env Required"],
+        status: r["Status"] || "Draft",
+        conflictFlag,
+        notes: r["Notes"],
+        readinessPercent: r["Readiness %"] ? parseFloat(r["Readiness %"]) : null,
+        blockers: r["Blockers"],
+        vendorMaintenance: r["Vendor Maintenance"],
+        changeFreeze: r["Change Freeze"],
+        regulatory: r["Regulatory"],
+        releaseOwnerId: ownerId,
+        owner: ownerName,
+        approvalStatus: r["Approval Status"],
+        rollbackPlan: r["Rollback Plan"],
+        goLiveChecklistPercent: r["Go-Live Checklist %"] ? parseFloat(r["Go-Live Checklist %"]) : null,
+        deploymentWindow: r["Deployment Window"]
+      }
+    });
+    releaseMap.set(code, release.id);
+    
+    const appName = r["Application"];
+    const appId = appMap.get(appName);
+    if (appId) {
+      await prisma.releaseApplication.create({
+        data: { releaseId: release.id, applicationId: appId }
+      });
+    }
+    
+    const stakeholdersStr = r["Stakeholder IDs"];
+    if (stakeholdersStr) {
+      const stakeholders = stakeholdersStr.toString().split(",").map((s: string) => s.trim()).filter(Boolean);
+      const uniqueStakeholders = Array.from(new Set(stakeholders));
+      for (const sh of uniqueStakeholders) {
+        const uid = userMap.get(sh as string);
+        if (uid) {
+          await prisma.releaseStakeholder.create({
+            data: { releaseId: release.id, userId: uid }
+          });
+        }
+      }
+    }
+  }
 
-  await prisma.envBooking.create({
-    data: {
-      applicationId: sap.id,
-      environmentId: sapTest.id,
-      bookedBy: "Guru Sharma",
-      team: "FIN",
-      departmentName: "FIN",
-      fromDate: daysFromNow(14),
-      toDate: daysFromNow(28),
-      purpose: "FIN SIT 1",
-      releaseId: rel2140.id,
-      status: "BOOKED",
-    },
-  });
+  // 6. ReleaseDependency
+  console.log("Seeding Release Dependencies...");
+  const depsData = getSheetData("Dependencies", 2);
+  let depsCount = 0;
+  for (const r of depsData) {
+    const relId = releaseMap.get(r["Release ID"]);
+    const depId = releaseMap.get(r["Depends On Release"]);
+    if (relId && depId) {
+      await prisma.releaseDependency.create({
+        data: {
+          releaseId: relId,
+          dependsOnReleaseId: depId,
+          dependencyType: r["Dependency Type"],
+          status: r["Status"],
+          impactIfBlocked: r["Impact if Blocked"],
+          notes: r["Notes"]
+        }
+      });
+      depsCount++;
+    }
+  }
 
-  await prisma.envBooking.create({
-    data: {
-      applicationId: finApp.id,
-      environmentId: finUat.id,
-      bookedBy: "Guru Sharma",
-      team: "FIN",
-      departmentName: "FIN",
-      fromDate: daysFromNow(14),
-      toDate: daysFromNow(28),
-      purpose: "FIN SIT 1 — coupled testing",
-      status: "BOOKED",
-    },
-  });
+  // 7. EnvBooking
+  console.log("Seeding EnvBookings...");
+  const bookingsData = getSheetData("Env booking", 0);
+  let bookingCount = 0;
+  for (const r of bookingsData) {
+    const relId = releaseMap.get(r["Release ID"]);
+    const appId = appMap.get(r["Application"]);
+    if (!appId) continue;
 
-  await prisma.envBooking.create({
-    data: {
-      applicationId: sap.id,
-      environmentId: sapTest.id,
-      bookedBy: "Alex Kim",
-      team: "Platform",
-      departmentName: "Platform",
-      fromDate: daysFromNow(12),
-      toDate: daysFromNow(26),
-      purpose: "Platform regression — overlaps FIN SIT window",
-      releaseId: rel2140.id,
-      status: "BOOKED",
-    },
-  });
+    let bookedBy = "System";
+    let team = r["Department"] || "Unknown";
+    if (relId) {
+       const rel = await prisma.release.findUnique({ where: { id: relId } });
+       if (rel?.owner) bookedBy = rel.owner;
+    }
 
-  await prisma.envBooking.create({
-    data: {
-      applicationId: crmApp.id,
-      environmentId: crmDev.id,
-      bookedBy: "David Frost",
-      team: "CRM",
-      departmentName: "CRM",
-      fromDate: daysFromNow(5),
-      toDate: daysFromNow(12),
-      purpose: "Search enhancement integration",
-      releaseId: rel2150.id,
-      status: "BOOKED",
-    },
-  });
+    const testStart = parseExcelDate(r["Test Start"]);
+    const uatStart = parseExcelDate(r["UAT Start"]);
+    const preProdStart = parseExcelDate(r["Pre-Prod Start"]);
+    const testEnd = parseExcelDate(r["Test End"]);
+    const uatEnd = parseExcelDate(r["UAT End"]);
+    const preProdEnd = parseExcelDate(r["Pre-Prod End"]);
+    const prodReleaseDate = parseExcelDate(r["Prod Release Date"]);
+    
+    const startDates = [testStart, uatStart, preProdStart].filter(d => d !== null) as Date[];
+    const fromDate = startDates.length > 0 ? new Date(Math.min(...startDates.map(d => d.getTime()))) : new Date();
+    
+    const endDates = [preProdEnd, prodReleaseDate].filter(d => d !== null) as Date[];
+    const toDate = endDates.length > 0 ? new Date(Math.max(...endDates.map(d => d.getTime()))) : new Date();
+    
+    const conflictStr = r["Conflict Flag"];
+    const conflictFlag = conflictStr === "⚠️ CONFLICT" || (!!conflictStr && String(conflictStr).trim().length > 0);
 
-  await prisma.environmentVersion.createMany({
-    data: [
-      { applicationId: sap.id, environmentId: sapDev.id, version: "2.14.0", updatedBy: "Jordan Lee" },
-      { applicationId: sap.id, environmentId: sapTest.id, version: "2.14.0", updatedBy: "Jordan Lee" },
-      { applicationId: sap.id, environmentId: sapProd.id, version: "2.14.0", updatedBy: "Emma Walsh" },
-      { applicationId: finApp.id, environmentId: finUat.id, version: "2.14.0", updatedBy: "Guru Sharma" },
-      { applicationId: crmApp.id, environmentId: crmDev.id, version: "2.14.0", updatedBy: "David Frost" },
-      { applicationId: oracle.id, environmentId: oracleDev.id, version: "2.14.0", updatedBy: "Raj Patel" },
-    ],
-  });
+    await prisma.envBooking.create({
+      data: {
+        releaseId: relId,
+        applicationId: appId,
+        environmentId: null,
+        releaseSize: r["Release Size"],
+        prodReleaseDate,
+        cabDate: parseExcelDate(r["CAB Date"]),
+        testEnvCode: r["Test Env"],
+        testStart,
+        testEnd,
+        testDays: r["Test Days"] ? parseInt(r["Test Days"]) : null,
+        uatEnvCode: r["UAT Env"],
+        uatStart,
+        uatEnd,
+        uatDays: r["UAT Days"] ? parseInt(r["UAT Days"]) : null,
+        preProdEnvCode: r["Pre-Prod Env"],
+        preProdStart,
+        preProdEnd,
+        preProdDays: r["Pre-Prod Days"] ? parseInt(r["Pre-Prod Days"]) : null,
+        conflictFlag,
+        purpose: r["Notes"],
+        bookedBy,
+        team,
+        fromDate,
+        toDate,
+      }
+    });
+    bookingCount++;
+  }
 
-  await prisma.connectorSync.createMany({
-    data: [
-      { name: "Jira", lastSynced: daysAgo(0.04) },
-      { name: "GitHub", lastSynced: daysAgo(0.02) },
-      { name: "ServiceNow", lastSynced: daysAgo(0.08) },
-      { name: "Confluence", lastSynced: daysAgo(0.12) },
-    ],
-  });
+  // 8. Risk
+  console.log("Seeding Risks...");
+  const risksData = getSheetData("Risk", 3);
+  let riskCount = 0;
+  for (const r of risksData) {
+    const code = r["Risk ID"];
+    const relId = releaseMap.get(r["Release ID"]);
+    if (!code || !relId) continue;
 
-  await prisma.p1Issue.createMany({
-    data: [
-      {
-        externalId: "JIRA-8842",
-        title: "Payment routing timeout in production",
-        application: "SAP",
-        releaseCode: "RD-2026-0140",
-        priority: "P1",
-        status: "Open",
-        source: "Jira",
-      },
-      {
-        externalId: "JIRA-8851",
-        title: "Invoice rounding mismatch — hotfix candidate",
-        application: "FIN",
-        releaseCode: "RD-2026-0135",
-        priority: "P1",
-        status: "In Progress",
-        source: "Jira",
-      },
-      {
-        externalId: "JIRA-8860",
-        title: "Canary rollout error rate spike on payments-api",
-        application: "SAP",
-        releaseCode: "RD-2026-0140",
-        priority: "P1",
-        status: "Open",
-        source: "Datadog",
-      },
-    ],
-  });
+    await prisma.risk.create({
+      data: {
+        riskCode: code,
+        releaseId: relId,
+        category: r["Risk Category"] || "General",
+        description: r["Risk Description"] || "Unknown",
+        likelihood: parseInt(r["Likelihood"]) || 1,
+        impact: parseInt(r["Impact"]) || 1,
+        riskScore: parseInt(r["Risk Score"]) || 1,
+        affectedArea: r["Affected Area"],
+        mitigationStrategy: r["Mitigation Strategy"],
+        riskOwnerId: userMap.get(r["Risk Owner ID"]),
+        status: r["Status"] || "Open",
+        notes: r["Notes"]
+      }
+    });
+    riskCount++;
+  }
 
-  await prisma.workItem.createMany({
-    data: [
-      {
-        externalId: "BILL-800",
-        title: "Platform release — core billing epic",
-        itemType: "Epic",
-        releaseCode: "RD-2026-0140",
-        status: "In Progress",
-        assignee: "Priya Sharma",
-        priority: "High",
-        source: "Jira",
-      },
-      {
-        externalId: "BILL-801",
-        title: "SAP payment routing regression suite",
-        itemType: "Story",
-        releaseCode: "RD-2026-0140",
-        status: "Done",
-        assignee: "Jordan Lee",
-        priority: "High",
-        source: "Jira",
-      },
-      {
-        externalId: "BILL-802",
-        title: "FIN UAT sign-off scenarios",
-        itemType: "Story",
-        releaseCode: "RD-2026-0140",
-        status: "In Progress",
-        assignee: "Guru Sharma",
-        priority: "Medium",
-        source: "Jira",
-      },
-      {
-        externalId: "BILL-803",
-        title: "CRM downstream validation blocked on env",
-        itemType: "Story",
-        releaseCode: "RD-2026-0140",
-        status: "Blocked",
-        assignee: "David Frost",
-        priority: "Medium",
-        blockedBy: "BILL-802",
-        source: "Jira",
-      },
-      {
-        externalId: "FIN-893",
-        title: "Hotfix — integration test failures on build #4468",
-        itemType: "Bug",
-        releaseCode: "RD-2026-0135",
-        status: "Blocked",
-        assignee: "Alex Kim",
-        priority: "High",
-        blockedBy: "FIN-890",
-        source: "Jira",
-      },
-      {
-        externalId: "FIN-890",
-        title: "Invoice rounding mismatch root cause",
-        itemType: "Bug",
-        releaseCode: "RD-2026-0135",
-        status: "In Progress",
-        assignee: "Chris Nguyen",
-        priority: "High",
-        source: "Jira",
-      },
-      {
-        externalId: "CRM-410",
-        title: "Search index rebuild for enhancement",
-        itemType: "Story",
-        releaseCode: "RD-2026-0150",
-        status: "In Progress",
-        assignee: "David Frost",
-        priority: "Medium",
-        source: "Jira",
-      },
-      {
-        externalId: "CRM-411",
-        title: "Platform dependency gate — wait for RD-2026-0140",
-        itemType: "Story",
-        releaseCode: "RD-2026-0150",
-        status: "Pending",
-        assignee: "Priya Sharma",
-        priority: "Medium",
-        blockedBy: "BILL-800",
-        source: "Jira",
-      },
-      {
-        externalId: "PAY-120",
-        title: "API hardening — security review stories",
-        itemType: "Epic",
-        releaseCode: "RD-2026-0160",
-        status: "Planned",
-        assignee: "Emma Walsh",
-        priority: "High",
-        source: "Jira",
-      },
-    ],
-  });
+  // 9. Drift
+  console.log("Seeding Drifts...");
+  const driftsData = getSheetData("Drift", 3);
+  let driftCount = 0;
+  for (const r of driftsData) {
+    const code = r["Drift ID"];
+    const relId = releaseMap.get(r["Release ID"]);
+    const appId = appMap.get(r["Application"]);
+    if (!code || !relId || !appId) continue;
 
-  await seedLiveState(prisma);
+    await prisma.drift.create({
+      data: {
+        driftCode: code,
+        releaseId: relId,
+        applicationId: appId,
+        environmentName: r["Environment"] || "Unknown",
+        driftType: r["Drift Type"] || "Unknown",
+        driftCategory: r["Drift Category"],
+        detectedDate: parseExcelDate(r["Detected Date"]) || new Date(),
+        severity: r["Severity"] || "Medium",
+        description: r["Description"] || "",
+        impactOnRelease: r["Impact on Release"],
+        remediationAction: r["Remediation Action"],
+        status: r["Status"] || "Open",
+        etaToFix: parseExcelDate(r["ETA to Fix"])
+      }
+    });
+    driftCount++;
+  }
 
-  console.log("Release Desk seed complete (MVP + AI Command Center demo state).");
+  // 10. Approval
+  console.log("Seeding Approvals...");
+  const approvalsData = getSheetData("Approvals", 2);
+  let approvalCount = 0;
+  for (const r of approvalsData) {
+    const code = r["Approval ID"];
+    const relId = releaseMap.get(r["Release ID"]);
+    const approverId = userMap.get(r["Approver ID"]);
+    if (!code || !relId || !approverId) continue;
+
+    await prisma.approval.create({
+      data: {
+        approvalCode: code,
+        releaseId: relId,
+        approvalType: r["Approval Type"] || "General",
+        approverId: approverId,
+        submittedDate: parseExcelDate(r["Submitted Date"]) || new Date(),
+        decisionDate: parseExcelDate(r["Decision Date"]),
+        decision: r["Decision"] || "Pending",
+        comments: r["Comments"],
+        cabMeetingId: r["CAB Meeting ID"]
+      }
+    });
+    approvalCount++;
+  }
+
+  // 11. LeaveRecord + LeaveRecordRelease
+  console.log("Seeding LeaveRecords...");
+  const leavesData = getSheetData("Leave Calendar", 0);
+  let leaveCount = 0;
+  for (const r of leavesData) {
+    const code = r["Leave ID"];
+    const uid = userMap.get(r["User ID"]);
+    if (!code || !uid) continue;
+
+    const leaveRecord = await prisma.leaveRecord.create({
+      data: {
+        leaveCode: code,
+        userId: uid,
+        leaveStart: parseExcelDate(r["Leave Start"]) || new Date(),
+        leaveEnd: parseExcelDate(r["Leave End"]) || new Date(),
+        leaveType: r["Leave Type"] || "Annual Leave",
+        days: parseInt(r["Days"]) || 1,
+        riskImpact: r["Risk Impact"],
+        riskScore: parseInt(r["Risk Score"]) || 0
+      }
+    });
+    leaveCount++;
+
+    const affectedRelStr = r["Affected Release"];
+    if (affectedRelStr) {
+      const relCodes = affectedRelStr.toString().split(",").map((s: string) => s.trim()).filter(Boolean);
+      for (const rc of relCodes) {
+        const rid = releaseMap.get(rc as string);
+        if (rid) {
+          await prisma.leaveRecordRelease.create({
+            data: { leaveRecordId: leaveRecord.id, releaseId: rid }
+          });
+        }
+      }
+    }
+  }
+
+  console.log("\n================ SUMMARY ================");
+  console.log(`Departments: ${deptMap.size} (Expected: 8)`);
+  console.log(`Applications: ${appMap.size} (Expected: 84)`);
+  console.log(`Environment Rows: ${totalEnvRows} (Expected: 504)`);
+  console.log(`Users: ${userMap.size} (Expected: 100)`);
+  console.log(`Releases: ${releaseMap.size} (Expected: 80)`);
+  console.log(`EnvBookings: ${bookingCount} (Expected: 80+)`);
+  console.log(`Risks: ${riskCount} (Expected: 31)`);
+  console.log(`Drifts: ${driftCount} (Expected: 7)`);
+  console.log(`Dependencies: ${depsCount} (Expected: 26)`);
+  console.log(`Approvals: ${approvalCount} (Expected: 27)`);
+  console.log(`LeaveRecords: ${leaveCount} (Expected: 30)`);
+  console.log("=========================================\n");
+  console.log("Excel seed completed successfully!");
 }
 
 main()
@@ -484,4 +483,6 @@ main()
     console.error(e);
     process.exit(1);
   })
-  .finally(() => prisma.$disconnect());
+  .finally(async () => {
+    await prisma.$disconnect();
+  });

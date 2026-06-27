@@ -23,12 +23,12 @@ function ShellInner({ children }: { children: React.ReactNode }) {
         <Backdrop />
         <div
           className={cn(
-            "flex min-h-screen flex-1 flex-col transition-[margin] duration-300 ease-in-out",
+            "flex min-h-screen flex-1 flex-col transition-[margin] duration-300 ease-in-out min-w-0",
             isMobileOpen ? "ml-0" : "lg:ml-[var(--sidebar-width)]"
           )}
         >
           <AppHeader />
-          <main className="materio-main flex-1 px-4 pb-6 pt-6 md:px-6 lg:px-8">
+          <main className="materio-main flex-1 px-4 pb-6 pt-6 md:px-6 lg:px-8 min-w-0">
             {children}
           </main>
           <ChatPanel />

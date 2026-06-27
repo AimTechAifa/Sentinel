@@ -16,6 +16,12 @@ import {
   GitBranch,
   Database,
   Inbox,
+  AlertTriangle,
+  GitCompareArrows,
+  ClipboardCheck,
+  CalendarOff,
+  Network,
+  AlertOctagon,
 } from "lucide-react";
 
 export type NavItem = {
@@ -43,8 +49,19 @@ export const NAV_SECTIONS: NavSection[] = [
       { href: "/releases", label: "Releases", icon: Package },
       { href: "/calendar", label: "Calendar", icon: Calendar },
       { href: "/booking", label: "Env Booking", icon: CalendarCheck },
+      { href: "/dependencies", label: "Dependencies", icon: Network },
+      { href: "/conflicts", label: "Conflicts", icon: AlertOctagon },
       { href: "/system-mapping", label: "System Mapping", icon: GitBranch },
       { href: "/environments", label: "Versions & Config", icon: Server },
+    ],
+  },
+  {
+    title: "Governance",
+    items: [
+      { href: "/risks", label: "Risk Register", icon: AlertTriangle },
+      { href: "/drifts", label: "Drift Dashboard", icon: GitCompareArrows },
+      { href: "/approvals", label: "Approval Queue", icon: ClipboardCheck },
+      { href: "/leaves", label: "Leave Calendar", icon: CalendarOff },
     ],
   },
   {

@@ -395,7 +395,10 @@ export async function getExtraHistoryByRelease(): Promise<Record<string, History
   const grouped: Record<string, HistoryEntry[]> = {};
   for (const row of rows) {
     const entry = historyRowToEntry(row);
-    grouped[row.releaseId] = [...(grouped[row.releaseId] ?? []), entry];
+    if (!grouped[row.releaseId]) {
+      grouped[row.releaseId] = [];
+    }
+    grouped[row.releaseId].push(entry);
   }
   return grouped;
 }

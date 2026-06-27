@@ -1,6 +1,24 @@
 import type { Config } from "tailwindcss";
 import { palette } from "./lib/palette";
 
+
+function withVars(obj: any, prefix = ""): any {
+  if (typeof obj === "string") return `rgb(var(--color-${prefix}) / <alpha-value>)`;
+  return Object.fromEntries(
+    Object.entries(obj).map(([k, v]) => [k, withVars(v, prefix ? `${prefix}-${k}` : k)])
+  );
+}
+
+const semanticColors = withVars({
+  brand: palette.brand,
+  accent: palette.accent,
+  gray: palette.gray,
+  success: palette.success,
+  error: palette.error,
+  warning: palette.warning,
+  info: palette.info,
+});
+
 const config: Config = {
   darkMode: ["class", ".theme-dark"],
   content: [
@@ -11,18 +29,12 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        brand: palette.brand,
-        accent: palette.accent,
-        gray: palette.gray,
-        success: palette.success,
-        error: palette.error,
-        warning: palette.warning,
-        info: palette.info,
+        ...semanticColors,
         ai: palette.ai,
         sidebar: palette.sidebar,
-        primary: palette.brand[500],
-        surface: palette.surface,
-        border: palette.border,
+        primary: "rgb(var(--color-brand-500) / <alpha-value>)",
+        surface: "var(--surface)",
+        border: "var(--border)",
       },
       fontFamily: {
         sans: ["var(--font-poppins)", "system-ui", "sans-serif"],

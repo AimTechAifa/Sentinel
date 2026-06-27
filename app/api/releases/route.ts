@@ -11,6 +11,7 @@ export async function GET() {
       department: true,
       applications: { include: { application: true } },
       dependsOn: { include: { dependsOnRelease: true } },
+      stakeholders: { include: { user: true } },
     },
     orderBy: { releaseDate: "asc" },
   });
@@ -46,7 +47,7 @@ export async function POST(req: Request) {
         ? { create: body.dependsOnReleaseIds.map((dependsOnReleaseId: string) => ({ dependsOnReleaseId })) }
         : undefined,
     },
-    include: { department: true, applications: { include: { application: true } }, dependsOn: { include: { dependsOnRelease: true } } },
+    include: { department: true, applications: { include: { application: true } }, dependsOn: { include: { dependsOnRelease: true } }, stakeholders: { include: { user: true } } },
   });
   return NextResponse.json(row, { status: 201 });
 }

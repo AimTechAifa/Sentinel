@@ -17,10 +17,10 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export function MonthGridCalendar({
-  releases,
+  events,
   viewDate,
 }: {
-  releases: UnifiedRelease[];
+  events: any[];
   viewDate: Date;
 }) {
   const { gridDays } = useMemo(() => {
@@ -61,10 +61,10 @@ export function MonthGridCalendar({
     };
   }, [viewDate]);
 
-  // Group releases by date string (YYYY-MM-DD)
-  const releasesByDate = useMemo(() => {
-    const map = new Map<string, UnifiedRelease[]>();
-    releases.forEach((r) => {
+  // Group events by date string (YYYY-MM-DD)
+  const eventsByDate = useMemo(() => {
+    const map = new Map<string, any[]>();
+    events.forEach((r) => {
       const d = new Date(r.date);
       const offset = d.getTimezoneOffset() * 60000;
       const localISOTime = new Date(d.getTime() - offset).toISOString().split("T")[0];
@@ -72,7 +72,7 @@ export function MonthGridCalendar({
       map.get(localISOTime)!.push(r);
     });
     return map;
-  }, [releases]);
+  }, [events]);
 
   const todayStr = useMemo(() => {
     const d = new Date();
@@ -94,12 +94,8 @@ export function MonthGridCalendar({
       {/* Grid */}
       <div className="grid grid-cols-7 bg-gray-100 gap-px border-b border-gray-200">
         {gridDays.map((cell, idx) => {
-          const dayEvents = releasesByDate.get(cell.dayStr) || [];
+          const dayEvents = eventsByDate.get(cell.dayStr) || [];
           
-          // MOCK: Freeze banner for Dec 20-31, 2023 for visual demonstration
-          const isFreezeDay = cell.date.getFullYear() === 2023 && cell.date.getMonth() === 11 && cell.date.getDate() >= 20;
-          const isFreezeStart = isFreezeDay && (cell.date.getDate() === 20 || cell.date.getDay() === 0);
-
           return (
             <div
               key={idx}
@@ -108,10 +104,6 @@ export function MonthGridCalendar({
                 !cell.isCurrentMonth && "bg-gray-50/30"
               )}
             >
-              {isFreezeDay && (
-                <div className="absolute inset-0 bg-[repeating-linear-gradient(45deg,#fee2e2,#fee2e2_10px,#fef2f2_10px,#fef2f2_20px)] opacity-50 pointer-events-none" />
-              )}
-              
               <div className="flex justify-start relative z-10">
                 <span className={cn(
                   "text-xs font-medium w-6 h-6 flex items-center justify-center rounded-full",
@@ -124,32 +116,48 @@ export function MonthGridCalendar({
               
               <div className="mt-1 space-y-1 relative z-10 flex-1">
                 {dayEvents.map((r) => {
-                  const colorClass = STATUS_COLORS[r.status] || "bg-gray-400";
+                  let colorClass = "bg-gray-400";
+                  let bgClass = "bg-gray-50/80";
+                  let borderClass = "border-gray-100";
+                  let textClass = "text-gray-700";
+                  
+                  if (r.eventType === "RELEASE") {
+                    colorClass = "bg-brand-500";
+                  } else if (r.eventType === "CAB MEETING") {
+                    colorClass = "bg-amber-500";
+                  } else if (r.eventType === "CHANGE FREEZE") {
+                    colorClass = "bg-error-500";
+                    bgClass = "bg-error-50/80";
+                    borderClass = "border-error-200";
+                    textClass = "text-error-800";
+                  } else if (r.eventType === "REGULATORY") {
+                    colorClass = "bg-purple-500";
+                  } else if (r.eventType === "VENDOR MAINT") {
+                    colorClass = "bg-blue-500";
+                  }
+                  
+                  const isLink = r.releaseId && r.release?.releaseCode;
+                  
                   return (
-                    <ProgressLink
-                      key={`${r.source}-${r.id}`}
-                      href={r.href}
-                      title={`${r.code} - ${r.name}`}
+                    <div
+                      key={r.id}
+                      title={r.title}
                       className={cn(
-                        "block px-1.5 py-1 rounded bg-gray-50/80 border border-gray-100 text-[10px] font-medium text-gray-700 truncate hover:border-gray-300 hover:bg-white transition-colors",
-                        !cell.isCurrentMonth && "opacity-70"
+                        "block px-1.5 py-1 rounded border text-[10px] font-medium truncate transition-colors cursor-default",
+                        bgClass,
+                        borderClass,
+                        textClass,
+                        !cell.isCurrentMonth && "opacity-70",
+                        isLink && "hover:border-gray-300 hover:bg-white cursor-pointer"
                       )}
+                      onClick={() => isLink ? window.location.href = `/releases/${r.release.releaseCode}` : null}
                     >
                       <span className={cn("inline-block w-1.5 h-1.5 rounded-full mr-1.5", colorClass)} />
-                      {r.code.replace(/^REL-|^v/i, "")}
-                    </ProgressLink>
+                      {r.title}
+                    </div>
                   );
                 })}
               </div>
-
-              {/* Freeze Label (Mock) */}
-              {isFreezeStart && isFreezeDay && (
-                <div className="relative z-10 mt-1 mb-0.5">
-                  <span className="bg-error-700 text-white text-[8px] font-bold px-1.5 py-0.5 rounded tracking-wide shadow-sm truncate block max-w-full">
-                    YEAR-END FREEZE 21 DAYS
-                  </span>
-                </div>
-              )}
             </div>
           );
         })}

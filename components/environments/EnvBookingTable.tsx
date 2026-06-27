@@ -56,7 +56,7 @@ export function EnvBookingTable({
     >
       <div className="p-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-1">
         {rows.map((row, i) => {
-          const styles = statusStyles[row.status];
+          const styles = statusStyles[row.status] || statusStyles.IDLE;
           const isCurrent = row.monthIndex === currentMonth;
           return (
             <motion.div

@@ -12,16 +12,10 @@ import { ReleasePlaybookBar } from "@/components/releases/ReleasePlaybookBar";
 import { ReleaseFiltersBar } from "@/components/releases/ReleaseFiltersBar";
 import { DataTable, tableCell, tableHeadRow, tableRow } from "@/components/ui/data-table";
 import { useReleaseFilters } from "@/context/ReleaseFiltersContext";
-import { releases as demoReleases } from "@/lib/dummy-data";
-import {
-  dbReleaseMatchesFilters,
-  filterLabel,
-} from "@/lib/release-filters";
+import { dbReleaseMatchesFilters, filterLabel } from "@/lib/release-filters";
 import { isNeedsAttentionStatus, type NeedsAttentionItem } from "@/lib/needs-attention";
 import {
   dbToUnified,
-  demoReleaseMatchesFilters,
-  demoToUnified,
   mergeReleases,
   type UnifiedRelease,
 } from "@/lib/unified-releases";
@@ -32,7 +26,7 @@ import { cloneReleaseForm } from "@/lib/release-playbooks";
 import { resolveSessionName } from "@/lib/user-match";
 import type { SessionUser } from "@/lib/auth/roles";
 
-type ViewFilter = "all" | "database" | "demo";
+
 
 type ReleaseRow = {
   id: string;
@@ -50,11 +44,10 @@ type ReleaseRow = {
   dependsOn: { dependsOnRelease: { id: string; releaseCode: string; name: string } }[];
 };
 
-type SortMode = "date" | "readiness" | "blockers";
+type SortMode = "releaseId" | "date" | "readiness" | "blockers";
 
 export default function ReleasesPageContent() {
   const searchParams = useSearchParams();
-  const initialView = (searchParams.get("view") as ViewFilter) || "all";
 
   const {
     filters,
@@ -71,7 +64,6 @@ export default function ReleasesPageContent() {
   const attentionMode = searchParams.get("attention") === "1";
   const statusFilter = searchParams.get("status");
 
-  const [view, setView] = useState<ViewFilter>(initialView);
   const [user, setUser] = useState<SessionUser | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [editRow, setEditRow] = useState<ReleaseRow | null>(null);
@@ -82,7 +74,7 @@ export default function ReleasesPageContent() {
   const [readinessByKey, setReadinessByKey] = useState<
     Record<string, { readiness: number; blockerCount: number }>
   >({});
-  const [sortMode, setSortMode] = useState<SortMode>("date");
+  const [sortMode, setSortMode] = useState<SortMode>("releaseId");
 
   useEffect(() => {
     fetch("/api/releases/readiness")
@@ -90,9 +82,7 @@ export default function ReleasesPageContent() {
       .then((d) => setReadinessByKey(d.byKey ?? {}));
   }, []);
 
-  useEffect(() => {
-    setView((searchParams.get("view") as ViewFilter) || "all");
-  }, [searchParams]);
+
 
   useEffect(() => {
     fetch("/api/auth/me").then((r) => r.json()).then((d) => setUser(d.user));
@@ -121,22 +111,18 @@ export default function ReleasesPageContent() {
     const filteredDb = (dbRows as ReleaseRow[]).filter((r) =>
       dbReleaseMatchesFilters(r, filters, bookings, environments)
     );
-    const filteredDemo = demoReleases.filter((r) =>
-      demoReleaseMatchesFilters(r, filters, departments, applications, environments)
-    );
-
+    
     const db = filteredDb.map((r) => dbToUnified(r));
-    const demo = filteredDemo.map(demoToUnified);
-    const merged = mergeReleases(db, demo);
 
-    if (view === "database") return merged.filter((r) => r.source === "database");
-    if (view === "demo") return merged.filter((r) => r.source === "demo");
-    if (attentionMode) return merged.filter((r) => isNeedsAttentionStatus(r.status));
-    return merged;
-  }, [dbRows, view, filters, bookings, environments, departments, applications, attentionMode]);
+    if (attentionMode) return db.filter((r) => isNeedsAttentionStatus(r.status));
+    return db;
+  }, [dbRows, filters, bookings, environments, attentionMode]);
 
   const sorted = useMemo(() => {
     const list = [...unified];
+    if (sortMode === "releaseId") {
+      return list.sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true }));
+    }
     if (sortMode === "readiness") {
       return list.sort((a, b) => {
         const ra = readinessByKey[readinessKey(a.source, a.id)]?.readiness ?? 999;
@@ -210,7 +196,7 @@ export default function ReleasesPageContent() {
             ? `${attentionItems.length} blocked or at-risk release${attentionItems.length === 1 ? "" : "s"}${hasRefinement ? ` · ${scopeLabel}` : ""}`
             : hasRefinement
               ? `${unified.length} releases · ${scopeLabel}`
-              : `${unified.length} releases — database MVP and demo command center`
+              : `${unified.length} releases`
         }
         highlight
       />
@@ -260,19 +246,6 @@ export default function ReleasesPageContent() {
             >
               Needs attention
             </ProgressLink>
-            {(["all", "database", "demo"] as ViewFilter[]).map((v) => (
-              <button
-                key={v}
-                type="button"
-                onClick={() => setView(v)}
-                className={cn(
-                  "rounded-lg px-3 py-1.5 text-xs font-medium capitalize border transition-colors",
-                  view === v ? "bg-brand-500 text-white border-brand-500" : "border-gray-200 text-gray-600 hover:border-brand-300"
-                )}
-              >
-                {v === "all" ? "All sources" : v}
-              </button>
-            ))}
           </>
         )}
       </div>
@@ -327,6 +300,7 @@ export default function ReleasesPageContent() {
           <span className="text-xs text-gray-500 self-center mr-1">Sort by</span>
           {(
             [
+              { id: "releaseId", label: "Release ID" },
               { id: "date", label: "Target date" },
               { id: "readiness", label: "Readiness ↑" },
               { id: "blockers", label: "Blockers" },
@@ -356,7 +330,7 @@ export default function ReleasesPageContent() {
       {!attentionMode && (
       <DataTable
         title="All Releases"
-        subtitle="DB rows are editable; demo rows open the synthetic command center"
+        subtitle="Manage releases in the central database"
         icon={Package}
         action={
           canEdit ? (
@@ -369,17 +343,33 @@ export default function ReleasesPageContent() {
         <table className="w-full text-sm">
           <thead className={tableHeadRow}>
             <tr>
-              <th className={`${tableCell} text-left font-medium`}>Release ID</th>
-              <th className={`${tableCell} text-left font-medium`}>Release Name</th>
-              <th className={`${tableCell} text-left font-medium`}>Program / Project</th>
-              <th className={`${tableCell} text-left font-medium`}>Owner</th>
-              <th className={`${tableCell} text-left font-medium`}>Status</th>
-              <th className={`${tableCell} text-left font-medium`}>Release date</th>
-              <th className={`${tableCell} text-left font-medium`}>Priority</th>
-              <th className={`${tableCell} text-left font-medium`}>Impact</th>
-              <th className={`${tableCell} text-left font-medium`}>Department</th>
-              <th className={`${tableCell} text-left font-medium`}>Application/s</th>
-              <th className={`${tableCell} text-left font-medium`}>Dependent on release</th>
+              <th className={`${tableCell} text-left font-medium whitespace-nowrap`}>Release ID</th>
+              <th className={`${tableCell} text-left font-medium whitespace-nowrap`}>Release Name</th>
+              <th className={`${tableCell} text-left font-medium whitespace-nowrap`}>Department</th>
+              <th className={`${tableCell} text-left font-medium whitespace-nowrap`}>Application</th>
+              <th className={`${tableCell} text-left font-medium whitespace-nowrap`}>Release Size</th>
+              <th className={`${tableCell} text-left font-medium whitespace-nowrap`}>Impact</th>
+              <th className={`${tableCell} text-left font-medium whitespace-nowrap`}>Priority</th>
+              <th className={`${tableCell} text-left font-medium whitespace-nowrap`}>CAB Date</th>
+              <th className={`${tableCell} text-left font-medium whitespace-nowrap`}>Start Date</th>
+              <th className={`${tableCell} text-left font-medium whitespace-nowrap`}>End Date</th>
+              <th className={`${tableCell} text-left font-medium whitespace-nowrap`}>Test Env Required</th>
+              <th className={`${tableCell} text-left font-medium whitespace-nowrap`}>UAT Env Required</th>
+              <th className={`${tableCell} text-left font-medium whitespace-nowrap`}>Status</th>
+              <th className={`${tableCell} text-left font-medium whitespace-nowrap`}>Conflict Flag</th>
+              <th className={`${tableCell} text-left font-medium whitespace-nowrap`}>Notes</th>
+              <th className={`${tableCell} text-left font-medium whitespace-nowrap`}>Readiness %</th>
+              <th className={`${tableCell} text-left font-medium whitespace-nowrap`}>Blockers</th>
+              <th className={`${tableCell} text-left font-medium whitespace-nowrap`}>Vendor Maintenance</th>
+              <th className={`${tableCell} text-left font-medium whitespace-nowrap`}>Change Freeze</th>
+              <th className={`${tableCell} text-left font-medium whitespace-nowrap`}>Regulatory</th>
+              <th className={`${tableCell} text-left font-medium whitespace-nowrap`}>Release Owner ID</th>
+              <th className={`${tableCell} text-left font-medium whitespace-nowrap`}>Approval Status</th>
+              <th className={`${tableCell} text-left font-medium whitespace-nowrap`}>Depends On</th>
+              <th className={`${tableCell} text-left font-medium whitespace-nowrap`}>Rollback Plan</th>
+              <th className={`${tableCell} text-left font-medium whitespace-nowrap`}>Go-Live Checklist %</th>
+              <th className={`${tableCell} text-left font-medium whitespace-nowrap`}>Stakeholder IDs</th>
+              <th className={`${tableCell} text-left font-medium whitespace-nowrap`}>Deployment Window</th>
               {canEdit && <th className={`${tableCell} text-left font-medium`} />}
             </tr>
           </thead>
@@ -467,30 +457,44 @@ function UnifiedRow({
 
   return (
     <tr className={cn(tableRow, "group")}>
-      <td className={tableCell}>
+      <td className={`${tableCell} whitespace-nowrap`}>
         <ProgressLink href={row.href} className="font-mono text-xs text-brand-600 hover:underline">{row.code}</ProgressLink>
       </td>
-      <td className={tableCell}>
+      <td className={`${tableCell} whitespace-nowrap`}>
         <ProgressLink href={row.href} className="hover:text-brand-600">{row.name}</ProgressLink>
       </td>
-      <td className={`${tableCell} text-gray-600`}>{programProject || "N/A"}</td>
-      <td className={`${tableCell} text-gray-600`}>{row.owner}</td>
-      <td className={tableCell}><StatusBadge status={row.status as "Ready"} /></td>
-      <td className={`${tableCell} text-gray-500`}>{formatDate(row.date)}</td>
-      <td className={tableCell}>{priority}</td>
-      <td className={tableCell}>{impact}</td>
-      <td className={tableCell}>{department}</td>
-      <td className={`${tableCell} text-xs text-gray-600 max-w-[140px]`}>{applications}</td>
-      <td className={`${tableCell} text-xs text-gray-600 font-mono`}>{dependsOn}</td>
+      <td className={`${tableCell} whitespace-nowrap`}>{department}</td>
+      <td className={`${tableCell} text-xs text-gray-600 max-w-[140px] truncate`}>{applications}</td>
+      <td className={`${tableCell} whitespace-nowrap text-gray-600`}>{row.releaseSize ?? "—"}</td>
+      <td className={`${tableCell} whitespace-nowrap`}>{impact}</td>
+      <td className={`${tableCell} whitespace-nowrap`}>{priority}</td>
+      <td className={`${tableCell} whitespace-nowrap text-gray-500`}>{row.cabDate ? formatDate(row.cabDate as string) : "—"}</td>
+      <td className={`${tableCell} whitespace-nowrap text-gray-500`}>{row.startDate ? formatDate(row.startDate as string) : "—"}</td>
+      <td className={`${tableCell} whitespace-nowrap text-gray-500`}>{formatDate(row.date)}</td>
+      <td className={`${tableCell} whitespace-nowrap text-gray-600`}>{row.testEnvRequired ?? "—"}</td>
+      <td className={`${tableCell} whitespace-nowrap text-gray-600`}>{row.uatEnvRequired ?? "—"}</td>
+      <td className={`${tableCell} whitespace-nowrap`}><StatusBadge status={row.status as "Ready"} /></td>
+      <td className={`${tableCell} whitespace-nowrap font-medium text-error-600`}>{row.conflictFlag ? "⚠️ CONFLICT" : "—"}</td>
+      <td className={`${tableCell} whitespace-nowrap text-xs text-gray-600 max-w-[200px] truncate`} title={row.notes ?? ""}>{row.notes ?? "—"}</td>
+      <td className={`${tableCell} whitespace-nowrap font-medium`}>{row.readinessPercent !== null && row.readinessPercent !== undefined ? `${row.readinessPercent}%` : "—"}</td>
+      <td className={`${tableCell} whitespace-nowrap text-xs text-gray-600 max-w-[200px] truncate`} title={row.blockers ?? ""}>{row.blockers ?? "—"}</td>
+      <td className={`${tableCell} whitespace-nowrap text-gray-600`}>{row.vendorMaintenance ?? "—"}</td>
+      <td className={`${tableCell} whitespace-nowrap text-gray-600`}>{row.changeFreeze ?? "—"}</td>
+      <td className={`${tableCell} whitespace-nowrap text-gray-600`}>{row.regulatory ?? "—"}</td>
+      <td className={`${tableCell} whitespace-nowrap text-gray-600`}>{row.releaseOwnerId ?? "—"}</td>
+      <td className={`${tableCell} whitespace-nowrap text-gray-600`}>{row.approvalStatus ?? "—"}</td>
+      <td className={`${tableCell} whitespace-nowrap text-xs text-gray-600 font-mono`}>{dependsOn}</td>
+      <td className={`${tableCell} whitespace-nowrap text-xs text-gray-600 max-w-[140px] truncate`}>{row.rollbackPlan ?? "—"}</td>
+      <td className={`${tableCell} whitespace-nowrap font-medium`}>{row.goLiveChecklistPercent !== null && row.goLiveChecklistPercent !== undefined ? `${row.goLiveChecklistPercent}%` : "—"}</td>
+      <td className={`${tableCell} whitespace-nowrap text-xs text-gray-600 max-w-[140px] truncate`} title={row.stakeholderIds ?? ""}>{row.stakeholderIds ?? "—"}</td>
+      <td className={`${tableCell} whitespace-nowrap text-gray-600`}>{row.deploymentWindow ?? "—"}</td>
       {canEdit && (
-        <td className={tableCell}>
-          {row.source === "database" ? (
+        <td className={`${tableCell} whitespace-nowrap`}>
+          {row.source === "database" && (
             <div className="flex gap-2 transition-opacity">
               <button type="button" onClick={onEdit} className="text-gray-500"><Pencil className="h-4 w-4" /></button>
               <button type="button" onClick={onDelete} className="text-error-500"><Trash2 className="h-4 w-4" /></button>
             </div>
-          ) : (
-            <span className="text-[10px] text-brand-500">Demo</span>
           )}
         </td>
       )}

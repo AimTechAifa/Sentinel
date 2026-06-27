@@ -21,6 +21,24 @@ export type UnifiedRelease = {
   environmentName?: string;
   programProject?: string;
   dependsOnLabel?: string;
+  releaseSize?: string | null;
+  cabDate?: string | Date | null;
+  startDate?: string | Date | null;
+  testEnvRequired?: string | null;
+  uatEnvRequired?: string | null;
+  conflictFlag?: boolean;
+  notes?: string | null;
+  readinessPercent?: number | null;
+  blockers?: string | null;
+  vendorMaintenance?: string | null;
+  changeFreeze?: string | null;
+  regulatory?: string | null;
+  releaseOwnerId?: string | null;
+  approvalStatus?: string | null;
+  rollbackPlan?: string | null;
+  goLiveChecklistPercent?: number | null;
+  deploymentWindow?: string | null;
+  stakeholderIds?: string;
 };
 
 type DbRelease = {
@@ -37,6 +55,24 @@ type DbRelease = {
   applications?: { application: { name: string } }[];
   bookings?: { environment?: { name: string } | null; application?: { name: string } }[];
   dependsOn?: { dependsOnRelease: { releaseCode: string; name: string } }[];
+  stakeholders?: { user: { userId: string } }[];
+  releaseSize?: string | null;
+  cabDate?: string | Date | null;
+  startDate?: string | Date | null;
+  testEnvRequired?: string | null;
+  uatEnvRequired?: string | null;
+  conflictFlag?: boolean;
+  notes?: string | null;
+  readinessPercent?: number | null;
+  blockers?: string | null;
+  vendorMaintenance?: string | null;
+  changeFreeze?: string | null;
+  regulatory?: string | null;
+  releaseOwnerId?: string | null;
+  approvalStatus?: string | null;
+  rollbackPlan?: string | null;
+  goLiveChecklistPercent?: number | null;
+  deploymentWindow?: string | null;
 };
 
 /** Maps synthetic demo teams to Release Desk department names. */
@@ -111,6 +147,24 @@ export function dbToUnified(r: DbRelease): UnifiedRelease {
     applicationName: appNames.length ? appNames.join(", ") : "—",
     environmentName: bookingEnv ?? "—",
     dependsOnLabel: deps.length ? deps.join(", ") : "—",
+    releaseSize: r.releaseSize,
+    cabDate: r.cabDate,
+    startDate: r.startDate,
+    testEnvRequired: r.testEnvRequired,
+    uatEnvRequired: r.uatEnvRequired,
+    conflictFlag: r.conflictFlag,
+    notes: r.notes,
+    readinessPercent: r.readinessPercent,
+    blockers: r.blockers,
+    vendorMaintenance: r.vendorMaintenance,
+    changeFreeze: r.changeFreeze,
+    regulatory: r.regulatory,
+    releaseOwnerId: r.releaseOwnerId,
+    approvalStatus: r.approvalStatus,
+    rollbackPlan: r.rollbackPlan,
+    goLiveChecklistPercent: r.goLiveChecklistPercent,
+    deploymentWindow: r.deploymentWindow,
+    stakeholderIds: r.stakeholders?.map(s => s.user.userId).join(",") ?? "—",
   };
 }
 

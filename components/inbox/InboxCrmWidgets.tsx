@@ -89,8 +89,8 @@ export function InboxCrmWidgets({
         </Grid>
         <Grid size={{ xs: 12, lg: 7 }}>
           <MaterioCard title="Inbox Overview" sx={{ display: 'flex', flexDirection: 'column' }}>
-            <div className="h-[220px] w-full mt-2">
-              <ResponsiveContainer width="100%" height="100%">
+            <div className="h-[220px] w-full mt-2" style={{ minHeight: 0, minWidth: 0 }}>
+              <ResponsiveContainer minWidth={0} minHeight={0} width="100%" height="100%">
                 <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
                   <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} />

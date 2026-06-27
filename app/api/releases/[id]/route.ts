@@ -17,8 +17,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const { error } = await requireRole("readonly");
   if (error) return error;
 
-  const row = await prisma.release.findUnique({
-    where: { id: id },
+  // Accept both UUID primary key and releaseCode (e.g. REL-0002)
+  const row = await prisma.release.findFirst({
+    where: { OR: [{ id }, { releaseCode: id }] },
     include: releaseInclude,
   });
   if (!row) return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -31,8 +32,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (error) return error;
 
   const body = await req.json();
-  const existing = await prisma.release.findUnique({ where: { id: id } });
+  // Resolve actual record — accept UUID or releaseCode
+  const existing = await prisma.release.findFirst({ where: { OR: [{ id }, { releaseCode: id }] } });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  const realId = existing.id;
 
   const data: Record<string, unknown> = {};
   for (const key of ["name", "owner", "status", "priority", "impact", "notes", "decision", "departmentId", "releaseCode"]) {
@@ -43,23 +46,23 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   }
   if (body.releaseDate) data.releaseDate = new Date(body.releaseDate);
 
-  await prisma.release.update({ where: { id: id }, data });
+  await prisma.release.update({ where: { id: realId }, data });
 
   if (body.applicationIds) {
-    await prisma.releaseApplication.deleteMany({ where: { releaseId: id } });
+    await prisma.releaseApplication.deleteMany({ where: { releaseId: realId } });
     if (body.applicationIds.length) {
       await prisma.releaseApplication.createMany({
-        data: body.applicationIds.map((applicationId: string) => ({ releaseId: id, applicationId })),
+        data: body.applicationIds.map((applicationId: string) => ({ releaseId: realId, applicationId })),
       });
     }
   }
 
   if (body.dependsOnReleaseIds) {
-    await prisma.releaseDependency.deleteMany({ where: { releaseId: id } });
+    await prisma.releaseDependency.deleteMany({ where: { releaseId: realId } });
     if (body.dependsOnReleaseIds.length) {
       await prisma.releaseDependency.createMany({
         data: body.dependsOnReleaseIds.map((dependsOnReleaseId: string) => ({
-          releaseId: id,
+          releaseId: realId,
           dependsOnReleaseId,
         })),
       });
@@ -69,7 +72,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (body.status && body.status !== existing.status) {
     await prisma.releaseAuditEvent.create({
       data: {
-        releaseId: id,
+        releaseId: realId,
         action: "status_change",
         actor: user!.name,
         detail: `Status changed to ${body.status}`,
@@ -77,7 +80,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     });
   }
 
-  const updated = await prisma.release.findUnique({ where: { id: id }, include: releaseInclude });
+  const updated = await prisma.release.findUnique({ where: { id: realId }, include: releaseInclude });
   return NextResponse.json(updated);
 }
 
@@ -85,6 +88,6 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   const { id } = await params;
   const { error } = await requireRole("editor");
   if (error) return error;
-  await prisma.release.delete({ where: { id: id } });
+  await prisma.release.delete({ where: { id: (await prisma.release.findFirst({ where: { OR: [{ id }, { releaseCode: id }] } }))?.id ?? id } });
   return NextResponse.json({ ok: true });
 }

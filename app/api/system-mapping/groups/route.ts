@@ -3,9 +3,9 @@ import { requireRole } from "@/lib/auth/api";
 import { prisma } from "@/lib/prisma";
 
 const edgeInclude = {
-  sourceApp: true,
+  sourceApp: { include: { department: true } },
   sourceEnv: true,
-  targetApp: true,
+  targetApp: { include: { department: true } },
   targetEnv: true,
 } as const;
 

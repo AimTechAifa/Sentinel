@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import ReactFlow, { Background, Controls, MarkerType, type Edge, type Node, type NodeMouseHandler } from "reactflow";
+import ReactFlow, { Background, Controls, MarkerType, Handle, Position, type Edge, type Node, type NodeMouseHandler } from "reactflow";
 import "reactflow/dist/style.css";
 import { GitBranch } from "lucide-react";
 import { ProgressLink } from "@/components/layout/NavigationProgress";
@@ -30,7 +30,7 @@ function SystemMapNode({
   return (
     <div
       className={cn(
-        "rounded-xl border-2 px-4 py-2.5 text-sm font-semibold shadow-sm min-w-[130px] text-center transition-all ring-2 ring-offset-1",
+        "rounded-xl border-2 px-4 py-2.5 text-sm font-semibold shadow-sm min-w-[130px] text-center transition-all ring-2 ring-offset-1 relative",
         data.nodeType === "environment"
           ? "bg-brand-50 border-brand-300 text-brand-800"
           : "bg-brand-25 border-brand-200 text-brand-700",
@@ -38,11 +38,13 @@ function SystemMapNode({
         data.selected && "scale-105 shadow-theme-md border-brand-500"
       )}
     >
+      <Handle type="target" position={Position.Top} className="!opacity-0" />
       <div>{data.label}</div>
-      {data.version && <div className="text-[10px] font-normal opacity-70 mt-0.5 font-mono text-[10px] uppercase tracking-wider">{data.version}</div>}
+      {data.version && <div className="text-[10px] font-normal opacity-70 mt-0.5 font-mono uppercase tracking-wider">{data.version}</div>}
       {data.status && data.status !== "healthy" && (
         <div className="text-[9px] uppercase tracking-wide mt-1 opacity-80">{data.status}</div>
       )}
+      <Handle type="source" position={Position.Bottom} className="!opacity-0" />
     </div>
   );
 }
@@ -83,7 +85,7 @@ export function SystemMappingView({
     }));
 
     const es: Edge[] = systemNodes
-      .filter((n) => n.parentId)
+      .filter((n) => n.parentId && ns.some(sn => sn.id === n.parentId))
       .map((n) => ({
         id: `${n.parentId}-${n.id}`,
         source: n.parentId!,
