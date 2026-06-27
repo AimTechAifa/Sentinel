@@ -248,14 +248,14 @@ export default function ConnectorsPage() {
       </div>
 
       {/* Real-time Sync Activity Footer */}
-      <div className="rounded-xl border border-gray-200 bg-[#F8FAFC] shadow-sm overflow-hidden mb-8">
-        <div className="px-6 py-4 flex items-center justify-between border-b border-gray-200">
-          <h3 className="text-[16px] font-bold text-gray-900">Real-time Sync Activity</h3>
+      <div className="rounded-xl border border-gray-200 dark:border-[var(--border)] bg-[#F8FAFC] dark:bg-[var(--card)] shadow-sm overflow-hidden mb-8">
+        <div className="px-6 py-4 flex items-center justify-between border-b border-gray-200 dark:border-[var(--border)]">
+          <h3 className="text-[16px] font-bold text-gray-900 dark:text-white">Real-time Sync Activity</h3>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-1.5 text-[13px] font-semibold text-[#16A34A]">
               <div className="h-2 w-2 rounded-full bg-[#16A34A] animate-pulse" /> Live Monitoring
             </div>
-            <button className="text-[13px] font-bold text-[#2548C9] hover:underline">
+            <button className="text-[13px] font-bold text-[#2548C9] dark:text-brand-400 hover:underline">
               View System Logs
             </button>
           </div>
@@ -263,17 +263,17 @@ export default function ConnectorsPage() {
         <div className="p-6 space-y-4 font-mono text-[13px]">
           {/* Row 1 */}
           <div className="flex items-center gap-4">
-            <span className="text-gray-500 w-[100px] shrink-0">10:45:02 AM</span>
-            <span className="px-2 py-0.5 rounded bg-gray-200 text-gray-700 font-bold text-[11px] w-[55px] text-center shrink-0">JIRA</span>
-            <span className="text-gray-700 flex-1">Successful sync: Imported 14 new tickets for Project ALPHA</span>
+            <span className="text-gray-500 dark:text-white/60 w-[100px] shrink-0">10:45:02 AM</span>
+            <span className="px-2 py-0.5 rounded bg-gray-200 dark:bg-white/10 text-gray-700 dark:text-white font-bold text-[11px] w-[55px] text-center shrink-0">JIRA</span>
+            <span className="text-gray-700 dark:text-white/85 flex-1">Successful sync: Imported 14 new tickets for Project ALPHA</span>
             <span className="text-[#16A34A] font-bold shrink-0">SUCCESS</span>
           </div>
           
           {/* Row 2 */}
           <div className="flex items-center gap-4">
-            <span className="text-gray-500 w-[100px] shrink-0">10:42:55 AM</span>
-            <span className="px-2 py-0.5 rounded bg-gray-200 text-gray-700 font-bold text-[11px] w-[55px] text-center shrink-0">SLACK</span>
-            <span className="text-gray-700 flex-1">Outbound webhook: Deployment notification sent to #rel-notifs</span>
+            <span className="text-gray-500 dark:text-white/60 w-[100px] shrink-0">10:42:55 AM</span>
+            <span className="px-2 py-0.5 rounded bg-gray-200 dark:bg-white/10 text-gray-700 dark:text-white font-bold text-[11px] w-[55px] text-center shrink-0">SLACK</span>
+            <span className="text-gray-700 dark:text-white/85 flex-1">Outbound webhook: Deployment notification sent to #rel-notifs</span>
             <span className="text-[#16A34A] font-bold shrink-0">SUCCESS</span>
           </div>
         </div>

@@ -9,6 +9,7 @@ export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   if (PUBLIC.some((p) => pathname.startsWith(p))) return NextResponse.next();
   if (pathname.startsWith("/_next") || pathname.startsWith("/favicon")) return NextResponse.next();
+  if (/\.(?:png|jpe?g|gif|webp|svg|ico)$/i.test(pathname)) return NextResponse.next();
 
   const session = parseSession(req.cookies.get(SESSION_COOKIE)?.value);
   if (!session) {
@@ -28,5 +29,5 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|sentinel-logo\\.png).*)"],
 };

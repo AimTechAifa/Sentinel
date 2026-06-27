@@ -17,8 +17,12 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Sentinel — Release Command Center",
+  title: "Sentinel — Release Management",
   description: "AI-powered release command center for software engineering teams",
+  icons: {
+    icon: "/sentinel-logo.png",
+    apple: "/sentinel-logo.png",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

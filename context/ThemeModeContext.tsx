@@ -13,10 +13,12 @@ type ThemeModeContextValue = {
 
 const ThemeModeContext = createContext<ThemeModeContextValue | null>(null);
 
-const MODES: ThemeMode[] = ["light", "dark", "semi-dark"];
+const MODES: ThemeMode[] = ["light", "dark"];
 
-function isThemeMode(v: string | null): v is ThemeMode {
-  return v === "light" || v === "dark" || v === "semi-dark";
+function normalizeMode(v: string | null): ThemeMode {
+  if (v === "dark" || v === "semi-dark") return "dark";
+  if (v === "light") return "light";
+  return "light";
 }
 
 function applyDomMode(mode: ThemeMode) {
@@ -33,11 +35,11 @@ export function ThemeModeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (isThemeMode(stored)) {
-      setModeState(stored);
-      applyDomMode(stored);
-    } else {
-      applyDomMode("light");
+    const resolved = normalizeMode(stored);
+    setModeState(resolved);
+    applyDomMode(resolved);
+    if (stored === "semi-dark") {
+      localStorage.setItem(STORAGE_KEY, "dark");
     }
   }, []);
 

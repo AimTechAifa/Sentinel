@@ -3,10 +3,9 @@
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { Shield } from "lucide-react";
 import { useNavigationProgress } from "@/components/layout/NavigationProgress";
+import { SentinelLogo } from "@/components/brand/SentinelLogo";
 import { DotPattern } from "@/components/ui/dot-pattern";
-import { ShimmerText } from "@/components/ui/shimmer-text";
 import { MagicCard } from "@/components/ui/magic-card";
 import { taBtnPrimary, taInput } from "@/lib/styles";
 import { PRODUCT_TAGLINE } from "@/lib/brand";
@@ -46,14 +45,9 @@ function LoginForm() {
       <DotPattern className="opacity-20" />
       <div className="relative flex flex-1 flex-col justify-center px-6 py-12 lg:w-1/2 lg:px-16">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mx-auto w-full max-w-md">
-          <div className="mb-8 flex items-center gap-3">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-brand-500 shadow-theme-md">
-              <Shield className="h-6 w-6 text-white" />
-            </div>
-            <div>
-              <ShimmerText className="text-2xl font-bold">Release Desk</ShimmerText>
-              <p className="mt-0.5 text-xs text-gray-500">{PRODUCT_TAGLINE}</p>
-            </div>
+          <div className="mb-8">
+            <SentinelLogo variant="full" priority className="h-[56px] w-auto max-w-[240px]" />
+            <p className="mt-3 text-xs text-gray-500">{PRODUCT_TAGLINE}</p>
           </div>
           <h1 className="mb-2 text-title-sm font-semibold text-gray-800">Sign in with Microsoft</h1>
           <p className="mb-8 text-sm text-gray-500">
@@ -90,10 +84,12 @@ function LoginForm() {
           <LoginHelpCard />
         </motion.div>
       </div>
-      <div className="relative hidden flex-1 items-center justify-center bg-gradient-to-br from-brand-600 via-brand-500 to-brand-700 lg:flex">
-        <div className="max-w-md px-12 text-center text-white">
-          <h2 className="text-2xl font-bold">Release Desk MVP</h2>
-          <p className="mt-3 text-sm text-brand-100/90">
+      <div className="relative hidden flex-1 items-center justify-center bg-gradient-to-br from-brand-600 via-brand-500 to-brand-700 lg:flex px-8">
+        <div className="flex flex-col items-center text-center max-w-lg">
+          <div className="rounded-2xl bg-white/95 p-8 shadow-2xl">
+            <SentinelLogo variant="hero" priority />
+          </div>
+          <p className="mt-8 text-sm text-brand-100/90 leading-relaxed max-w-sm">
             Reference data, env booking, system mapping, and role-based access — backed by PostgreSQL for this build.
           </p>
         </div>

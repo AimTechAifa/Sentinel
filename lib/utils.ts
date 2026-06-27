@@ -144,9 +144,9 @@ export function getDayConflicts(
 }
 
 export function parseCitations(text: string): { content: string; citations: string[] } {
-  const match = text.match(/\nCitations:\s*([\s\S]+)$/);
+  const match = text.match(/\n(\*\*)?Sources:(\*\*)?\s*([\s\S]+)$/i);
   if (!match) return { content: text, citations: [] };
-  const content = text.replace(/\nCitations:\s*[\s\S]+$/, "").trim();
-  const citations = match[1].split(/[,;]/).map((c) => c.trim()).filter(Boolean);
+  const content = text.replace(/\n(\*\*)?Sources:(\*\*)?\s*[\s\S]+$/i, "").trim();
+  const citations = match[3].split(/[,;]/).map((c) => c.trim()).filter(Boolean);
   return { content, citations };
 }
