@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth/api";
 import { prisma } from "@/lib/prisma";
 import { checkSyncNowRateLimit } from "@/lib/connectors/rate-limit";
-import { runConnectorById } from "@/lib/connector-engine";
+import { syncConnectorById } from "@/lib/connectorEngineClient";
 
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { error } = await requireRole("editor");
@@ -25,25 +25,20 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     );
   }
 
-  await runConnectorById(id);
-  const updated = await prisma.connector.findUnique({
-    where: { id },
-    select: {
-      id: true,
-      status: true,
-      lastSyncedAt: true,
-      lastError: true,
-    },
-  });
-
-  return NextResponse.json({
-    ok: updated?.status === "CONNECTED",
-    status: updated?.status,
-    lastSyncedAt: updated?.lastSyncedAt,
-    message:
-      updated?.status === "ERROR"
-        ? "Sync completed with errors. Check connector logs for details."
-        : "Sync completed successfully.",
-    lastError: updated?.lastError ?? null,
-  });
+  try {
+    const result = await syncConnectorById(id);
+    return NextResponse.json({
+      ok: result.ok,
+      status: result.status,
+      lastSyncedAt: result.lastSyncedAt,
+      message:
+        result.status === "ERROR"
+          ? "Sync completed with errors. Check connector logs for details."
+          : "Sync completed successfully.",
+      lastError: result.lastError ?? null,
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Connector engine unavailable";
+    return NextResponse.json({ error: message }, { status: 502 });
+  }
 }

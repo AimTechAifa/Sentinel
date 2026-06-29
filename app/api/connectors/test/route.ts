@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth/api";
-import { testConnectorConnection } from "@/lib/connector-engine";
+import { testConnectorConnection } from "@/lib/connectorEngineClient";
 import { getConnectorTypeDef } from "@/lib/connectors/types";
 
 export async function POST(req: Request) {
@@ -24,13 +24,17 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, message: "Connector type is not available yet" });
   }
 
-  const result = await testConnectorConnection({
-    type: body.type,
-    authType: body.authType ?? typeDef.authType,
-    baseUrl: body.baseUrl ?? null,
-    credentials: body.credentials,
-    config: body.config ?? {},
-  });
-
-  return NextResponse.json(result);
+  try {
+    const result = await testConnectorConnection({
+      type: body.type,
+      authType: body.authType ?? typeDef.authType,
+      baseUrl: body.baseUrl ?? null,
+      credentials: body.credentials,
+      config: body.config ?? {},
+    });
+    return NextResponse.json(result);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Connector engine unavailable";
+    return NextResponse.json({ ok: false, message }, { status: 502 });
+  }
 }

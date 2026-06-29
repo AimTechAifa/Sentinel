@@ -6,6 +6,7 @@ import {
   ChevronRight,
   Eye,
   Loader2,
+  Pencil,
   Plus,
   RefreshCw,
   Trash2,
@@ -18,6 +19,11 @@ import {
   statusBadge,
   type ConnectorTypeId,
 } from "@/lib/connectors/types";
+import {
+  CONNECTOR_DATA_TYPES,
+  dataTypesFromConfig,
+  defaultDataTypesForType,
+} from "@/lib/connectorDataTypes";
 import type { ConnectorPublic } from "@/lib/connectors/public";
 
 type SyncLog = {
@@ -68,6 +74,7 @@ export default function ConnectorsPageContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [wizardOpen, setWizardOpen] = useState(false);
+  const [editConnector, setEditConnector] = useState<ConnectorPublic | null>(null);
   const [logsConnector, setLogsConnector] = useState<ConnectorPublic | null>(null);
   const [logs, setLogs] = useState<SyncLog[]>([]);
   const [logsLoading, setLogsLoading] = useState(false);
@@ -173,7 +180,10 @@ export default function ConnectorsPageContent() {
             </p>
           </div>
           <button
-            onClick={() => setWizardOpen(true)}
+            onClick={() => {
+              setEditConnector(null);
+              setWizardOpen(true);
+            }}
             className="flex items-center gap-2 rounded-lg bg-[#2548C9] px-6 py-2.5 text-[14px] font-semibold text-white shadow-sm hover:bg-[#1E3A9F] transition-colors"
           >
             <Plus className="h-4 w-4" /> Add Connector
@@ -245,6 +255,17 @@ export default function ConnectorsPageContent() {
                           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Sync Now"}
                         </button>
                         <button
+                          disabled={busy}
+                          onClick={() => {
+                            setEditConnector(c);
+                            setWizardOpen(true);
+                          }}
+                          className="text-gray-600 hover:text-gray-900 text-xs font-semibold disabled:opacity-40"
+                          title="Edit"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        <button
                           onClick={() => openLogs(c)}
                           className="text-gray-600 hover:text-gray-900 text-xs font-semibold"
                         >
@@ -275,10 +296,16 @@ export default function ConnectorsPageContent() {
       </div>
 
       {wizardOpen && (
-        <AddConnectorWizard
-          onClose={() => setWizardOpen(false)}
+        <ConnectorWizard
+          mode={editConnector ? "edit" : "create"}
+          existingConnector={editConnector}
+          onClose={() => {
+            setWizardOpen(false);
+            setEditConnector(null);
+          }}
           onSaved={() => {
             setWizardOpen(false);
+            setEditConnector(null);
             loadConnectors();
           }}
         />
@@ -393,15 +420,49 @@ function LogsDrawer({
   );
 }
 
-function AddConnectorWizard({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
-  const [step, setStep] = useState(1);
-  const [selectedType, setSelectedType] = useState<ConnectorTypeId | null>(null);
-  const [name, setName] = useState("");
-  const [baseUrl, setBaseUrl] = useState("");
+function ConnectorWizard({
+  mode,
+  existingConnector,
+  onClose,
+  onSaved,
+}: {
+  mode: "create" | "edit";
+  existingConnector: ConnectorPublic | null;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const isEdit = mode === "edit" && existingConnector != null;
+  const existingConfig = (existingConnector?.config ?? {}) as Record<string, unknown>;
+
+  const [step, setStep] = useState(isEdit ? 2 : 1);
+  const [selectedType, setSelectedType] = useState<ConnectorTypeId | null>(
+    (existingConnector?.type as ConnectorTypeId) ?? null
+  );
+  const [name, setName] = useState(existingConnector?.name ?? "");
+  const [baseUrl, setBaseUrl] = useState(existingConnector?.baseUrl ?? "");
   const [credentials, setCredentials] = useState<Record<string, string>>({});
-  const [config, setConfig] = useState<Record<string, string>>({});
-  const [pollInterval, setPollInterval] = useState(15);
-  const [testResult, setTestResult] = useState<{ ok: boolean; message?: string } | null>(null);
+  const [replaceCredentials, setReplaceCredentials] = useState(!isEdit);
+  const [config, setConfig] = useState<Record<string, string>>(() => {
+    const fields: Record<string, string> = {};
+    if (existingConnector) {
+      const typeDef = getConnectorTypeDef(existingConnector.type);
+      typeDef?.configFields.forEach((f) => {
+        const v = existingConfig[f.key];
+        if (v != null) fields[f.key] = String(v);
+      });
+    }
+    return fields;
+  });
+  const [dataTypes, setDataTypes] = useState<string[]>(() =>
+    existingConnector
+      ? dataTypesFromConfig(existingConnector.type, existingConfig)
+      : []
+  );
+  const [dataTypesError, setDataTypesError] = useState<string | null>(null);
+  const [pollInterval, setPollInterval] = useState(existingConnector?.pollInterval ?? 15);
+  const [testResult, setTestResult] = useState<{ ok: boolean; message?: string } | null>(
+    isEdit ? { ok: true } : null
+  );
   const [testing, setTesting] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -410,11 +471,38 @@ function AddConnectorWizard({ onClose, onSaved }: { onClose: () => void; onSaved
     [selectedType]
   );
 
+  const dataTypeOptions = selectedType ? CONNECTOR_DATA_TYPES[selectedType] ?? [] : [];
+
+  const toggleDataType = (value: string, checked: boolean) => {
+    setDataTypesError(null);
+    const option = dataTypeOptions.find((o) => o.value === value);
+    if (option?.fixed) return;
+    setDataTypes((prev) => {
+      if (checked) return prev.includes(value) ? prev : [...prev, value];
+      return prev.filter((v) => v !== value);
+    });
+  };
+
+  const canProceedStep2 = useMemo(() => {
+    if (!name.trim()) return false;
+    if (!isEdit || replaceCredentials) {
+      const credsFilled = typeDef?.credentialFields.every((f) => credentials[f.key]?.trim());
+      return Boolean(testResult?.ok && credsFilled);
+    }
+    return true;
+  }, [name, isEdit, replaceCredentials, typeDef, credentials, testResult]);
+
   const runTest = async () => {
     if (!typeDef) return;
     setTesting(true);
     setTestResult(null);
     try {
+      if (isEdit && existingConnector && !replaceCredentials) {
+        const res = await fetch(`/api/connectors/${existingConnector.id}/test`, { method: "POST" });
+        setTestResult(await res.json());
+        return;
+      }
+
       const res = await fetch("/api/connectors/test", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -423,7 +511,7 @@ function AddConnectorWizard({ onClose, onSaved }: { onClose: () => void; onSaved
           authType: typeDef.authType,
           baseUrl: baseUrl || undefined,
           credentials,
-          config,
+          config: { ...config, dataTypes },
         }),
       });
       setTestResult(await res.json());
@@ -436,25 +524,51 @@ function AddConnectorWizard({ onClose, onSaved }: { onClose: () => void; onSaved
 
   const save = async () => {
     if (!typeDef || !name.trim()) return;
+    if (dataTypes.length === 0) {
+      setDataTypesError("Select at least one data type");
+      return;
+    }
+    setDataTypesError(null);
     setSaving(true);
     try {
-      const res = await fetch("/api/connectors", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: name.trim(),
-          type: typeDef.id,
-          authType: typeDef.authType,
-          baseUrl: baseUrl || undefined,
-          credentials,
-          config,
-          pollInterval,
-        }),
-      });
-      if (!res.ok) {
-        const body = await res.json();
-        alert(body.error ?? "Could not save connector");
-        return;
+      const payload = {
+        name: name.trim(),
+        baseUrl: baseUrl || undefined,
+        config: { ...config, dataTypes },
+        pollInterval,
+      };
+
+      if (isEdit && existingConnector) {
+        const body: Record<string, unknown> = { ...payload };
+        if (replaceCredentials && Object.keys(credentials).length > 0) {
+          body.credentials = credentials;
+        }
+        const res = await fetch(`/api/connectors/${existingConnector.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) {
+          const err = await res.json();
+          alert(err.error ?? "Could not update connector");
+          return;
+        }
+      } else {
+        const res = await fetch("/api/connectors", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...payload,
+            type: typeDef.id,
+            authType: typeDef.authType,
+            credentials,
+          }),
+        });
+        if (!res.ok) {
+          const err = await res.json();
+          alert(err.error ?? "Could not save connector");
+          return;
+        }
       }
       onSaved();
     } finally {
@@ -462,19 +576,37 @@ function AddConnectorWizard({ onClose, onSaved }: { onClose: () => void; onSaved
     }
   };
 
+  const stepLabel = isEdit
+    ? step === 2
+      ? "Step 1 of 2"
+      : "Step 2 of 2"
+    : `Step ${step} of 3`;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="w-full max-w-2xl rounded-xl bg-white shadow-xl max-h-[90vh] overflow-auto">
         <div className="flex items-center justify-between border-b px-6 py-4">
           <div>
-            <h2 className="text-xl font-bold text-gray-900">Add Connector</h2>
-            <p className="text-sm text-gray-500">Step {step} of 3</p>
+            <h2 className="text-xl font-bold text-gray-900">
+              {isEdit ? `Edit Connector — ${existingConnector?.name}` : "Add Connector"}
+            </h2>
+            <p className="text-sm text-gray-500">{stepLabel}</p>
           </div>
           <button onClick={onClose}><X className="h-5 w-5 text-gray-400" /></button>
         </div>
 
         <div className="p-6">
-          {step === 1 && (
+          {isEdit && (
+            <div className="mb-6 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 flex items-center gap-3 opacity-70">
+              <TypeIcon type={existingConnector!.type} />
+              <div>
+                <p className="text-xs font-semibold uppercase text-gray-500">Source type (locked)</p>
+                <p className="font-semibold text-gray-900">{typeLabel(existingConnector!.type)}</p>
+              </div>
+            </div>
+          )}
+
+          {step === 1 && !isEdit && (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
               {CONNECTOR_TYPES.map((t) => (
                 <button
@@ -484,6 +616,7 @@ function AddConnectorWizard({ onClose, onSaved }: { onClose: () => void; onSaved
                   onClick={() => {
                     setSelectedType(t.id);
                     setPollInterval(t.defaultPollInterval);
+                    setDataTypes(defaultDataTypesForType(t.id));
                     setStep(2);
                   }}
                   className={`rounded-xl border p-4 text-left transition-colors ${
@@ -526,20 +659,45 @@ function AddConnectorWizard({ onClose, onSaved }: { onClose: () => void; onSaved
                   />
                 </div>
               )}
-              {typeDef.credentialFields.map((field) => (
-                <div key={field.key}>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">{field.label}</label>
-                  <input
-                    type={field.type === "password" ? "password" : "text"}
-                    value={credentials[field.key] ?? ""}
-                    onChange={(e) =>
-                      setCredentials((prev) => ({ ...prev, [field.key]: e.target.value }))
-                    }
-                    placeholder={field.placeholder}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                  />
+              {isEdit && !replaceCredentials && (
+                <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600">
+                  Credentials are saved securely.{" "}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setReplaceCredentials(true);
+                      setCredentials({});
+                      setTestResult(null);
+                    }}
+                    className="font-semibold text-[#2548C9] hover:underline"
+                  >
+                    Replace credentials
+                  </button>
                 </div>
-              ))}
+              )}
+              {(!isEdit || replaceCredentials) &&
+                typeDef.credentialFields.map((field) => (
+                  <div key={field.key}>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">{field.label}</label>
+                    <input
+                      type={field.type === "password" ? "password" : "text"}
+                      value={credentials[field.key] ?? ""}
+                      onChange={(e) => {
+                        setCredentials((prev) => ({ ...prev, [field.key]: e.target.value }));
+                        setTestResult(null);
+                      }}
+                      placeholder={
+                        isEdit && !replaceCredentials ? "••••••••" : field.placeholder
+                      }
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                    />
+                    {isEdit && replaceCredentials && field.type === "password" && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        Test connection after entering a new token
+                      </p>
+                    )}
+                  </div>
+                ))}
               <div className="flex items-center gap-3 pt-2">
                 <button
                   type="button"
@@ -557,12 +715,16 @@ function AddConnectorWizard({ onClose, onSaved }: { onClose: () => void; onSaved
                 )}
               </div>
               <div className="flex justify-between pt-4">
-                <button type="button" onClick={() => setStep(1)} className="text-sm text-gray-600 hover:underline">
-                  Back
-                </button>
+                {!isEdit ? (
+                  <button type="button" onClick={() => setStep(1)} className="text-sm text-gray-600 hover:underline">
+                    Back
+                  </button>
+                ) : (
+                  <span />
+                )}
                 <button
                   type="button"
-                  disabled={!testResult?.ok}
+                  disabled={!canProceedStep2}
                   onClick={() => setStep(3)}
                   className="rounded-lg bg-[#2548C9] px-5 py-2 text-sm font-semibold text-white disabled:opacity-40"
                 >
@@ -585,6 +747,29 @@ function AddConnectorWizard({ onClose, onSaved }: { onClose: () => void; onSaved
                   />
                 </div>
               ))}
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">What should we sync?</label>
+                {dataTypeOptions.map((opt) => (
+                  <label key={opt.value} className="flex items-center gap-2 text-sm text-gray-700">
+                    <input
+                      type="checkbox"
+                      checked={dataTypes.includes(opt.value)}
+                      disabled={opt.fixed}
+                      onChange={(e) => toggleDataType(opt.value, e.target.checked)}
+                    />
+                    {opt.label}
+                    {opt.fixed && <span className="text-xs text-gray-400">(always on)</span>}
+                  </label>
+                ))}
+                {dataTypesError && <p className="text-sm text-red-600">{dataTypesError}</p>}
+                {isEdit && (
+                  <p className="text-xs text-gray-500">
+                    Changes apply from the next sync only — past synced data is not removed or backfilled.
+                  </p>
+                )}
+              </div>
+
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">Sync frequency</label>
                 <select
@@ -609,7 +794,7 @@ function AddConnectorWizard({ onClose, onSaved }: { onClose: () => void; onSaved
                   onClick={save}
                   className="rounded-lg bg-[#2548C9] px-5 py-2 text-sm font-semibold text-white disabled:opacity-40"
                 >
-                  {saving ? "Saving…" : "Save Connector"}
+                  {saving ? "Saving…" : isEdit ? "Update Connector" : "Save Connector"}
                 </button>
               </div>
             </div>

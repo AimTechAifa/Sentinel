@@ -2,11 +2,6 @@ generator client {
   provider = "prisma-client-js"
 }
 
-generator connectorEngineClient {
-  provider = "prisma-client-js"
-  output   = "../../connector-engine/node_modules/.prisma/client"
-}
-
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")

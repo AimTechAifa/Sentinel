@@ -2,8 +2,22 @@ import { NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth/api";
 import { prisma } from "@/lib/prisma";
 import { stripCredentialsList } from "@/lib/connectors/public";
-import { encryptCredentials } from "@/lib/connector-engine";
+import { encryptCredentials } from "@/lib/connectorCrypto";
 import { getConnectorTypeDef } from "@/lib/connectors/types";
+import { normalizeDataTypes } from "@/lib/connectorDataTypes";
+
+function buildConfig(type: string, config: Record<string, unknown> | undefined) {
+  const typeDef = getConnectorTypeDef(type);
+  const dataTypes = normalizeDataTypes(type, config?.dataTypes as string[] | undefined);
+  if (dataTypes.length === 0) {
+    return null;
+  }
+  return {
+    ...(config ?? {}),
+    dataTypes,
+    targetModel: typeDef?.targetModel ?? "WorkItem",
+  };
+}
 
 export async function GET() {
   const { error } = await requireRole("readonly");
@@ -44,10 +58,10 @@ export async function POST(req: Request) {
   }
 
   const encrypted = encryptCredentials(body.credentials);
-  const config = {
-    ...(body.config ?? {}),
-    targetModel: typeDef.targetModel,
-  };
+  const config = buildConfig(body.type, body.config);
+  if (!config) {
+    return NextResponse.json({ error: "Select at least one data type to sync" }, { status: 400 });
+  }
 
   const row = await prisma.connector.create({
     data: {
