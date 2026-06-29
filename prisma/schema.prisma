@@ -2,6 +2,11 @@ generator client {
   provider = "prisma-client-js"
 }
 
+generator connectorEngineClient {
+  provider = "prisma-client-js"
+  output   = "../../connector-engine/node_modules/.prisma/client"
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
@@ -227,28 +232,58 @@ model SystemMappingEdge {
   updatedAt    DateTime             @updatedAt
 }
 
-model ConnectorSync {
-  id         String   @id @default(cuid())
-  name       String   @unique
-  lastSynced DateTime
+model Connector {
+  id            String             @id @default(cuid())
+  name          String
+  type          String
+  authType      String
+  baseUrl       String?
+  credentials   String
+  config        Json?
+  pollInterval  Int                @default(15)
+  status        String             @default("PENDING")
+  lastSyncedAt  DateTime?
+  lastError     String?
+  enabled       Boolean            @default(true)
+  createdBy     String?
+  syncLogs      ConnectorSyncLog[]
+  workItems     WorkItem[]
+  p1Issues      P1Issue[]
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+}
+
+model ConnectorSyncLog {
+  id            String    @id @default(cuid())
+  connectorId   String
+  connector     Connector @relation(fields: [connectorId], references: [id], onDelete: Cascade)
+  startedAt     DateTime  @default(now())
+  finishedAt    DateTime?
+  status        String
+  recordsSynced Int?      @default(0)
+  errorMessage  String?
+
+  @@index([connectorId])
 }
 
 model P1Issue {
-  id          String   @id @default(cuid())
-  externalId  String   @unique
+  id          String     @id @default(cuid())
+  externalId  String     @unique
   title       String
   application String?
   releaseCode String?
-  priority    String   @default("P1")
+  priority    String     @default("P1")
   status      String
   source      String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  connectorId String?
+  connector   Connector? @relation(fields: [connectorId], references: [id], onDelete: SetNull)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 }
 
 model WorkItem {
-  id          String   @id @default(cuid())
-  externalId  String   @unique
+  id          String     @id @default(cuid())
+  externalId  String     @unique
   title       String
   itemType    String
   releaseCode String?
@@ -256,9 +291,11 @@ model WorkItem {
   assignee    String?
   priority    String?
   blockedBy   String?
-  source      String   @default("Jira")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  source      String     @default("Jira")
+  connectorId String?
+  connector   Connector? @relation(fields: [connectorId], references: [id], onDelete: SetNull)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 
   @@index([releaseCode])
 }

@@ -38,7 +38,11 @@ export async function buildConversationContext(sessionName: string, currentPath?
     prisma.drift.count(),
     prisma.department.findMany({ select: { id: true, name: true, head: true } }),
     prisma.systemMappingEdge.count(),
-    prisma.connectorSync.findMany({ orderBy: { name: "asc" }, take: 8 }),
+    prisma.connector.findMany({
+      orderBy: { name: "asc" },
+      take: 8,
+      select: { name: true, lastSyncedAt: true },
+    }),
     getLiveState(),
     prisma.release.findMany({
       where: { releaseDate: { gte: new Date(), lte: new Date(Date.now() + 14 * 86400000) } },
@@ -99,7 +103,7 @@ export async function buildConversationContext(sessionName: string, currentPath?
     })),
     connectors: connectors.map((c) => ({
       name: c.name,
-      lastSynced: c.lastSynced.toISOString(),
+      lastSynced: c.lastSyncedAt?.toISOString() ?? new Date(0).toISOString(),
     })),
     liveState: {
       decisions: Object.entries(liveState.decisions).map(([releaseId, d]) => ({

@@ -5,6 +5,7 @@ import {
   prismaReleaseWhere,
 } from "@/lib/db-release-filter";
 import { buildBookings, buildVersionMatrix } from "@/lib/db-environment-desk";
+import { toLegacyConnectorSummary } from "@/lib/connectors/public";
 import { prisma } from "@/lib/prisma";
 import { countByStatus, dbToUnified, periodRange, type Period } from "@/lib/unified-releases";
 
@@ -30,7 +31,7 @@ export async function GET(req: Request) {
     ? applications.find((a) => a.id === filters.applicationId)
     : null;
 
-  const [dbReleases, bookings, apps, versions, connectors, p1Issues] = await Promise.all([
+  const [dbReleases, bookings, apps, versions, connectorRows, p1Issues] = await Promise.all([
     prisma.release.findMany({
       where: dbWhere,
       include: {
@@ -44,7 +45,11 @@ export async function GET(req: Request) {
     prisma.envBooking.findMany({ include: { application: true }, orderBy: { fromDate: "asc" }, take: 8 }),
     prisma.application.findMany({ include: { department: true, environments: true } }),
     prisma.environmentVersion.findMany({ include: { environment: true, application: { include: { department: true } } } }),
-    prisma.connectorSync.findMany({ orderBy: { name: "asc" } }),
+    prisma.connector.findMany({
+      where: { enabled: true },
+      orderBy: { name: "asc" },
+      select: { name: true, lastSyncedAt: true },
+    }),
     prisma.p1Issue.findMany({
       where: {
         priority: "P1",
@@ -54,6 +59,8 @@ export async function GET(req: Request) {
       take: 10,
     }),
   ]);
+
+  const connectors = toLegacyConnectorSummary(connectorRows);
 
   const dbUnified = dbReleases.map(dbToUnified);
   const combined = dbUnified;

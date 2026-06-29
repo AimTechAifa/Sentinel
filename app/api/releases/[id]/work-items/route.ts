@@ -14,18 +14,21 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   });
   if (!release) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const [items, jiraSync] = await Promise.all([
+  const [items, jiraConnector] = await Promise.all([
     prisma.workItem.findMany({
       where: { releaseCode: release.releaseCode },
       orderBy: [{ itemType: "asc" }, { externalId: "asc" }],
     }),
-    prisma.connectorSync.findUnique({ where: { name: "Jira" } }),
+    prisma.connector.findFirst({
+      where: { type: "jira", enabled: true },
+      select: { lastSyncedAt: true },
+    }),
   ]);
 
   return NextResponse.json({
     releaseCode: release.releaseCode,
     items,
     summary: summarizeWorkItems(items),
-    lastSynced: jiraSync?.lastSynced ?? null,
+    lastSynced: jiraConnector?.lastSyncedAt ?? null,
   });
 }

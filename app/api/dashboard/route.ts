@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth/api";
 import { prismaReleaseWhere, parseReleaseFilters } from "@/lib/db-release-filter";
+import { toLegacyConnectorSummary } from "@/lib/connectors/public";
 import { prisma } from "@/lib/prisma";
 import { countByStatus } from "@/lib/unified-releases";
 import { periodRange, type Period } from "@/lib/period-range";
@@ -37,10 +38,15 @@ export async function GET(req: Request) {
       if (app) p1Where.application = app.name;
     }
 
-    const [connectors, p1Issues] = await Promise.all([
-      prisma.connectorSync.findMany({ orderBy: { name: "asc" } }),
+    const [connectorRows, p1Issues] = await Promise.all([
+      prisma.connector.findMany({
+        where: { enabled: true },
+        orderBy: { name: "asc" },
+        select: { name: true, lastSyncedAt: true },
+      }),
       prisma.p1Issue.findMany({ where: p1Where, orderBy: { updatedAt: "desc" } }),
     ]);
+    const connectors = toLegacyConnectorSummary(connectorRows);
 
     return {
       period,
