@@ -12,6 +12,7 @@ import {
   sortAttentionItems,
 } from "@/lib/needs-attention";
 import { getLiveState } from "@/lib/release-state-repo";
+import { withOwner } from "@/lib/release-owner";
 import { prisma } from "@/lib/prisma";
 import { periodRange, type Period } from "@/lib/unified-releases";
 import type { ReleaseDecision } from "@/lib/types";
@@ -36,6 +37,7 @@ export async function GET(req: Request) {
       }),
       include: {
         department: true,
+        releaseOwner: { select: { name: true } },
         auditEvents: { orderBy: { createdAt: "desc" }, take: 1 },
       },
       orderBy: { releaseDate: "asc" },
@@ -43,7 +45,7 @@ export async function GET(req: Request) {
     getLiveState(),
   ]);
 
-  const dbItems = dbRows.map(buildDbAttentionItem);
+  const dbItems = dbRows.map(withOwner).map(buildDbAttentionItem);
 
   const demoFiltered = filterDemoReleasesForPeriod(
     period,

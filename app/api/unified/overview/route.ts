@@ -6,6 +6,7 @@ import {
 } from "@/lib/db-release-filter";
 import { buildBookings, buildVersionMatrix } from "@/lib/db-environment-desk";
 import { toLegacyConnectorSummary } from "@/lib/connectors/public";
+import { withOwner } from "@/lib/release-owner";
 import { prisma } from "@/lib/prisma";
 import { countByStatus, dbToUnified, periodRange, type Period } from "@/lib/unified-releases";
 
@@ -31,11 +32,12 @@ export async function GET(req: Request) {
     ? applications.find((a) => a.id === filters.applicationId)
     : null;
 
-  const [dbReleases, bookings, apps, versions, connectorRows, p1Issues] = await Promise.all([
+  const [dbReleaseRows, bookings, apps, versions, connectorRows, p1Issues] = await Promise.all([
     prisma.release.findMany({
       where: dbWhere,
       include: {
         department: true,
+        releaseOwner: { select: { name: true } },
         applications: { include: { application: true } },
         bookings: { include: { environment: true, application: true } },
         dependsOn: { include: { dependsOnRelease: true } },
@@ -62,6 +64,7 @@ export async function GET(req: Request) {
 
   const connectors = toLegacyConnectorSummary(connectorRows);
 
+  const dbReleases = dbReleaseRows.map(withOwner);
   const dbUnified = dbReleases.map(dbToUnified);
   const combined = dbUnified;
   const combinedCounts = countByStatus(combined);

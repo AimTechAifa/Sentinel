@@ -24,7 +24,7 @@ export async function GET(req: Request) {
       OR: [
         { releaseCode: { contains: q } },
         { name: { contains: q } },
-        { owner: { contains: q } },
+        { releaseOwner: { is: { name: { contains: q } } } },
         { programProject: { contains: q } },
       ],
     },

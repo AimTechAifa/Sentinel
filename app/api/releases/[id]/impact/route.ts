@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth/api";
 import { buildDependencyImpact, type ReleaseRowForImpact } from "@/lib/dependency-impact";
+import { withOwner } from "@/lib/release-owner";
 import { prisma } from "@/lib/prisma";
 
 const releaseInclude = {
   department: true,
+  releaseOwner: { select: { name: true } },
   applications: { include: { application: true } },
   dependsOn: { include: { dependsOnRelease: true } },
   dependedBy: { include: { release: true } },
@@ -30,8 +32,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   if (!release) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const report = buildDependencyImpact(
-    release as ReleaseRowForImpact,
-    allReleases as ReleaseRowForImpact[]
+    withOwner(release) as unknown as ReleaseRowForImpact,
+    allReleases.map(withOwner) as unknown as ReleaseRowForImpact[]
   );
   return NextResponse.json(report);
 }

@@ -39,11 +39,22 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const { error } = await requireRole("editor");
+  const { user, error } = await requireRole("editor");
   if (error) return error;
   const body = await req.json();
+
+  // Single top-level create IS covered by the tenancy middleware for the
+  // organizationId column itself, but not for cross-references inside the
+  // payload — verify both referenced applications belong to this org.
+  const appIds = Array.from(new Set([body.sourceAppId, body.targetAppId]));
+  const ownedApps = await prisma.application.count({ where: { id: { in: appIds } } });
+  if (ownedApps !== appIds.length) {
+    return NextResponse.json({ error: "Application not found in this organization" }, { status: 400 });
+  }
+
   const row = await prisma.systemMappingEdge.create({
     data: {
+      organizationId: user!.organizationId,
       sourceAppId: body.sourceAppId,
       sourceEnvId: body.sourceEnvId,
       targetAppId: body.targetAppId,

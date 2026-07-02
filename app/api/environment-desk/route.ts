@@ -1,16 +1,20 @@
 import { NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth/api";
 import { buildBookings, buildTimeline, buildVersionMatrix } from "@/lib/db-environment-desk";
+import { withOwner } from "@/lib/release-owner";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   const { error } = await requireRole("readonly");
   if (error) return error;
 
-  const [apps, versions, releases, bookings, edges, environments] = await Promise.all([
+  const [apps, versions, releaseRows, bookings, edges, environments] = await Promise.all([
     prisma.application.findMany({ include: { department: true, environments: true } }),
     prisma.environmentVersion.findMany({ include: { environment: true, application: { include: { department: true } } } }),
-    prisma.release.findMany({ include: { department: true }, orderBy: { releaseDate: "asc" } }),
+    prisma.release.findMany({
+      include: { department: true, releaseOwner: { select: { name: true } } },
+      orderBy: { releaseDate: "asc" },
+    }),
     prisma.envBooking.findMany({ include: { application: true }, orderBy: { fromDate: "asc" } }),
     prisma.systemMappingEdge.findMany({
       include: { sourceApp: true, sourceEnv: true, targetApp: true, targetEnv: true },
@@ -18,6 +22,7 @@ export async function GET() {
     prisma.environment.findMany({ include: { application: true } }),
   ]);
 
+  const releases = releaseRows.map(withOwner);
   const versionMatrix = buildVersionMatrix(apps, versions, releases);
   const timeline = buildTimeline(releases);
   const bookingRows = buildBookings(bookings);

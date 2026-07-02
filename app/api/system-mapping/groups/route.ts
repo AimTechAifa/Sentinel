@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth/api";
 import { prisma } from "@/lib/prisma";
 
+// Prisma's query extension only intercepts the top-level operation call, not
+// nested relation writes performed within it — a `systemMappingGroup.create`
+// with `edges: { create: [...] }` would leave those nested edge rows with a
+// NULL organizationId (a required column) unless it's set explicitly here.
+
 const edgeInclude = {
   sourceApp: { include: { department: true } },
   sourceEnv: true,
@@ -63,7 +68,7 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const { error } = await requireRole("editor");
+  const { user, error } = await requireRole("editor");
   if (error) return error;
 
   const body = (await req.json()) as {
@@ -86,13 +91,23 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "at least one edge required" }, { status: 400 });
   }
 
+  // Nested creates bypass the tenancy middleware, so application ownership
+  // must be verified explicitly here before any edge is written.
+  const appIds = Array.from(new Set(body.edges.flatMap((e) => [e.sourceAppId, e.targetAppId])));
+  const ownedApps = await prisma.application.count({ where: { id: { in: appIds } } });
+  if (ownedApps !== appIds.length) {
+    return NextResponse.json({ error: "One or more applications were not found in this organization" }, { status: 400 });
+  }
+
   const group = await prisma.systemMappingGroup.create({
     data: {
+      organizationId: user!.organizationId,
       name: body.name.trim(),
       status: "accepted",
       sourceNotes: body.sourceNotes?.trim() || null,
       edges: {
         create: body.edges.map((e) => ({
+          organizationId: user!.organizationId,
           sourceAppId: e.sourceAppId,
           sourceEnvId: e.sourceEnvId,
           targetAppId: e.targetAppId,

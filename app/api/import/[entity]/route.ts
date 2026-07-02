@@ -11,8 +11,9 @@ function parseCsv(text: string): string[][] {
 
 export async function POST(req: Request, { params }: { params: Promise<{ entity: string }> }) {
   const { entity } = await params;
-  const { error } = await requireRole("editor");
+  const { user, error } = await requireRole("editor");
   if (error) return error;
+  const organizationId = user!.organizationId;
 
   const form = await req.formData();
   const file = form.get("file");
@@ -31,8 +32,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ entity:
     for (const row of data) {
       if (!row[0]) continue;
       await prisma.department.upsert({
-        where: { name: row[0] },
-        create: { name: row[0], head: row[1] ?? "" },
+        where: { organizationId_name: { organizationId, name: row[0] } },
+        create: { organizationId, name: row[0], head: row[1] ?? "" },
         update: { head: row[1] ?? "" },
       });
       imported++;
@@ -42,8 +43,15 @@ export async function POST(req: Request, { params }: { params: Promise<{ entity:
       const dept = await prisma.department.findFirst({ where: { name: row[1] } });
       if (!row[0] || !dept) continue;
       await prisma.application.upsert({
-        where: { name_departmentId: { name: row[0], departmentId: dept.id } },
+        where: {
+          organizationId_name_departmentId: {
+            organizationId,
+            name: row[0],
+            departmentId: dept.id,
+          },
+        },
         create: {
+          organizationId,
           name: row[0],
           departmentId: dept.id,
           type: row[2] ?? "",

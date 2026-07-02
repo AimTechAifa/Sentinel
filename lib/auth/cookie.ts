@@ -5,7 +5,9 @@ export function parseSession(raw: string | undefined): SessionUser | null {
   try {
     const json = Buffer.from(raw, "base64url").toString("utf8");
     const user = JSON.parse(json) as SessionUser;
-    if (!user.email || !user.role) return null;
+    // organizationId is mandatory: a session without a resolvable tenant is
+    // rejected at the middleware layer before any route handler runs.
+    if (!user.email || !user.role || !user.organizationId) return null;
     return user;
   } catch {
     return null;

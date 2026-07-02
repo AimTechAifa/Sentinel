@@ -15,6 +15,7 @@ import { periodRange, type Period } from "./unified-releases";
 import type { ReleaseDecision } from "./types";
 import { isApprovalOverdue } from "./utils";
 import { ownerMatches } from "./user-match";
+import { withOwner } from "./release-owner";
 import { cacheKey, cachedJson, DEFAULT_CACHE_TTL_SECONDS } from "./cache";
 
 function overlaps(aStart: Date, aEnd: Date, bStart: Date, bEnd: Date) {
@@ -69,6 +70,7 @@ export async function buildInboxItems(deps: InboxBuildDeps): Promise<{
         }),
         include: {
           department: true,
+          releaseOwner: { select: { name: true } },
           auditEvents: { orderBy: { createdAt: "desc" }, take: 1 },
         },
         orderBy: { releaseDate: "asc" },
@@ -99,7 +101,7 @@ export async function buildInboxItems(deps: InboxBuildDeps): Promise<{
           decision: null,
           status: { not: "Complete" },
         }),
-        include: { department: true },
+        include: { department: true, releaseOwner: { select: { name: true } } },
         orderBy: { releaseDate: "asc" },
       }),
       sessionName
@@ -107,13 +109,13 @@ export async function buildInboxItems(deps: InboxBuildDeps): Promise<{
             where: prismaReleaseWhere(filters, {
               releaseDate: { gte: start, lte: end },
             }),
-            include: { department: true },
+            include: { department: true, releaseOwner: { select: { name: true } } },
             orderBy: { releaseDate: "asc" },
           })
         : Promise.resolve([]),
     ]);
 
-  const dbAttention = dbRows.map(buildDbAttentionItem);
+  const dbAttention = dbRows.map(withOwner).map(buildDbAttentionItem);
   const attention = sortAttentionItems(dbAttention);
   const items: InboxItem[] = attention.map(attentionToInboxItem);
 
@@ -132,7 +134,7 @@ export async function buildInboxItems(deps: InboxBuildDeps): Promise<{
     });
   });
 
-  approachingRows.forEach((r) => {
+  approachingRows.map(withOwner).forEach((r) => {
     items.push({
       id: `approaching-${r.id}`,
       section: "approaching",
@@ -174,6 +176,7 @@ export async function buildInboxItems(deps: InboxBuildDeps): Promise<{
 
   if (sessionName) {
     myRows
+      .map((r) => withOwner(r))
       .filter((r) => ownerMatches(sessionName, r.owner))
       .filter((r) => r.status !== "Complete")
       .forEach((r) => {

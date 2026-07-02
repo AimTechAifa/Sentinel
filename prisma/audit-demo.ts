@@ -30,7 +30,11 @@ async function get(cookie: string, path: string) {
 
 async function postAgent(cookie: string, agentRole: string) {
   const release = await prisma.release.findFirst({
-    include: { department: true, applications: { include: { application: true } } },
+    include: {
+      department: true,
+      releaseOwner: { select: { name: true } },
+      applications: { include: { application: true } },
+    },
   });
   const res = await fetch(`${BASE}/api/agent`, {
     method: "POST",
@@ -43,7 +47,7 @@ async function postAgent(cookie: string, agentRole: string) {
               code: release.releaseCode,
               name: release.name,
               status: release.status,
-              owner: release.owner,
+              owner: release.releaseOwner?.name ?? "Unassigned",
               department: release.department.name,
               readiness: release.readinessPercent,
               blockers: release.blockers,
@@ -89,10 +93,16 @@ const AGENTS = [
 async function main() {
   console.log("=== MERGE / COLLISION CHECK ===");
   const dbRows = await prisma.release.findMany({
-    include: { department: true, applications: { include: { application: true } } },
+    include: {
+      department: true,
+      releaseOwner: { select: { name: true } },
+      applications: { include: { application: true } },
+    },
     take: 200,
   });
-  const dbUnified = dbRows.map(dbToUnified);
+  const dbUnified = dbRows
+    .map((r) => ({ ...r, owner: r.releaseOwner?.name ?? "Unassigned" }))
+    .map(dbToUnified);
   const demoUnified = demoReleases.slice(0, 50).map(demoToUnified);
   const merged = mergeReleases(dbUnified, demoUnified);
   console.log(`DB releases: ${dbRows.length}, Demo releases: ${demoReleases.length}`);

@@ -5,6 +5,7 @@ import {
 } from "./deployment-sim";
 import { getAllHistory, releases } from "./dummy-data";
 import { prisma } from "./prisma";
+import { resolveOrgContext } from "./tenancy";
 import type {
   AppNotification,
   DeploymentLiveState,
@@ -14,6 +15,22 @@ import type {
   ReleaseDecisionRecord,
 } from "./types";
 import type { ReleaseStoreState, QuickStartSeedId } from "./release-store";
+
+/**
+ * ReleaseDecisionState/DeploymentState key off the demo simulation's
+ * hardcoded release IDs (lib/dummy-data.ts), not the real Release table, so
+ * they can't be relation-scoped — each org gets its own independent copy of
+ * the simulation via a (organizationId, releaseId) compound key instead.
+ * This repo is only ever invoked from authenticated request handlers, so the
+ * session-cookie-backed context is always resolvable here.
+ */
+async function currentOrgId(): Promise<string> {
+  const ctx = await resolveOrgContext();
+  if (!ctx?.organizationId) {
+    throw new Error("release-state-repo: no organization context for this request");
+  }
+  return ctx.organizationId;
+}
 
 const DEFAULT_NOTIFICATIONS: Omit<AppNotification, "id">[] = [
   {
@@ -64,10 +81,12 @@ function toDecisionRecord(row: {
 }
 
 async function ensureDefaultNotifications() {
+  const organizationId = await currentOrgId();
   const count = await prisma.appNotificationRow.count();
   if (count > 0) return;
   await prisma.appNotificationRow.createMany({
     data: DEFAULT_NOTIFICATIONS.map((n) => ({
+      organizationId,
       title: n.title,
       message: n.message,
       releaseId: n.releaseId,
@@ -85,8 +104,9 @@ async function appendHistory(
   type: "human" | "agent",
   agent?: string
 ) {
+  const organizationId = await currentOrgId();
   return prisma.releaseHistoryEvent.create({
-    data: { releaseId, actor, action, type, agent },
+    data: { organizationId, releaseId, actor, action, type, agent },
   });
 }
 
@@ -96,11 +116,15 @@ async function appendNotification(data: {
   releaseId?: string;
   type: AppNotification["type"];
 }) {
-  return prisma.appNotificationRow.create({ data });
+  const organizationId = await currentOrgId();
+  return prisma.appNotificationRow.create({ data: { ...data, organizationId } });
 }
 
 export async function getDecision(releaseId: string): Promise<ReleaseDecisionRecord | null> {
-  const row = await prisma.releaseDecisionState.findUnique({ where: { releaseId } });
+  const organizationId = await currentOrgId();
+  const row = await prisma.releaseDecisionState.findUnique({
+    where: { organizationId_releaseId: { organizationId, releaseId } },
+  });
   if (!row) return null;
   return toDecisionRecord(row);
 }
@@ -111,9 +135,10 @@ export async function recordDecision(
   decision: ReleaseDecision,
   opts: { rationale?: string; overridden?: boolean; actor: string }
 ) {
+  const organizationId = await currentOrgId();
   const decidedAt = new Date();
   await prisma.releaseDecisionState.upsert({
-    where: { releaseId },
+    where: { organizationId_releaseId: { organizationId, releaseId } },
     update: {
       decision,
       rationale: opts.rationale,
@@ -122,6 +147,7 @@ export async function recordDecision(
       overridden: opts.overridden ?? false,
     },
     create: {
+      organizationId,
       releaseId,
       decision,
       rationale: opts.rationale,
@@ -170,7 +196,10 @@ export async function recordReminderSent(
 }
 
 export async function getDeploymentLive(release: Release, now = new Date()): Promise<DeploymentLiveState> {
-  const row = await prisma.deploymentState.findUnique({ where: { releaseId: release.id } });
+  const organizationId = await currentOrgId();
+  const row = await prisma.deploymentState.findUnique({
+    where: { organizationId_releaseId: { organizationId, releaseId: release.id } },
+  });
   if (!row) return computeLiveDeploymentState(release, null, now);
 
   return computeLiveDeploymentState(
@@ -192,9 +221,10 @@ async function persistDeploymentRollback(
   reason: string,
   auto: boolean
 ) {
+  const organizationId = await currentOrgId();
   const now = new Date();
   await prisma.deploymentState.update({
-    where: { releaseId },
+    where: { organizationId_releaseId: { organizationId, releaseId } },
     data: {
       phase: "Rolled Back",
       rolledBackAt: now,
@@ -219,8 +249,9 @@ async function persistDeploymentRollback(
 }
 
 async function persistDeploymentVerified(releaseId: string, release: Release) {
+  const organizationId = await currentOrgId();
   await prisma.deploymentState.update({
-    where: { releaseId },
+    where: { organizationId_releaseId: { organizationId, releaseId } },
     data: { phase: "Verified" },
   });
   await appendHistory(releaseId, "System", "Deployment verified — smoke tests passed", "human");
@@ -234,7 +265,10 @@ async function persistDeploymentVerified(releaseId: string, release: Release) {
 
 /** Reconcile computed deployment with DB — idempotent auto-rollback / verified transitions. */
 async function reconcileDeployment(release: Release, now = new Date()): Promise<DeploymentLiveState> {
-  const row = await prisma.deploymentState.findUnique({ where: { releaseId: release.id } });
+  const organizationId = await currentOrgId();
+  const row = await prisma.deploymentState.findUnique({
+    where: { organizationId_releaseId: { organizationId, releaseId: release.id } },
+  });
   if (!row) return computeLiveDeploymentState(release, null, now);
 
   const computed = computeLiveDeploymentState(
@@ -272,11 +306,12 @@ async function reconcileDeployment(release: Release, now = new Date()): Promise<
 }
 
 export async function startDeployment(release: Release, actor: string) {
+  const organizationId = await currentOrgId();
   const now = new Date();
   await prisma.deploymentState.upsert({
-    where: { releaseId: release.id },
+    where: { organizationId_releaseId: { organizationId, releaseId: release.id } },
     update: { phase: "In Progress", startedAt: now, rolledBackAt: null, rollbackReason: null },
-    create: { releaseId: release.id, phase: "In Progress", startedAt: now },
+    create: { organizationId, releaseId: release.id, phase: "In Progress", startedAt: now },
   });
   await appendHistory(
     release.id,
@@ -297,15 +332,17 @@ export async function initiateRollback(
   actor: string,
   opts?: { auto?: boolean; reason?: string }
 ) {
+  const organizationId = await currentOrgId();
   const now = new Date();
   await prisma.deploymentState.upsert({
-    where: { releaseId: release.id },
+    where: { organizationId_releaseId: { organizationId, releaseId: release.id } },
     update: {
       phase: "Rolled Back",
       rolledBackAt: now,
       rollbackReason: opts?.reason,
     },
     create: {
+      organizationId,
       releaseId: release.id,
       phase: "Rolled Back",
       rolledBackAt: now,
@@ -331,8 +368,9 @@ export async function initiateRollback(
 }
 
 export async function setRollbackNarrative(releaseId: string, narrative: string) {
+  const organizationId = await currentOrgId();
   await prisma.deploymentState.update({
-    where: { releaseId },
+    where: { organizationId_releaseId: { organizationId, releaseId } },
     data: { rollbackNarrative: narrative },
   });
 }
@@ -360,10 +398,11 @@ export async function markAllNotificationsRead() {
 }
 
 export async function setAgentPaused(agentId: string, paused: boolean) {
+  const organizationId = await currentOrgId();
   await prisma.agentPauseState.upsert({
-    where: { agentId },
+    where: { organizationId_agentId: { organizationId, agentId } },
     update: { paused },
-    create: { agentId, paused },
+    create: { organizationId, agentId, paused },
   });
 }
 
@@ -439,6 +478,7 @@ export async function applyQuickStartSeed(seedId: QuickStartSeedId, actor: strin
   await resetDemoState();
   if (seedId === "reset") return;
 
+  const organizationId = await currentOrgId();
   const rel2140 = releases.find((r) => r.id === "rel-v2140");
   const rel2141 = releases.find((r) => r.id === "rel-v2141");
   const now = new Date();
@@ -459,7 +499,7 @@ export async function applyQuickStartSeed(seedId: QuickStartSeedId, actor: strin
           actor,
         });
         await prisma.deploymentState.create({
-          data: { releaseId: rel2141.id, phase: "Verified" },
+          data: { organizationId, releaseId: rel2141.id, phase: "Verified" },
         });
       }
       break;
@@ -472,6 +512,7 @@ export async function applyQuickStartSeed(seedId: QuickStartSeedId, actor: strin
         });
         await prisma.deploymentState.create({
           data: {
+            organizationId,
             releaseId: rel2140.id,
             phase: "In Progress",
             startedAt: startedAtForRollout(rel2140, 48, now),
@@ -489,6 +530,7 @@ export async function applyQuickStartSeed(seedId: QuickStartSeedId, actor: strin
         const incident = createIncidentDeployState(rel2140);
         await prisma.deploymentState.create({
           data: {
+            organizationId,
             releaseId: rel2140.id,
             phase: "In Progress",
             startedAt: startedAtForRollout(rel2140, incident.rolloutPct, now),
@@ -503,7 +545,7 @@ export async function applyQuickStartSeed(seedId: QuickStartSeedId, actor: strin
           actor,
         });
         await prisma.deploymentState.create({
-          data: { releaseId: rel2141.id, phase: "Verified" },
+          data: { organizationId, releaseId: rel2141.id, phase: "Verified" },
         });
       }
       break;

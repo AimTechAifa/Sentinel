@@ -17,12 +17,13 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const { error } = await requireRole("editor");
+  const { user, error } = await requireRole("editor");
   if (error) return error;
 
   const body = await req.json();
   const row = await prisma.drift.create({
     data: {
+      organizationId: user!.organizationId,
       driftCode: body.driftCode,
       releaseId: body.releaseId,
       applicationId: body.applicationId,

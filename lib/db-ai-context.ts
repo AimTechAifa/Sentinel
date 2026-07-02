@@ -11,6 +11,7 @@ import {
   type DependencyImpactReport,
   type WorkItemSummary,
 } from "./dependency-impact";
+import { withOwner } from "./release-owner";
 import type { LifecycleStageView } from "./types";
 import type { TodayAction } from "./top-actions";
 import type { InboxSection } from "./inbox-shared";
@@ -60,6 +61,7 @@ export type InboxBriefingContext = {
 
 const releaseInclude = {
   department: true,
+  releaseOwner: { select: { name: true } },
   applications: { include: { application: true } },
   dependsOn: { include: { dependsOnRelease: true } },
   dependedBy: { include: { release: true } },
@@ -76,12 +78,14 @@ export async function buildDbRiskAgentContext(
   prisma: typeof import("./prisma").prisma,
   releaseId: string
 ): Promise<DbRiskAgentContext | null> {
-  const [release, allReleases] = await Promise.all([
+  const [releaseRow, allReleaseRows] = await Promise.all([
     prisma.release.findUnique({ where: { id: releaseId }, include: releaseInclude }),
     prisma.release.findMany({ include: releaseInclude }),
   ]);
 
-  if (!release) return null;
+  if (!releaseRow) return null;
+  const release = withOwner(releaseRow);
+  const allReleases = allReleaseRows.map(withOwner);
 
   const [p1Issues, workItems] = await Promise.all([
     prisma.p1Issue.findMany({ where: { releaseCode: release.releaseCode } }),

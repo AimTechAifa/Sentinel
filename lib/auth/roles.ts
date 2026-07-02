@@ -4,6 +4,12 @@ export interface SessionUser {
   email: string;
   name: string;
   role: UserRole;
+  /** Sentinel Organization.id — every authenticated request is scoped to this tenant. */
+  organizationId: string;
+  /** Clerk Organizations ID this session was resolved from, when Clerk is active. */
+  clerkOrgId?: string;
+  /** Sentinel User.id when the session email matches a seeded/managed user row. */
+  userId?: string;
 }
 
 export const SESSION_COOKIE = "sentinel-session";

@@ -1,6 +1,9 @@
 import fs from "fs";
 import path from "path";
-import type { PrismaClient } from "@prisma/client";
+import type { prisma as prismaClient } from "./prisma";
+import { runWithOrgContext } from "./tenancy";
+
+type SeedPrisma = typeof prismaClient;
 
 const MATRIX_MARKER = "From \\ To";
 const PRIMARY = "\u25cf"; // ●
@@ -36,7 +39,11 @@ function primaryAppByDepartment(
  * department on Test env — documented in SEED_NOTES as the closest match to the
  * narrative integration map without inventing app-pair relationships.
  */
-export async function seedSystemMapping(prisma: PrismaClient) {
+export async function seedSystemMapping(prisma: SeedPrisma, organizationId: string) {
+  return runWithOrgContext({ organizationId }, () => seedSystemMappingScoped(prisma, organizationId));
+}
+
+async function seedSystemMappingScoped(prisma: SeedPrisma, organizationId: string) {
   await prisma.systemMappingEdge.deleteMany();
   await prisma.systemMappingGroup.deleteMany();
 
@@ -68,6 +75,7 @@ export async function seedSystemMapping(prisma: PrismaClient) {
 
   const header = raw[headerIdx] as string[];
   const edgeData: {
+    organizationId: string;
     sourceAppId: string;
     sourceEnvId: string;
     targetAppId: string;
@@ -105,6 +113,7 @@ export async function seedSystemMapping(prisma: PrismaClient) {
       seen.add(key);
 
       edgeData.push({
+        organizationId,
         sourceAppId: sourceApp.id,
         sourceEnvId: sourceEnv.id,
         targetAppId: targetApp.id,
@@ -122,6 +131,7 @@ export async function seedSystemMapping(prisma: PrismaClient) {
 
   await prisma.systemMappingGroup.create({
     data: {
+      organizationId,
       name: "Enterprise Default Setup",
       status: "accepted",
       sourceNotes:

@@ -35,7 +35,10 @@ type ReleaseNode = {
   releaseCode: string;
   name: string;
   status: string;
-  owner: string;
+  /** Old flat owner string, when already derived by the caller. */
+  owner?: string;
+  /** New schema: owner comes from the releaseOwner User relation. */
+  releaseOwner?: { name: string } | null;
   releaseDate: Date | string;
 };
 
@@ -64,7 +67,7 @@ function toNode(r: ReleaseNode): ReleaseImpactNode {
     releaseCode: r.releaseCode,
     name: r.name,
     status: r.status,
-    owner: r.owner,
+    owner: r.owner ?? r.releaseOwner?.name ?? "Unassigned",
     releaseDate: date,
     href: `/releases/${r.id}`,
   };

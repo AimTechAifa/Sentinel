@@ -43,6 +43,7 @@ export async function PUT(req: Request) {
     apps.map((app) =>
       prisma.envBooking.create({
         data: {
+          organizationId: user!.organizationId,
           applicationId: app.id,
           environmentId: app.environments[0]?.id,
           bookedBy: user!.name,

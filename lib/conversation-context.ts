@@ -21,7 +21,7 @@ export async function buildConversationContext(sessionName: string, currentPath?
   ] = await Promise.all([
     prisma.release.findMany({
       where: { status: { in: ["Blocked", "At Risk"] } },
-      include: { department: true },
+      include: { department: true, releaseOwner: { select: { name: true } } },
       orderBy: { releaseDate: "asc" },
       take: 12,
     }),
@@ -46,7 +46,7 @@ export async function buildConversationContext(sessionName: string, currentPath?
     getLiveState(),
     prisma.release.findMany({
       where: { releaseDate: { gte: new Date(), lte: new Date(Date.now() + 14 * 86400000) } },
-      include: { department: true },
+      include: { department: true, releaseOwner: { select: { name: true } } },
       orderBy: { releaseDate: "asc" },
       take: 10,
     }),
@@ -81,7 +81,7 @@ export async function buildConversationContext(sessionName: string, currentPath?
       code: r.releaseCode,
       name: r.name,
       status: r.status,
-      owner: r.owner,
+      owner: r.releaseOwner?.name ?? "Unassigned",
       department: r.department.name,
       releaseDate: r.releaseDate.toISOString().slice(0, 10),
       href: `/releases/${r.id}`,
@@ -97,7 +97,7 @@ export async function buildConversationContext(sessionName: string, currentPath?
       code: r.releaseCode,
       name: r.name,
       status: r.status,
-      owner: r.owner,
+      owner: r.releaseOwner?.name ?? "Unassigned",
       department: r.department.name,
       releaseDate: r.releaseDate.toISOString().slice(0, 10),
     })),
@@ -128,6 +128,7 @@ export async function lookupReleaseByCode(code: string) {
     where: { releaseCode: { equals: code, mode: "insensitive" } },
     include: {
       department: true,
+      releaseOwner: { select: { name: true } },
       applications: { include: { application: true } },
       dependsOn: { include: { dependsOnRelease: true } },
       dependedBy: { include: { release: true } },
@@ -142,7 +143,7 @@ export async function lookupReleaseByCode(code: string) {
     releaseCode: release.releaseCode,
     name: release.name,
     status: release.status,
-    owner: release.owner,
+    owner: release.releaseOwner?.name ?? "Unassigned",
     department: release.department.name,
     priority: release.priority,
     releaseDate: release.releaseDate.toISOString().slice(0, 10),

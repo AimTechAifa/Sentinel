@@ -11,6 +11,9 @@ export function middleware(req: NextRequest) {
   if (pathname.startsWith("/_next") || pathname.startsWith("/favicon")) return NextResponse.next();
   if (/\.(?:png|jpe?g|gif|webp|svg|ico)$/i.test(pathname)) return NextResponse.next();
 
+  // parseSession returns null when the cookie has no organizationId, so any
+  // request without a resolvable tenant is rejected here — before any route
+  // handler or business logic runs.
   const session = parseSession(req.cookies.get(SESSION_COOKIE)?.value);
   if (!session) {
     if (pathname.startsWith("/api/")) {

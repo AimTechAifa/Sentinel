@@ -12,6 +12,7 @@ const releaseInclude = {
   applications: { include: { application: true } },
   dependsOn: { include: { dependsOnRelease: true } },
   bookings: { include: { application: true } },
+  releaseOwner: { select: { name: true } },
 };
 
 export async function GET(req: Request) {
@@ -41,7 +42,7 @@ export async function GET(req: Request) {
     releaseCode: release.releaseCode,
     name: release.name,
     href: `/releases/${release.id}`,
-    owner: release.owner,
+    owner: release.releaseOwner?.name ?? "Unassigned",
     prediction: predictDbRelease(release, p1ByCode.get(release.releaseCode) ?? []),
   }));
 

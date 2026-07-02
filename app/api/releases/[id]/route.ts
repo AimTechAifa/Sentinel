@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth/api";
+import { validateCustomFields } from "@/lib/custom-fields";
 import { prisma } from "@/lib/prisma";
 import { normalizeProgramProject } from "@/lib/release-id";
 
@@ -40,13 +41,28 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const realId = existing.id;
 
   const data: Record<string, unknown> = {};
-  for (const key of ["name", "owner", "status", "priority", "impact", "notes", "decision", "departmentId", "releaseCode"]) {
+  for (const key of ["name", "status", "priority", "impact", "notes", "decision", "departmentId", "releaseCode"]) {
     if (body[key] !== undefined) data[key] = body[key];
+  }
+  // Old flat `owner` string → releaseOwner relation; resolve by name if sent.
+  if (body.releaseOwnerId !== undefined) data.releaseOwnerId = body.releaseOwnerId;
+  else if (body.owner !== undefined) {
+    const ownerUser = await prisma.user.findFirst({
+      where: { name: { equals: String(body.owner), mode: "insensitive" } },
+      select: { id: true },
+    });
+    data.releaseOwnerId = ownerUser?.id ?? null;
   }
   if (body.programProject !== undefined) {
     data.programProject = normalizeProgramProject(body.programProject) ?? "N/A";
   }
   if (body.releaseDate) data.releaseDate = new Date(body.releaseDate);
+
+  if (body.customFields !== undefined) {
+    const check = await validateCustomFields("Release", user!.organizationId, body.customFields);
+    if (!check.ok) return NextResponse.json({ error: "Invalid custom fields", details: check.errors }, { status: 400 });
+    data.customFields = check.value;
+  }
 
   await prisma.release.update({ where: { id: realId }, data });
 

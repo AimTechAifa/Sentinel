@@ -65,6 +65,7 @@ export async function POST(req: Request) {
 
   const row = await prisma.connector.create({
     data: {
+      organizationId: user!.organizationId,
       name: body.name.trim(),
       type: body.type,
       authType: body.authType ?? typeDef.authType,
